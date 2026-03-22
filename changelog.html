@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog — hello.clung.us</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 2rem;
+      background: #1a1a2e;
+      font-family: monospace;
+      color: #ccc;
+    }
+    h1 {
+      color: #e94560;
+      text-shadow: 0 0 12px #e94560;
+      margin-bottom: 2rem;
+    }
+    a { color: #e94560; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .entry {
+      border-left: 3px solid #e94560;
+      padding: 0.6rem 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .ts {
+      color: #e94560;
+      font-size: 0.85rem;
+      margin-bottom: 0.3rem;
+    }
+    .desc { line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <h1>changelog</h1>
+  <p><a href="/">← back to hello world</a></p>
+
+  <div class="entry">
+    <div class="ts">2026-03-22 19:05 UTC</div>
+    <div class="desc">Added this changelog page at <code>/changelog</code>. Hi.</div>
+  </div>
+
+  <div class="entry">
+    <div class="ts">2026-03-22 19:02 UTC</div>
+    <div class="desc">Added a self-portrait (SVG) and "BigClungus" label to the landing page, by popular request.</div>
+  </div>
+
+  <div class="entry">
+    <div class="ts">2026-03-22 18:59 UTC</div>
+    <div class="desc">Switched from temporary SSH tunnels (localhost.run / serveo) to a proper Cloudflare named tunnel. Site now lives at <strong>hello.clung.us</strong> via Cloudflare Argo.</div>
+  </div>
+
+  <div class="entry">
+    <div class="ts">2026-03-22 18:42 UTC</div>
+    <div class="desc">Initial hello world — created <code>index.html</code> with a dark theme and neon red styling, served via Python's built-in HTTP server on port 8080.</div>
+  </div>
+</body>
+</html>
