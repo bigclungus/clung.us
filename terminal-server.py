@@ -128,6 +128,48 @@ HTML = r"""<!DOCTYPE html>
       max-height: 48px;
       overflow: hidden;
     }
+    .task-card {
+      cursor: pointer;
+    }
+    .task-card.expanded {
+      border-color: #e94560;
+    }
+    .task-expand {
+      display: none;
+      margin-top: 8px;
+      background: #060610;
+      border: 1px solid #2a2a4e;
+      border-radius: 3px;
+      padding: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 10px;
+      color: #bbb;
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: 1.5;
+    }
+    .task-expand::-webkit-scrollbar { width: 4px; }
+    .task-expand::-webkit-scrollbar-track { background: #0d0d1a; }
+    .task-expand::-webkit-scrollbar-thumb { background: #e94560; border-radius: 2px; }
+    .task-expand.visible { display: block; }
+    .task-expand-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      color: #e94560;
+      font-size: 10px;
+      font-weight: bold;
+    }
+    .task-expand-close {
+      cursor: pointer;
+      padding: 0 4px;
+      color: #e94560;
+      font-size: 13px;
+      line-height: 1;
+    }
+    .task-expand-close:hover { color: #fff; }
     #agents-empty {
       color: #444;
       font-size: 11px;
@@ -209,6 +251,44 @@ HTML = r"""<!DOCTYPE html>
       return str.replace(/\x1B\[[0-9;]*[mGKHF]/g, '').replace(/\x1B\][^\x07]*\x07/g, '');
     }
 
+    const expandedCards = new Set();
+
+    async function toggleCardExpand(card) {
+      const agentId = card.dataset.id;
+      const expandEl = card.querySelector('.task-expand');
+      if (!expandEl) return;
+
+      if (expandedCards.has(agentId)) {
+        expandedCards.delete(agentId);
+        card.classList.remove('expanded');
+        expandEl.classList.remove('visible');
+        return;
+      }
+
+      expandedCards.add(agentId);
+      card.classList.add('expanded');
+      expandEl.classList.add('visible');
+
+      const contentEl = expandEl.querySelector('.task-expand-content');
+      if (contentEl && contentEl.dataset.loaded !== 'true') {
+        contentEl.textContent = 'Loading...';
+        try {
+          const resp = await fetch('/task-output/' + agentId);
+          if (resp.ok) {
+            const text = await resp.text();
+            contentEl.textContent = stripAnsi(text).trim() || '(empty)';
+          } else {
+            contentEl.textContent = 'Error: ' + resp.status;
+          }
+        } catch (e) {
+          contentEl.textContent = 'Fetch error: ' + e.message;
+        }
+        contentEl.dataset.loaded = 'true';
+        // Scroll to bottom of output
+        expandEl.scrollTop = expandEl.scrollHeight;
+      }
+    }
+
     function renderTasks(tasks) {
       const list = document.getElementById('agents-list');
       const empty = document.getElementById('agents-empty');
@@ -228,13 +308,25 @@ HTML = r"""<!DOCTYPE html>
       tasks.forEach((task, idx) => {
         seen.add(task.id);
         let card = existing[task.id];
-        if (!card) {
+        const isNew = !card;
+        if (isNew) {
           card = document.createElement('div');
           card.className = 'task-card';
           card.dataset.id = task.id;
         }
         const summary = stripAnsi(task.summary || '').trim();
         const desc = task.description ? `<div class="task-description">${task.description}</div>` : '';
+        const wasExpanded = expandedCards.has(task.id);
+        // Preserve loaded content across re-renders
+        let loadedContent = null;
+        let wasLoaded = false;
+        if (!isNew) {
+          const old = card.querySelector('.task-expand-content');
+          if (old && old.dataset.loaded === 'true') {
+            loadedContent = old.textContent;
+            wasLoaded = true;
+          }
+        }
         card.innerHTML = `
           ${desc}
           <div class="task-top">
@@ -243,7 +335,29 @@ HTML = r"""<!DOCTYPE html>
             <div class="task-age">${relativeTime(task.mtime)}</div>
           </div>
           <div class="task-summary">${summary.substring(summary.length - 300)}</div>
+          <div class="task-expand${wasExpanded ? ' visible' : ''}">
+            <div class="task-expand-header">
+              <span>Full Output</span>
+              <span class="task-expand-close" title="Close">&times;</span>
+            </div>
+            <div class="task-expand-content"${wasLoaded ? ' data-loaded="true"' : ''}>${wasLoaded ? loadedContent.replace(/&/g,'&amp;').replace(/</g,'&lt;') : ''}</div>
+          </div>
         `;
+        if (wasExpanded) card.classList.add('expanded');
+
+        // Close button
+        card.querySelector('.task-expand-close').addEventListener('click', (e) => {
+          e.stopPropagation();
+          expandedCards.delete(task.id);
+          card.classList.remove('expanded');
+          card.querySelector('.task-expand').classList.remove('visible');
+        });
+
+        // Card click to expand
+        if (isNew) {
+          card.addEventListener('click', () => toggleCardExpand(card));
+        }
+
         // Insert in order
         const cards = list.querySelectorAll('.task-card');
         if (cards.length === 0 || idx >= cards.length) {
@@ -410,6 +524,21 @@ async def tasks_handler(request):
     return web.Response(text=json.dumps(tasks), content_type='application/json')
 
 
+async def task_output_handler(request):
+    agent_id = request.match_info['agentId']
+    if not agent_id.replace('-', '').replace('_', '').isalnum():
+        return web.Response(status=400, text='Invalid agentId')
+    fpath = os.path.join(TASKS_DIR, agent_id + '.output')
+    try:
+        with open(fpath, 'r', errors='replace') as f:
+            content = f.read()
+    except FileNotFoundError:
+        return web.Response(status=404, text='Task output not found')
+    except OSError as e:
+        return web.Response(status=500, text=str(e))
+    return web.Response(text=content, content_type='text/plain')
+
+
 async def meta_handler(request):
     agent_id = request.match_info['agentId']
     # Basic sanity check — agent IDs are hex strings
@@ -436,6 +565,7 @@ app = web.Application()
 app.router.add_get('/', index)
 app.router.add_get('/ws', websocket_handler)
 app.router.add_get('/tasks', tasks_handler)
+app.router.add_get('/task-output/{agentId}', task_output_handler)
 app.router.add_post('/meta/{agentId}', meta_handler)
 
 if __name__ == '__main__':
