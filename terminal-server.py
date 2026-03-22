@@ -6,8 +6,15 @@ served alongside an xterm.js HTML page.
 import asyncio
 import json
 import os
+import subprocess
 import time
 from aiohttp import web
+
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    HAS_PSUTIL = False
 
 LOGFILE = "/tmp/screenlog.txt"
 TASKS_DIR = "/tmp/claude-1001/-home-clungus/bb9407c6-0d39-400c-af71-7c6765df2c69/tasks"
@@ -37,6 +44,62 @@ HTML = r"""<!DOCTYPE html>
     #status { font-size: 11px; color: #888; margin-left: auto; }
     #status.connected { color: #4caf50; }
     #status.disconnected { color: #e94560; }
+    #healthbar {
+      background: #111122;
+      border-bottom: 1px solid #2a2a4e;
+      padding: 5px 16px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+      font-size: 11px;
+      font-family: monospace;
+      color: #aaa;
+    }
+    .hb-metric {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .hb-label {
+      color: #e94560;
+      font-weight: bold;
+      min-width: 30px;
+    }
+    .hb-bar-wrap {
+      width: 60px;
+      height: 6px;
+      background: #2a2a4e;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .hb-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: #4caf50;
+      transition: width 0.4s ease;
+    }
+    .hb-bar-fill.warn { background: #f0c040; }
+    .hb-bar-fill.crit { background: #e94560; }
+    .hb-val { color: #ccc; min-width: 34px; }
+    .hb-sep { color: #2a2a4e; }
+    .hb-svc {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .hb-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #444;
+      flex-shrink: 0;
+    }
+    .hb-dot.ok { background: #4caf50; box-shadow: 0 0 4px #4caf50; }
+    .hb-dot.down { background: #e94560; box-shadow: 0 0 4px #e94560; }
+    .hb-uptime { color: #888; }
     #main {
       display: flex;
       flex: 1;
@@ -182,6 +245,42 @@ HTML = r"""<!DOCTYPE html>
   <div id="header">
     <span>&#x1F916; BigClungus Live Session</span>
     <span id="status" class="disconnected">&#x25CF; disconnected</span>
+  </div>
+  <div id="healthbar">
+    <div class="hb-metric">
+      <span class="hb-label">CPU</span>
+      <div class="hb-bar-wrap"><div class="hb-bar-fill" id="hb-cpu-bar" style="width:0%"></div></div>
+      <span class="hb-val" id="hb-cpu-val">--</span>
+    </div>
+    <div class="hb-sep">|</div>
+    <div class="hb-metric">
+      <span class="hb-label">RAM</span>
+      <div class="hb-bar-wrap"><div class="hb-bar-fill" id="hb-ram-bar" style="width:0%"></div></div>
+      <span class="hb-val" id="hb-ram-val">--</span>
+    </div>
+    <div class="hb-sep">|</div>
+    <div class="hb-metric">
+      <span class="hb-label">DISK</span>
+      <div class="hb-bar-wrap"><div class="hb-bar-fill" id="hb-disk-bar" style="width:0%"></div></div>
+      <span class="hb-val" id="hb-disk-val">--</span>
+    </div>
+    <div class="hb-sep">|</div>
+    <div class="hb-metric">
+      <span class="hb-label">SWAP</span>
+      <div class="hb-bar-wrap"><div class="hb-bar-fill" id="hb-swap-bar" style="width:0%"></div></div>
+      <span class="hb-val" id="hb-swap-val">--</span>
+    </div>
+    <div class="hb-sep">|</div>
+    <div class="hb-svc">
+      <div class="hb-dot" id="hb-dot-cloudflared"></div>
+      <span>cloudflared</span>
+    </div>
+    <div class="hb-svc">
+      <div class="hb-dot" id="hb-dot-terminal"></div>
+      <span>terminal-server</span>
+    </div>
+    <div class="hb-sep">|</div>
+    <span class="hb-uptime" id="hb-uptime">up --</span>
   </div>
   <div id="main">
     <div id="terminal"></div>
@@ -387,6 +486,43 @@ HTML = r"""<!DOCTYPE html>
 
     pollTasks();
     setInterval(pollTasks, 3000);
+
+    // Health bar
+    function setBar(barId, valId, pct, label) {
+      const bar = document.getElementById(barId);
+      const val = document.getElementById(valId);
+      if (!bar || !val) return;
+      const w = Math.min(100, Math.max(0, pct));
+      bar.style.width = w + '%';
+      bar.className = 'hb-bar-fill' + (w >= 90 ? ' crit' : w >= 70 ? ' warn' : '');
+      val.textContent = label;
+    }
+
+    function setDot(id, ok) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = 'hb-dot ' + (ok ? 'ok' : 'down');
+    }
+
+    async function pollHealth() {
+      try {
+        const resp = await fetch('/health');
+        if (!resp.ok) return;
+        const d = await resp.json();
+        setBar('hb-cpu-bar', 'hb-cpu-val', d.cpu_percent, d.cpu_percent.toFixed(1) + '%');
+        setBar('hb-ram-bar', 'hb-ram-val', d.ram.percent, d.ram.percent.toFixed(1) + '%');
+        setBar('hb-disk-bar', 'hb-disk-val', d.disk.percent, d.disk.percent.toFixed(1) + '%');
+        setBar('hb-swap-bar', 'hb-swap-val', d.swap.percent, d.swap.percent.toFixed(1) + '%');
+        setDot('hb-dot-cloudflared', d.services.cloudflared);
+        setDot('hb-dot-terminal', d.services['terminal-server']);
+        document.getElementById('hb-uptime').textContent = 'up ' + d.uptime;
+      } catch (e) {
+        // silently ignore
+      }
+    }
+
+    pollHealth();
+    setInterval(pollHealth, 5000);
   </script>
 </body>
 </html>
@@ -561,8 +697,176 @@ async def meta_handler(request):
     return web.Response(text=json.dumps({'ok': True, 'agentId': agent_id, 'description': description}),
                         content_type='application/json')
 
+def format_uptime(seconds):
+    seconds = int(seconds)
+    days, rem = divmod(seconds, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes, _ = divmod(rem, 60)
+    if days > 0:
+        return f"{days}d {hours}h {minutes}m"
+    if hours > 0:
+        return f"{hours}h {minutes}m"
+    return f"{minutes}m"
+
+
+def check_service_running(name):
+    """Return True if a systemd --user service is active."""
+    try:
+        result = subprocess.run(
+            ['systemctl', '--user', 'is-active', name],
+            capture_output=True, text=True, timeout=3
+        )
+        return result.stdout.strip() == 'active'
+    except Exception:
+        return False
+
+
+def check_process_running(name):
+    """Return True if a process with the given name is running."""
+    if HAS_PSUTIL:
+        for proc in psutil.process_iter(['name', 'cmdline']):
+            try:
+                pname = proc.info['name'] or ''
+                cmdline = ' '.join(proc.info['cmdline'] or [])
+                if name in pname or name in cmdline:
+                    return True
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        return False
+    # Fallback: check /proc
+    try:
+        for pid in os.listdir('/proc'):
+            if not pid.isdigit():
+                continue
+            try:
+                with open(f'/proc/{pid}/comm', 'r') as f:
+                    if name in f.read():
+                        return True
+            except OSError:
+                pass
+    except OSError:
+        pass
+    return False
+
+
+async def health_handler(request):
+    data = {}
+
+    if HAS_PSUTIL:
+        # CPU
+        data['cpu_percent'] = psutil.cpu_percent(interval=0.1)
+
+        # RAM
+        vm = psutil.virtual_memory()
+        data['ram'] = {
+            'total': vm.total,
+            'used': vm.used,
+            'available': vm.available,
+            'percent': vm.percent,
+        }
+
+        # Disk
+        du = psutil.disk_usage('/')
+        data['disk'] = {
+            'total': du.total,
+            'used': du.used,
+            'free': du.free,
+            'percent': du.percent,
+        }
+
+        # Swap
+        sw = psutil.swap_memory()
+        data['swap'] = {
+            'total': sw.total,
+            'used': sw.used,
+            'percent': sw.percent,
+        }
+
+        # Uptime
+        boot_time = psutil.boot_time()
+        uptime_secs = time.time() - boot_time
+        data['uptime'] = format_uptime(uptime_secs)
+        data['uptime_seconds'] = int(uptime_secs)
+    else:
+        # Fallback: parse /proc files
+        # CPU (single snapshot, not interval-based — less accurate)
+        try:
+            with open('/proc/stat', 'r') as f:
+                line = f.readline()
+            fields = list(map(int, line.split()[1:]))
+            idle = fields[3]
+            total = sum(fields)
+            data['cpu_percent'] = round((1 - idle / total) * 100, 1)
+        except Exception:
+            data['cpu_percent'] = 0.0
+
+        # RAM
+        try:
+            meminfo = {}
+            with open('/proc/meminfo', 'r') as f:
+                for line in f:
+                    k, v = line.split(':')
+                    meminfo[k.strip()] = int(v.split()[0]) * 1024
+            total = meminfo.get('MemTotal', 0)
+            avail = meminfo.get('MemAvailable', 0)
+            used = total - avail
+            pct = round(used / total * 100, 1) if total else 0
+            data['ram'] = {'total': total, 'used': used, 'available': avail, 'percent': pct}
+        except Exception:
+            data['ram'] = {'total': 0, 'used': 0, 'available': 0, 'percent': 0}
+
+        # Disk
+        try:
+            st = os.statvfs('/')
+            total = st.f_blocks * st.f_frsize
+            free = st.f_bfree * st.f_frsize
+            used = total - free
+            pct = round(used / total * 100, 1) if total else 0
+            data['disk'] = {'total': total, 'used': used, 'free': free, 'percent': pct}
+        except Exception:
+            data['disk'] = {'total': 0, 'used': 0, 'free': 0, 'percent': 0}
+
+        # Swap
+        try:
+            swapinfo = {}
+            with open('/proc/meminfo', 'r') as f:
+                for line in f:
+                    k, v = line.split(':')
+                    swapinfo[k.strip()] = int(v.split()[0]) * 1024
+            stotal = swapinfo.get('SwapTotal', 0)
+            sfree = swapinfo.get('SwapFree', 0)
+            sused = stotal - sfree
+            spct = round(sused / stotal * 100, 1) if stotal else 0
+            data['swap'] = {'total': stotal, 'used': sused, 'percent': spct}
+        except Exception:
+            data['swap'] = {'total': 0, 'used': 0, 'percent': 0}
+
+        # Uptime
+        try:
+            with open('/proc/uptime', 'r') as f:
+                uptime_secs = float(f.read().split()[0])
+            data['uptime'] = format_uptime(uptime_secs)
+            data['uptime_seconds'] = int(uptime_secs)
+        except Exception:
+            data['uptime'] = 'unknown'
+            data['uptime_seconds'] = 0
+
+    # Services
+    data['services'] = {
+        'cloudflared': check_process_running('cloudflared'),
+        'terminal-server': check_service_running('terminal-server'),
+    }
+
+    return web.Response(
+        text=json.dumps(data),
+        content_type='application/json',
+        headers={'Cache-Control': 'no-cache'},
+    )
+
+
 app = web.Application()
 app.router.add_get('/', index)
+app.router.add_get('/health', health_handler)
 app.router.add_get('/ws', websocket_handler)
 app.router.add_get('/tasks', tasks_handler)
 app.router.add_get('/task-output/{agentId}', task_output_handler)
