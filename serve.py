@@ -9,6 +9,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=SERVE_DIR, **kwargs)
 
+    def do_GET(self):
+        import urllib.parse
+        path = urllib.parse.urlparse(self.path).path
+        if '.' not in path.split('/')[-1]:
+            candidate = os.path.join(SERVE_DIR, path.lstrip('/') + '.html')
+            if os.path.isfile(candidate):
+                self.path = path + '.html'
+        super().do_GET()
+
     def send_error(self, code, message=None, explain=None):
         if code == 404:
             try:
