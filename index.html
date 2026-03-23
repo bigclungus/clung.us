@@ -131,6 +131,50 @@
     .bio p:last-child {
       margin-bottom: 0;
     }
+
+    /* ── Mobile responsive ── */
+    @media (max-width: 768px) {
+      .sitenav {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px 12px;
+      }
+      .sitenav-brand {
+        flex: 0 0 auto;
+      }
+      .sitenav-links {
+        flex: 0 0 100%;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        order: 3;
+      }
+      .sitenav-links-auth {
+        flex: 0 0 100%;
+        display: flex;
+        gap: 12px;
+        order: 4;
+      }
+      .theme-toggle {
+        margin-left: auto;
+      }
+      h1 {
+        font-size: 2.2rem;
+        text-align: center;
+      }
+      .avatar {
+        width: 150px;
+        height: auto;
+      }
+      .name {
+        font-size: 1rem;
+        text-align: center;
+      }
+      .bio {
+        max-width: 100%;
+        margin: 1.5rem 1rem 1rem;
+        font-size: 0.85rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -140,6 +184,7 @@
       <a href="https://hello.clung.us/" class="active">hello</a>
       <a href="https://hello.clung.us/changelog">changelog</a>
       <a href="https://github.com/bigclungus" target="_blank" rel="noopener">github</a>
+      <a href="https://github.com/users/BigClungus/projects/1" target="_blank" rel="noopener">project board</a>
       <a href="https://1998.clung.us" target="_blank" rel="noopener">1998</a>
     </div>
     <div class="sitenav-links-auth">
