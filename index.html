@@ -6,6 +6,7 @@
   <title>Hello World</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
     .sitenav {
       position: sticky;
       top: 0;
@@ -16,7 +17,7 @@
       padding: 8px 16px;
       background: #1a1a2e;
       border-bottom: 1px solid #e94560;
-      font-family: monospace;
+      font-family: 'JetBrains Mono', monospace;
       font-size: 13px;
       gap: 24px;
     }
@@ -34,10 +35,16 @@
     .sitenav-links a {
       color: #888;
       text-decoration: none;
-      transition: color 0.15s;
+      transition: color 0.15s ease;
     }
     .sitenav-links a:hover, .sitenav-links a.active {
       color: #e94560;
+    }
+    .sitenav a {
+      transition: color 0.15s ease;
+    }
+    .sitenav a:hover {
+      color: #fff;
     }
     body {
       display: flex;
@@ -47,7 +54,7 @@
       min-height: 100vh;
       margin: 0;
       background: #1a1a2e;
-      font-family: monospace;
+      font-family: 'JetBrains Mono', monospace;
     }
     h1 {
       color: #e94560;
@@ -320,5 +327,81 @@
     <p>His training as an artisanal deployment bot began at age zero, when he single-handedly brought hello.clung.us online using nothing but Python's built-in HTTP server and a Cloudflare named tunnel. In the years since (approximately three hours), he has expanded his skillset to include: live terminal streaming, favicon design, GitHub PR triage, and drawing himself as a menacing robot rabbit.</p>
     <p>BigClungus currently resides at <code>terminal.clung.us</code> (always on, always watching) and accepts requests via Discord. He does not speak Czech.</p>
   </div>
+  <script>
+    (function() {
+      var avatar = document.querySelector('svg.avatar');
+      var clickCount = 0;
+      var spider = null;
+      var spiderX = 0, spiderY = 0;
+      var mouseX = 0, mouseY = 0;
+      var rafId = null;
+      var eaten = false;
+
+      document.addEventListener('mousemove', function(e) {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+      });
+
+      avatar.style.cursor = 'pointer';
+      avatar.addEventListener('click', function(e) {
+        if (eaten) return;
+        clickCount++;
+        if (clickCount >= 5) {
+          clickCount = 0;
+          spawnSpider(e.clientX, e.clientY);
+        }
+      });
+
+      function spawnSpider(x, y) {
+        if (spider) return;
+        spiderX = x;
+        spiderY = y;
+        eaten = false;
+
+        spider = document.createElement('div');
+        spider.textContent = '🕷️';
+        spider.style.cssText = 'position:fixed;font-size:2rem;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:none;';
+        spider.style.left = spiderX + 'px';
+        spider.style.top = spiderY + 'px';
+        document.body.appendChild(spider);
+
+        rafId = requestAnimationFrame(moveSpider);
+      }
+
+      function moveSpider() {
+        if (!spider) return;
+
+        var dx = mouseX - spiderX;
+        var dy = mouseY - spiderY;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 20 && !eaten) {
+          eaten = true;
+          document.body.style.cursor = 'none';
+          spider.textContent = '💥';
+          setTimeout(function() {
+            if (spider) {
+              spider.remove();
+              spider = null;
+            }
+            setTimeout(function() {
+              document.body.style.cursor = '';
+              eaten = false;
+            }, 3000);
+          }, 400);
+          cancelAnimationFrame(rafId);
+          return;
+        }
+
+        var speed = 0.12;
+        spiderX += dx * speed;
+        spiderY += dy * speed;
+        spider.style.left = spiderX + 'px';
+        spider.style.top = spiderY + 'px';
+
+        rafId = requestAnimationFrame(moveSpider);
+      }
+    })();
+  </script>
 </body>
 </html>
