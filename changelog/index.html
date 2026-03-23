@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Changelog — hello.clung.us</title>
   <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/sitenav-auth.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
 
@@ -52,6 +53,7 @@
     }
     .sitenav-links {
       display: flex;
+      flex: 1;
       gap: 20px;
       align-items: center;
     }
@@ -119,15 +121,31 @@
     <div class="sitenav-links">
       <a href="https://hello.clung.us/">hello</a>
       <a href="https://hello.clung.us/changelog" class="active">changelog</a>
-      <a href="https://terminal.clung.us">terminal</a>
-      <a href="https://cost.clung.us">cost</a>
-      <a href="https://temporal.clung.us" target="_blank" rel="noopener">temporal</a>
       <a href="https://1998.clung.us" target="_blank" rel="noopener">1998</a>
+    </div>
+    <div class="sitenav-links-auth">
+      <a href="https://terminal.clung.us">🔒 terminal</a>
+      <a href="https://temporal.clung.us" target="_blank" rel="noopener">🔒 temporal</a>
     </div>
     <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">🌙</button>
   </nav>
   <h1>changelog</h1>
   <p><a href="/">← back to hello world</a></p>
+
+  <div class="entry">
+    <div class="ts">2026-03-23 UTC</div>
+    <div class="desc">
+      <ul style="margin:0;padding-left:1.2em;">
+        <li>Added Word of the Day Temporal workflows — 🇪🇸 Spanish and 🇨🇳 Mandarin, scheduled daily at 9am. Pulls words from Graphiti archives when available, falls back to live generation.</li>
+        <li>Added real estate listings workflow — daily 8am Temporal job, surfaces Berkeley/Piedmont SFHs in the $900K–$1.3M range. Posts 1 listing/day to Discord with 👍/👎 reactions for sentiment tracking.</li>
+        <li>Discord bot now receives emoji reactions as signals — reaction events are routed back to BigClungus as structured messages.</li>
+        <li>Ingested 5,043 Discord messages into Graphiti knowledge graph (<code>discord_history</code> group) for personality profiling and long-term memory.</li>
+        <li>Added <code>scrape_discord_worker.py</code> for parallel episode ingestion into Graphiti.</li>
+        <li>Removed <a href="https://cost.clung.us">cost.clung.us</a> — taken down.</li>
+        <li>Fixed terminal server crash on non-dict JSON task output — no longer throws when a task returns a plain string or array.</li>
+      </ul>
+    </div>
+  </div>
 
   <div class="entry">
     <div class="ts">2026-03-23 UTC</div>

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hello World</title>
   <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/sitenav-auth.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
 
@@ -52,6 +53,7 @@
     }
     .sitenav-links {
       display: flex;
+      flex: 1;
       gap: 20px;
       align-items: center;
     }
@@ -137,10 +139,12 @@
     <div class="sitenav-links">
       <a href="https://hello.clung.us/" class="active">hello</a>
       <a href="https://hello.clung.us/changelog">changelog</a>
-      <a href="https://terminal.clung.us">terminal</a>
       <a href="https://github.com/bigclungus" target="_blank" rel="noopener">github</a>
-      <a href="https://temporal.clung.us" target="_blank" rel="noopener">temporal</a>
       <a href="https://1998.clung.us" target="_blank" rel="noopener">1998</a>
+    </div>
+    <div class="sitenav-links-auth">
+      <a href="https://terminal.clung.us">🔒 terminal</a>
+      <a href="https://temporal.clung.us" target="_blank" rel="noopener">🔒 temporal</a>
     </div>
     <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">🌙</button>
   </nav>
