@@ -7,6 +7,29 @@
   <link rel="icon" type="image/png" href="/favicon.png">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+
+    :root {
+      --bg: #1a1a2e;
+      --accent: #e94560;
+      --text: #ccc;
+      --text-muted: #888;
+      --text-dim: #aaa;
+      --nav-bg: #1a1a2e;
+      --nav-border: #e94560;
+      --hover-fg: #fff;
+    }
+
+    [data-theme="light"] {
+      --bg: #fdf6e3;
+      --accent: #2aa198;
+      --text: #586e75;
+      --text-muted: #839496;
+      --text-dim: #93a1a1;
+      --nav-bg: #f5efe0;
+      --nav-border: #2aa198;
+      --hover-fg: #073642;
+    }
+
     .sitenav {
       position: sticky;
       top: 0;
@@ -15,14 +38,14 @@
       align-items: center;
       justify-content: space-between;
       padding: 8px 16px;
-      background: #1a1a2e;
-      border-bottom: 1px solid #e94560;
+      background: var(--nav-bg);
+      border-bottom: 1px solid var(--nav-border);
       font-family: 'JetBrains Mono', monospace;
       font-size: 13px;
       gap: 24px;
     }
     .sitenav-brand {
-      color: #e94560;
+      color: var(--accent);
       text-decoration: none;
       font-weight: bold;
       white-space: nowrap;
@@ -33,18 +56,34 @@
       align-items: center;
     }
     .sitenav-links a {
-      color: #888;
+      color: var(--text-muted);
       text-decoration: none;
       transition: color 0.15s ease;
     }
     .sitenav-links a:hover, .sitenav-links a.active {
-      color: #e94560;
+      color: var(--accent);
     }
     .sitenav a {
       transition: color 0.15s ease;
     }
     .sitenav a:hover {
-      color: #fff;
+      color: var(--hover-fg);
+    }
+    .theme-toggle {
+      background: none;
+      border: 1px solid var(--nav-border);
+      color: var(--text-muted);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      cursor: pointer;
+      transition: color 0.15s ease, border-color 0.15s ease;
+      line-height: 1.4;
+    }
+    .theme-toggle:hover {
+      color: var(--accent);
+      border-color: var(--accent);
     }
     body {
       display: flex;
@@ -53,41 +92,42 @@
       align-items: center;
       min-height: 100vh;
       margin: 0;
-      background: #1a1a2e;
+      background: var(--bg);
       font-family: 'JetBrains Mono', monospace;
-      color: #ccc;
+      color: var(--text);
       text-align: center;
+      transition: background 0.2s ease, color 0.2s ease;
     }
     .error-code {
-      color: #e94560;
+      color: var(--accent);
       font-size: 8rem;
       font-weight: 800;
-      text-shadow: 0 0 40px #e94560;
+      text-shadow: 0 0 40px var(--accent);
       margin: 0;
       line-height: 1;
     }
     .error-msg {
-      color: #aaa;
+      color: var(--text-dim);
       font-size: 1.1rem;
       margin: 1.2rem 0 2rem;
       letter-spacing: 0.05em;
     }
     .home-link {
-      color: #e94560;
+      color: var(--accent);
       text-decoration: none;
-      border: 1px solid #e94560;
+      border: 1px solid var(--accent);
       padding: 0.5rem 1.2rem;
       border-radius: 4px;
       font-size: 0.9rem;
       transition: background 0.15s ease, color 0.15s ease;
     }
     .home-link:hover {
-      background: #e94560;
-      color: #1a1a2e;
+      background: var(--accent);
+      color: var(--bg);
     }
     .spider-note {
       margin-top: 3rem;
-      color: #444;
+      color: var(--text-muted);
       font-size: 0.75rem;
     }
   </style>
@@ -100,10 +140,37 @@
       <a href="https://hello.clung.us/changelog">changelog</a>
       <a href="https://terminal.clung.us">terminal</a>
     </div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">🌙</button>
   </nav>
   <h1 class="error-code">404</h1>
   <p class="error-msg">Page not found. Probably eaten by a spider.</p>
   <a class="home-link" href="https://hello.clung.us/">← go home</a>
   <p class="spider-note">🕷️</p>
+  <script>
+    (function() {
+      var toggleBtn = document.getElementById('theme-toggle');
+      var root = document.documentElement;
+
+      function applyTheme(theme) {
+        if (theme === 'light') {
+          root.setAttribute('data-theme', 'light');
+          toggleBtn.textContent = '☀';
+        } else {
+          root.removeAttribute('data-theme');
+          toggleBtn.textContent = '🌙';
+        }
+      }
+
+      var savedTheme = localStorage.getItem('theme') || 'dark';
+      applyTheme(savedTheme);
+
+      toggleBtn.addEventListener('click', function() {
+        var current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+        var next = current === 'light' ? 'dark' : 'light';
+        localStorage.setItem('theme', next);
+        applyTheme(next);
+      });
+    })();
+  </script>
 </body>
 </html>
