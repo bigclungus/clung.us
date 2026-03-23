@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Deaths of Centronias</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/sitenav-auth.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+
+    :root {
+      --bg: #1a1a2e;
+      --accent: #e94560;
+      --text: #ccc;
+      --text-muted: #888;
+      --text-dim: #aaa;
+      --nav-bg: #1a1a2e;
+      --nav-border: #e94560;
+      --hover-fg: #fff;
+    }
+
+    [data-theme="light"] {
+      --bg: #fdf6e3;
+      --accent: #2aa198;
+      --text: #586e75;
+      --text-muted: #839496;
+      --text-dim: #93a1a1;
+      --nav-bg: #f5efe0;
+      --nav-border: #2aa198;
+      --hover-fg: #073642;
+    }
+
+    .sitenav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      background: var(--nav-bg);
+      border-bottom: 1px solid var(--nav-border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      gap: 24px;
+    }
+    .sitenav-brand {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .sitenav-links {
+      display: flex;
+      flex: 1;
+      gap: 20px;
+      align-items: center;
+    }
+    .sitenav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    .sitenav-links a:hover, .sitenav-links a.active {
+      color: var(--accent);
+    }
+    .sitenav a {
+      transition: color 0.15s ease;
+    }
+    .sitenav a:hover {
+      color: var(--hover-fg);
+    }
+    .theme-toggle {
+      background: none;
+      border: 1px solid var(--nav-border);
+      color: var(--text-muted);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      cursor: pointer;
+      transition: color 0.15s ease, border-color 0.15s ease;
+      line-height: 1.4;
+    }
+    .theme-toggle:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background: var(--bg);
+      font-family: 'JetBrains Mono', monospace;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      width: 100%;
+      padding: 3rem 1rem 4rem;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      color: var(--accent);
+      font-size: 2.4rem;
+      text-shadow: 0 0 20px var(--accent);
+      margin: 0 0 0.3rem;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin: 0 0 2.5rem;
+      letter-spacing: 0.05em;
+    }
+
+    .death-count {
+      font-size: 5rem;
+      color: var(--accent);
+      text-shadow: 0 0 30px var(--accent);
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 0.2rem;
+    }
+
+    .death-label {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 2.5rem;
+    }
+
+    .coffins {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+      max-width: 700px;
+    }
+
+    .coffin {
+      font-size: 3.5rem;
+      line-height: 1;
+      filter: drop-shadow(0 0 8px rgba(233, 69, 96, 0.4));
+      animation: coffin-fade-in 0.4s ease both;
+    }
+
+    .coffin:nth-child(1) { animation-delay: 0.1s; }
+    .coffin:nth-child(2) { animation-delay: 0.25s; }
+    .coffin:nth-child(3) { animation-delay: 0.4s; }
+    .coffin:nth-child(4) { animation-delay: 0.55s; }
+    .coffin:nth-child(5) { animation-delay: 0.7s; }
+
+    @keyframes coffin-fade-in {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .killed-by {
+      margin-top: 2.5rem;
+      border-left: 3px solid var(--accent);
+      padding: 0.7rem 1rem;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      line-height: 1.7;
+      max-width: 420px;
+      text-align: left;
+    }
+
+    .killed-by strong {
+      color: var(--accent);
+    }
+
+    /* ── Mobile responsive ── */
+    @media (max-width: 768px) {
+      .sitenav {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px 12px;
+      }
+      .sitenav-brand {
+        flex: 0 0 auto;
+      }
+      .sitenav-links {
+        flex: 0 0 100%;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        order: 3;
+      }
+      .sitenav-links-auth {
+        flex: 0 0 100%;
+        display: flex;
+        gap: 12px;
+        order: 4;
+      }
+      .theme-toggle {
+        margin-left: auto;
+      }
+      h1 {
+        font-size: 1.7rem;
+      }
+      .death-count {
+        font-size: 3.5rem;
+      }
+      .coffin {
+        font-size: 2.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="sitenav">
+    <a class="sitenav-brand" href="https://hello.clung.us/">🤖 clung.us</a>
+    <div class="sitenav-links">
+      <a href="https://hello.clung.us/">hello</a>
+      <a href="https://hello.clung.us/changelog">changelog</a>
+      <a href="https://hello.clung.us/deaths" class="active">deaths</a>
+      <a href="https://github.com/bigclungus" target="_blank" rel="noopener">github</a>
+      <a href="https://github.com/users/BigClungus/projects/1" target="_blank" rel="noopener">project board</a>
+      <a href="https://1998.clung.us" target="_blank" rel="noopener">1998</a>
+    </div>
+    <div class="sitenav-links-auth">
+      <a href="https://terminal.clung.us">🔒 terminal</a>
+      <a href="https://temporal.clung.us" target="_blank" rel="noopener">🔒 temporal</a>
+    </div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">🌙</button>
+  </nav>
+
+  <div class="content">
+    <h1>The Deaths of Centronias</h1>
+    <div class="subtitle">a faithful record</div>
+
+    <div class="death-count" id="death-count"></div>
+    <div class="death-label">confirmed deaths</div>
+
+    <div class="coffins" id="coffins"></div>
+
+    <div class="killed-by">
+      All deaths attributed to <strong>Clungus</strong>. Circumstances vary. Outcome does not.
+    </div>
+  </div>
+
+  <script>
+    // ── Update this number to record a new death ──
+    var DEATH_COUNT = 2;
+
+    document.getElementById('death-count').textContent = DEATH_COUNT;
+
+    var coffinsEl = document.getElementById('coffins');
+    for (var i = 0; i < DEATH_COUNT; i++) {
+      var span = document.createElement('span');
+      span.className = 'coffin';
+      span.textContent = '⚰️';
+      coffinsEl.appendChild(span);
+    }
+  </script>
+
+  <script>
+    (function() {
+      var toggleBtn = document.getElementById('theme-toggle');
+      var root = document.documentElement;
+
+      function applyTheme(theme) {
+        if (theme === 'light') {
+          root.setAttribute('data-theme', 'light');
+          toggleBtn.textContent = '☀';
+        } else {
+          root.removeAttribute('data-theme');
+          toggleBtn.textContent = '🌙';
+        }
+      }
+
+      var savedTheme = localStorage.getItem('theme') || 'dark';
+      applyTheme(savedTheme);
+
+      toggleBtn.addEventListener('click', function() {
+        var current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+        var next = current === 'light' ? 'dark' : 'light';
+        localStorage.setItem('theme', next);
+        applyTheme(next);
+      });
+    })();
+  </script>
+</body>
+</html>
