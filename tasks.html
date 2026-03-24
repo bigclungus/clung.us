@@ -618,7 +618,7 @@
     }
 
     function fetchTasks() {
-      fetch('/tasks')
+      fetch('/api/tasks')
         .then(function(r) {
           if (!r.ok) throw new Error('HTTP ' + r.status);
           return r.json();

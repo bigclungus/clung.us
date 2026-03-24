@@ -57,7 +57,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         import urllib.parse
         path = urllib.parse.urlparse(self.path).path
 
-        if path == '/tasks':
+        if path == '/api/tasks':
             self._serve_tasks()
             return
 
