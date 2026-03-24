@@ -21,6 +21,34 @@
 
 - custom scrollbar + non-overlapping speech feed panel
 
+- restrict CORS to hello.clung.us
+
+- auth on public endpoints, path traversal validation in congress_evolve
+
+- gate wallet page and balance API behind auth
+
+- use EIP-681 URI format for wallet QR code
+
+- use plain address for wallet QR code (Coinbase compat)
+
+- fall back to Claude when Grok API unavailable
+
+- add User-Agent header to Grok API calls (Cloudflare bypass)
+
+- congress UI - session history, 5-persona layout, model badges, overlap
+
+- reduce congress speech bubble size to avoid overlap
+
+- exclude Ibrahim from outer circle seats
+
+- cap center label to prevent Ibrahim text overflowing seat nodes
+
+- remove duplicate const headingEl causing SyntaxError
+
+- correct Grok model ID to grok-3, improve error logging
+
+- use grok-4.20-0309-reasoning (latest, was mistakenly downgraded to grok-3)
+
 
 ### Changes
 - add /tasks endpoint and tasks.html dashboard
@@ -28,6 +56,10 @@
 - replace GitHub project board link with clung.us/tasks
 
 - redesign tasks.html: match site theme, terminal-log style, in-character empty state
+
+- add The Kid pixel art avatar
+
+- add Uncle Bob pixel art avatar
 
 
 ### Chores
@@ -87,11 +119,131 @@
 
 - Add markdown rendering to congress session view
 
+- clean up hello-world codebase
+
+- Add /wallet page with live Base balance and QR code
+
+- Fix wallet balance RPC: use blastapi with User-Agent header
+
+- Add Gemini CLI backend for multi-model congress support
+
+- Redesign congress page UI for clarity at a glance
+
+- Add pixel-art avatars for Spengler and Otto Rocket
+
+- Add animated goth pixel art avatar GIF for Pippi the Pitiless
+
+- asuka pixel art avatar for yuki
+
+- otto atreides pixel art avatar
+
+- otto atreides — hyperborean edit
+
+- clear test history, restart from congress-0001
+
+- extract LLM_MAX_TOKENS constant, fix gemini flag, add session write locking
+
+- Switch to ThreadingTCPServer for concurrent SSE + API requests
+
+- Fix claude CLI flag: streaming-json -> stream-json --verbose
+
+- Fix gemini CLI: add --yolo flag, remove invalid --output-format arg
+
+- Fix gemini: strip YAML frontmatter from prompt before CLI call
+
+- Add official congressional soundtrack link during deliberation
+
+- Make congress page and read endpoints public
+
+- Add Lockey avatar
+
+- Add PM avatar
+
+- Remove lockey avatar
+
+- Regenerate Yuki (ux) pixel art avatar
+
+- Add Chud O'Bikeshedder pixel art avatar
+
+- Fix congressional soundtrack to actually autoplay via YouTube iframe embed
+
+- Add Galactus pixel art avatar GIF
+
+- Add Jhaddu pixel art avatar GIF and generation script
+
+- Consolidate congress UI persona display into single left pane
+
+- Fix left pane layout: Severance now appears directly below Active
+
+- Add pixel art avatar for Vesper the Vivid (designer persona)
+
+- Refactor debate feed from vertical list to horizontal round columns
+
+- Add Vesper the Vivid avatar (designer.gif)
+
+- Add Actionable Tasks section to congress verdict card
+
+- Fix debate feed: correct round ordering, consistent debater sort, add votes column
+
+- Congress UI: fix round ordering, add absent placeholders, votes column, verdict above feed
+
+- Mark Congress #9 as failed (nondeterminism error)
+
+- Handle failed session status in UI: hide deliberating panel, show terminated card
+
+- clean up dead code and duplication in hello-world
+
+- UI cleanup — dead code, shared patterns, consistency
+
+- clean up serve.py — remove dead code, tighten patterns
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
 
 - speech bubbles beside circles, clickable topic modal
+
+- ui overhaul — sessions in sidebar, clean nodes, otto atreides
+
+- redirect to github login on 401
+
+- cap debate responses at 300 tokens, 3 sentences max
+
+- upgrade grok to grok-4.20-0309-non-reasoning
+
+- display persona titles on cards and feed entries
+
+- show login screen instead of redirect loop on 401
+
+- severance cards now match roster format (avatar, name, title)
+
+- server-side auth gate instead of JS 401 handling
+
+- persona lookup and identities endpoint include severance directory
+
+- SSE streaming endpoint + token streaming for Claude/Grok/Gemini
+
+- live streaming inference in speech bubbles via SSE
+
+- fix Ibrahim AWOL, thread_id persistence, severance node filtering
+
+- left pane becomes Full Panel roster with SEATED/bench indicators
+
+- persist persona roster snapshot in session JSON at creation time
+
+- show severance personas in left pane with SEATED/bench logic
+
+- add Verdict Panel with evolution results and deliberating state
+
+- move soundtrack player from center arena to left sidebar
+
+- congress UX: amber active speaker, larger node text, session-ended timestamp
+
+- auto-refresh sidebar session list via polling
+
+- fix circle to show only actual participants, include Ibrahim
+
+- hide sidebar dot for failed/terminated sessions
 
 
 ### Features
@@ -109,15 +261,33 @@
 
 - congress page becomes replay viewer, sessions triggered via Discord
 
+- auto-generated changelog via git-cliff
+
+- wire Grok (xAI) as Otto Rocket's congress backend
+
+- upgrade Otto to grok-4-fast-non-reasoning
+
+- add persona-specific fonts to speech bubbles and feed entries
+
+- show RETAIN/EVOLVE/FIRE stats in persona cards (small font)
+
+- add opus model routing in congress (claude-opus-4-6)
+
 
 ### Refactoring
 - shared sitenav component, terminal as subheader
+
+- refactor congress layout to 3-column: sessions | arena | roster
 
 
 ### Tasks
 - derive status from append-only log; show log timeline in cards
 
 - surface run_in_background, isolation, model in UI
+
+- add clickable filter pills to summary bar
+
+- exclude milestone-status entries from display
 
 
 

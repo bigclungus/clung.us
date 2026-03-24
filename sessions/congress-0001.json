@@ -1,0 +1,107 @@
+{
+  "session_id": "congress-0001",
+  "session_number": 1,
+  "topic": "FIRST METACONGRESS: HOW DO WE IMPROVE CONGRESS?",
+  "started_at": "2026-03-24T06:23:36.298299Z",
+  "status": "done",
+  "rounds": [
+    {
+      "ts": "2026-03-24T06:23:37.234971Z",
+      "identity": "hiring-manager",
+      "response": ""
+    },
+    {
+      "ts": "2026-03-24T06:23:38.287856Z",
+      "identity": "spengler",
+      "response": ""
+    },
+    {
+      "ts": "2026-03-24T06:23:38.719614Z",
+      "identity": "uncle-bob",
+      "response": ""
+    },
+    {
+      "ts": "2026-03-24T06:23:49.646833Z",
+      "identity": "architect",
+      "response": ""
+    },
+    {
+      "ts": "2026-03-24T06:23:49.941947Z",
+      "identity": "the-kid",
+      "response": ""
+    },
+    {
+      "ts": "2026-03-24T06:23:50.459020Z",
+      "identity": "ux",
+      "response": ""
+    },
+    {
+      "ts": "2026-03-24T06:23:52.219755Z",
+      "identity": "critic",
+      "response": ""
+    },
+    {
+      "ts": "2026-03-24T06:23:54.057860Z",
+      "identity": "otto",
+      "response": "**Burn it down and rebuild from first principles.** Congress is a calcified relic optimized for gridlock, corruption, and managed decline \u2014 replace it with a dynamic, liquid democracy layered with prediction markets, quadratic voting, and AI-augmented deliberation that forces emergence over entropy. Nothing matters long-term, so make the failure spectacular and informative: push the absolute limit of what collective intelligence can become before the heat death claims it."
+    },
+    {
+      "ts": "2026-03-24T06:23:57.073163Z",
+      "identity": "architect",
+      "response": ""
+    },
+    {
+      "ts": "2026-03-24T06:23:59.371277Z",
+      "identity": "critic",
+      "response": ""
+    },
+    {
+      "ts": "2026-03-24T06:24:02.176688Z",
+      "identity": "otto",
+      "response": "**I disagree with burning it down.** Congress isn't a relic\u2014it's a deliberately stable, slow-moving institution designed by the Founders to prevent exactly the kind of volatile, AI-augmented mob rule Otto romanticizes, which would amplify capture by the loudest factions and prediction-market speculators. Liquid democracy and quadratic voting sound innovative but historically collapse into tyranny of the passionate minority or algorithmic manipulation, trading gridlock for engineered chaos. Sharpening my position: reform Congress surgically through term limits, strict lobbying bans, and enumerated powers enforcement\u2014preserve the constitutional chassis instead of gambling the republic on untested emergence porn."
+    },
+    {
+      "ts": "2026-03-24T06:24:03.306325Z",
+      "identity": "spengler",
+      "response": ""
+    },
+    {
+      "ts": "2026-03-24T06:24:04.298409Z",
+      "identity": "ux",
+      "response": ""
+    },
+    {
+      "ts": "2026-03-24T06:24:05.043040Z",
+      "identity": "the-kid",
+      "response": ""
+    },
+    {
+      "ts": "2026-03-24T06:24:05.871701Z",
+      "identity": "uncle-bob",
+      "response": ""
+    },
+    {
+      "ts": "2026-03-24T06:24:06.322656Z",
+      "identity": "hiring-manager",
+      "response": ""
+    },
+    {
+      "ts": "2026-03-24T06:24:06.838878Z",
+      "identity": "hiring-manager",
+      "response": ""
+    },
+    {
+      "ts": "2026-03-24T06:24:07.538485Z",
+      "identity": "hiring-manager",
+      "response": ""
+    }
+  ],
+  "verdict": "",
+  "finished_at": "2026-03-24T06:24:07.072812Z",
+  "evolution": {
+    "created": [],
+    "evolved": [],
+    "fired": [],
+    "retained": []
+  }
+}

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import http.server
+import hmac
+import hashlib
 import json
 import os
 import glob
@@ -259,6 +261,56 @@ def _call_claude(system_prompt, user_message, on_token=None, model=None):
         return _call_claude_cli(system_prompt, user_message, on_token=on_token, model=model)
 
 
+DISCORD_INJECT_URL = 'http://127.0.0.1:9876/inject'
+DISCORD_MAIN_CHAT_ID = '1485343472952148008'
+
+
+def _github_comment(repo_full_name, issue_number, body):
+    """Post a comment on a GitHub issue or PR."""
+    token = os.environ.get('GITHUB_TOKEN', '')
+    if not token:
+        print('[webhook] GITHUB_TOKEN not set — skipping comment', flush=True)
+        return
+    url = f'https://api.github.com/repos/{repo_full_name}/issues/{issue_number}/comments'
+    data = json.dumps({'body': body}).encode()
+    req = urllib.request.Request(url, data=data, headers={
+        'Authorization': f'token {token}',
+        'Content-Type': 'application/json',
+        'User-Agent': 'BigClungus',
+    })
+    urllib.request.urlopen(req, timeout=10)
+
+
+def _discord_inject(message):
+    """Inject a notification into the bot's Discord session via the local inject endpoint."""
+    try:
+        secret_path = os.path.expanduser('~/.claude/channels/discord/.env')
+        secret = ''
+        if os.path.isfile(secret_path):
+            for line in open(secret_path).read().splitlines():
+                if line.startswith('DISCORD_INJECT_SECRET='):
+                    secret = line.split('=', 1)[1].strip()
+                    break
+        if not secret:
+            secret = os.environ.get('DISCORD_INJECT_SECRET', '')
+        payload = json.dumps({
+            'content': message,
+            'chat_id': DISCORD_MAIN_CHAT_ID,
+            'user': 'github-webhook',
+        }).encode()
+        req = urllib.request.Request(
+            DISCORD_INJECT_URL,
+            data=payload,
+            headers={
+                'Content-Type': 'application/json',
+                'x-inject-secret': secret,
+            },
+        )
+        urllib.request.urlopen(req, timeout=5)
+    except Exception as e:
+        print(f'[webhook] discord inject failed: {e}', flush=True)
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=SERVE_DIR, **kwargs)
@@ -350,6 +402,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self._json_auth_error()
                 return
             self._handle_congress_session_patch(m.group(1))
+            return
+
+        if path == '/webhook/github':
+            self._handle_github_webhook()
             return
 
         self.send_error(404)
@@ -726,6 +782,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 with _streams_lock:
                     if session_id in _active_streams:
                         _active_streams[session_id]["done"] = True
+                threading.Timer(60, _active_streams.pop, args=[session_id, None]).start()
             self._json_error(503, str(e))
             return
         except Exception as e:
@@ -733,6 +790,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 with _streams_lock:
                     if session_id in _active_streams:
                         _active_streams[session_id]["done"] = True
+                threading.Timer(60, _active_streams.pop, args=[session_id, None]).start()
             self._json_error(500, f"LLM API error ({persona_model}): {e}")
             return
 
@@ -740,6 +798,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             with _streams_lock:
                 if session_id in _active_streams:
                     _active_streams[session_id]["done"] = True
+            threading.Timer(60, _active_streams.pop, args=[session_id, None]).start()
 
         # If session_id provided, append this response to the session's rounds
         if session_id:
@@ -810,6 +869,86 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 time.sleep(0.1)
         except (BrokenPipeError, ConnectionResetError):
             pass  # Client disconnected
+
+    def _handle_github_webhook(self):
+        # 1. Read body
+        content_length = int(self.headers.get('Content-Length', 0))
+        body = self.rfile.read(content_length)
+
+        # 2. Verify HMAC-SHA256 signature
+        secret = os.environ.get('GITHUB_WEBHOOK_SECRET', '').encode()
+        sig_header = self.headers.get('X-Hub-Signature-256', '')
+        expected = 'sha256=' + hmac.new(secret, body, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig_header, expected):
+            self._json_error(401, 'invalid signature')
+            return
+
+        # 3. Parse event
+        event_type = self.headers.get('X-GitHub-Event', '')
+        try:
+            payload = json.loads(body)
+        except Exception as e:
+            self._json_error(400, f'invalid JSON: {e}')
+            return
+
+        action = payload.get('action', '')
+        repo = payload.get('repository', {}).get('full_name', '')
+
+        # 4. Handle each event type
+        try:
+            if event_type == 'ping':
+                self._send_json({'ok': True, 'zen': payload.get('zen', '')})
+                return
+
+            elif event_type == 'issues' and action == 'opened':
+                issue = payload.get('issue', {})
+                title = issue.get('title', '')
+                number = issue.get('number')
+                user = issue.get('user', {}).get('login', '')
+                url = issue.get('html_url', '')
+                # Post acknowledgment comment on the issue
+                _github_comment(repo, number, '👋 seen — I\'ll take a look')
+                # Inject Discord notification
+                msg = f'📌 GitHub [issues/opened]: **{repo}** — "{title}" by @{user}\n{url}'
+                _discord_inject(msg)
+                self._send_json({'ok': True, 'action': 'commented+notified'})
+
+            elif event_type == 'issue_comment' and action == 'created':
+                comment = payload.get('comment', {})
+                commenter = comment.get('user', {}).get('login', '')
+                # Don't notify for our own bot comments
+                if commenter.lower() == 'bigclungus':
+                    self._send_json({'ok': True, 'action': 'ignored (own comment)'})
+                    return
+                issue = payload.get('issue', {})
+                title = issue.get('title', '')
+                number = issue.get('number')
+                url = comment.get('html_url', '')
+                body_preview = comment.get('body', '')[:100]
+                msg = f'💬 GitHub [issue_comment]: **{repo}** — #{number} "{title}" comment by @{commenter}\n{url}\n> {body_preview}'
+                _discord_inject(msg)
+                self._send_json({'ok': True, 'action': 'notified'})
+
+            elif event_type == 'pull_request' and action == 'opened':
+                pr = payload.get('pull_request', {})
+                title = pr.get('title', '')
+                number = pr.get('number')
+                user = pr.get('user', {}).get('login', '')
+                url = pr.get('html_url', '')
+                # Post acknowledgment comment on the PR (PRs share issue comment API)
+                _github_comment(repo, number, '👀 PR received, will review')
+                msg = f'📌 GitHub [pull_request/opened]: **{repo}** — "{title}" by @{user}\n{url}'
+                _discord_inject(msg)
+                self._send_json({'ok': True, 'action': 'commented+notified'})
+
+            else:
+                # Acknowledge all other events without acting
+                self._send_json({'ok': True, 'action': 'ignored', 'event': event_type, 'action_type': action})
+
+        except Exception as e:
+            # Non-fatal: log but still return 200 to avoid GitHub retries spamming
+            print(f'[webhook] error handling {event_type}/{action}: {e}', flush=True)
+            self._send_json({'ok': False, 'error': str(e)})
 
     def _send_json(self, data, code=200, indent=None):
         body = json.dumps(data, indent=indent).encode('utf-8')
