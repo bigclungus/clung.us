@@ -49,16 +49,29 @@ COLOR_MAP = {
 # ── GitHub auth ────────────────────────────────────────────────────────────────
 GITHUB_COOKIE = "tauth_github"
 GITHUB_ALLOWED_USERS = {u.lower() for u in os.environ.get('GITHUB_ALLOWED_USERS', '').split(',') if u.strip()}
+COOKIE_SECRET = os.environ.get('COOKIE_SECRET', '')
 CONGRESS_LOGIN_URL = "https://terminal.clung.us/auth/github?next=https://hello.clung.us/congress"
 
 
+def _verify_cookie(value: str) -> str:
+    """Verify a signed cookie value. Returns the username on success, '' on failure."""
+    if not COOKIE_SECRET or '.' not in value:
+        return ''
+    username, _, sig = value.rpartition('.')
+    expected = hmac.new(COOKIE_SECRET.encode(), username.encode(), hashlib.sha256).hexdigest()
+    if hmac.compare_digest(sig, expected):
+        return username
+    return ''
+
+
 def _is_authed(request_headers):
-    """Check tauth_github cookie against GITHUB_ALLOWED_USERS. Empty set = any authed user ok."""
+    """Check tauth_github cookie (HMAC-signed) against GITHUB_ALLOWED_USERS. Empty set = any authed user ok."""
     cookie_header = request_headers.get('Cookie', '')
     for part in cookie_header.split(';'):
         part = part.strip()
         if part.startswith(GITHUB_COOKIE + '='):
-            gh_user = part[len(GITHUB_COOKIE) + 1:].strip()
+            raw = part[len(GITHUB_COOKIE) + 1:].strip()
+            gh_user = _verify_cookie(raw) if raw else ''
             if gh_user:
                 if not GITHUB_ALLOWED_USERS or gh_user.lower() in GITHUB_ALLOWED_USERS:
                     return True
@@ -640,6 +653,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         meta, _ = _parse_frontmatter(content)
                         name = meta.get('name', '')
                         if not name or name == 'hiring-manager':
+                            continue
+                        if meta.get('congress') is False:
                             continue
                         roster.append({
                             'id': name,

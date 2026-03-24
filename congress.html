@@ -794,6 +794,11 @@
       border-top: 1px solid var(--panel-border);
       font-size: 0.68rem;
       color: var(--text-muted);
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
     }
     #musicBar.visible { display: flex; }
     #musicBarLabel {
@@ -2909,7 +2914,7 @@
   const musicMuteBtn = document.getElementById('musicMuteBtn');
 
   function updateMuteBtnLabel() {
-    musicMuteBtn.textContent = musicMuted ? 'unmute' : 'mute';
+    if (musicMuteBtn) musicMuteBtn.textContent = musicMuted ? 'unmute' : 'mute';
   }
 
   function applyMusicMute() {
@@ -2930,23 +2935,27 @@
     }
   }
 
-  musicMuteBtn.addEventListener('click', function () {
-    musicMuted = !musicMuted;
-    localStorage.setItem('congressMusicMuted', musicMuted ? 'true' : 'false');
-    updateMuteBtnLabel();
-    applyMusicMute();
-  });
+  if (musicMuteBtn) {
+    musicMuteBtn.addEventListener('click', function () {
+      musicMuted = !musicMuted;
+      localStorage.setItem('congressMusicMuted', musicMuted ? 'true' : 'false');
+      updateMuteBtnLabel();
+      applyMusicMute();
+    });
+  }
 
-  updateMuteBtnLabel();
+  if (musicMuteBtn) updateMuteBtnLabel();
 
   // Patch setCenterDeliberating to also control the music bar
   const _origSetCenterDeliberating = setCenterDeliberating;
   setCenterDeliberating = function (active) {
     musicPlaying = active;
-    if (active) {
-      musicBar.classList.add('visible');
-    } else {
-      musicBar.classList.remove('visible');
+    if (musicBar) {
+      if (active) {
+        musicBar.classList.add('visible');
+      } else {
+        musicBar.classList.remove('visible');
+      }
     }
     // Delegate iframe management, but if muted skip iframe injection
     if (musicMuted && active) {
