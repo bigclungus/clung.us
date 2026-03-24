@@ -192,7 +192,7 @@ def _call_grok(system_prompt: str, user_message: str, on_token=None) -> str:
     import urllib.request as _urlreq
     api_key = os.environ.get("XAI_API_KEY", "")
     payload = json.dumps({
-        "model": "grok-4.20-0309-non-reasoning",
+        "model": "grok-3",
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message}
@@ -711,7 +711,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             elif persona_model == 'grok':
                 try:
                     response_text = _call_grok(full_content, user_message, on_token=on_token)
-                except Exception:
+                except Exception as e:
+                    print(f"Grok error for {name}: {type(e).__name__}: {e}", flush=True)
                     print("Grok unavailable, falling back to Claude")
                     response_text = _call_claude(full_content, user_message, on_token=on_token)
             else:
