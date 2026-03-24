@@ -130,7 +130,10 @@ def _load_identity(name):
 
 def _call_claude_cli(system_prompt, user_message, on_token=None):
     """Call Claude via the claude CLI (OAuth auth, no API key needed)."""
-    cmd = ['/home/clungus/.local/bin/claude', '-p', system_prompt,
+    # Strip YAML frontmatter before passing via -p — the CLI treats '---' as
+    # an unknown option flag if the prompt starts with it.
+    _, system_prompt_body = _parse_frontmatter(system_prompt)
+    cmd = ['/home/clungus/.local/bin/claude', '-p', system_prompt_body,
            '--output-format', 'stream-json', '--verbose', '--max-turns', '1']
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.DEVNULL, text=True)
@@ -616,7 +619,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
 
         # Only allow updating specific fields
-        ALLOWED = {'verdict', 'status', 'finished_at', 'evolution'}
+        ALLOWED = {'verdict', 'status', 'finished_at', 'evolution', 'thread_id'}
         try:
             with open(fpath, 'r') as f:
                 session = json.load(f)

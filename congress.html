@@ -1337,6 +1337,38 @@
         topicDisplay.classList.add('visible');
       }
 
+      // Filter seats to only personas that actually participated in this session
+      // (have at least one round entry). Severance personas or non-participants
+      // should not show in the debate circle.
+      if (session.rounds && session.rounds.length > 0) {
+        const participantIds = new Set(
+          session.rounds
+            .filter(r => r.identity !== 'hiring-manager' && r.response)
+            .map(r => r.identity)
+        );
+        if (participantIds.size > 0) {
+          // Remap seats: keep seat if it was a participant, otherwise null it out
+          for (let i = 0; i < seats.length; i++) {
+            if (seats[i] && !participantIds.has(seats[i].id)) {
+              seats[i] = null;
+            }
+          }
+          // Also pull in any participants not currently in seats (e.g. was in severance)
+          const seatedIds = new Set(seats.filter(Boolean).map(s => s.id));
+          const unseated = [...participantIds].filter(id => !seatedIds.has(id));
+          if (unseated.length > 0) {
+            // Try to get their info from firedPool or create a minimal entry
+            unseated.forEach(id => {
+              const fromFired = firedPool.find(p => p.id === id || p.name === id);
+              const entry = fromFired || { id, name: id, display_name: id, emoji: '🤖', color: '#888' };
+              const emptySlot = seats.indexOf(null);
+              if (emptySlot !== -1) seats[emptySlot] = entry;
+            });
+          }
+          renderCircle();
+        }
+      }
+
       renderSessionStatus(sessionId, session.status);
       renderRoundBanner(session);
       applySessionData(session, true);
