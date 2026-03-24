@@ -224,19 +224,6 @@
     }
     .fired-reason { font-size: 0.55rem; color: var(--text-muted); font-style: italic; line-height: 1.4; margin-top: 2px; }
     .seat-stats { font-size: 0.6rem; color: var(--text-muted); line-height: 1.4; margin-top: 2px; letter-spacing: 0.03em; opacity: 0.75; }
-    .btn-reinstate {
-      background: none;
-      border: 1px solid transparent;
-      color: var(--text-muted);
-      font-size: 0.6rem;
-      font-family: 'JetBrains Mono', monospace;
-      cursor: pointer;
-      padding: 2px 5px;
-      border-radius: 3px;
-      flex-shrink: 0;
-      transition: color 0.12s, border-color 0.12s;
-    }
-    .btn-reinstate:hover { color: var(--accent); border-color: var(--accent); }
 
     .sidebar-empty {
       font-size: 0.67rem;
@@ -640,60 +627,6 @@
     .verdict-msg.no { background: #200d10; border: 1px solid var(--accent); color: var(--accent); display: block; }
     .verdict-msg.again { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-muted); display: block; }
 
-    /* ── Reinstate modal ── */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      z-index: 300;
-      align-items: center;
-      justify-content: center;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal {
-      background: var(--panel-bg);
-      border: 1px solid var(--panel-border);
-      border-radius: 6px;
-      padding: 18px 22px;
-      max-width: 320px;
-      width: 92%;
-    }
-    .modal h3 { margin: 0 0 5px; font-size: 0.88rem; color: var(--accent); }
-    .modal p { font-size: 0.72rem; color: var(--text-muted); margin: 0 0 14px; line-height: 1.5; }
-    .modal-seats { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; }
-    .modal-seat-btn {
-      background: var(--seat-bg);
-      border: 1px solid var(--seat-border);
-      border-radius: 4px;
-      padding: 9px 11px;
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      cursor: pointer;
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--text);
-      transition: border-color 0.12s;
-      text-align: left;
-    }
-    .modal-seat-btn:hover { border-color: var(--accent); }
-    .modal-seat-btn.empty-slot .slot-name { color: var(--text-muted); font-style: italic; }
-    .slot-emoji { font-size: 1.05rem; }
-    .slot-info { flex: 1; min-width: 0; }
-    .slot-name { font-size: 0.72rem; font-weight: 700; }
-    .slot-num { font-size: 0.57rem; color: var(--text-muted); }
-    .btn-cancel {
-      background: none;
-      border: 1px solid var(--btn-border);
-      color: var(--text-muted);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.68rem;
-      padding: 5px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: color 0.12s, border-color 0.12s;
-    }
-    .btn-cancel:hover { color: var(--accent); border-color: var(--accent); }
 
     /* ── Mobile ── */
     @media (max-width: 860px) {
@@ -1302,15 +1235,6 @@
 </head>
 <body>
 
-<!-- Reinstate modal -->
-<div class="modal-overlay" id="reinstateModal">
-  <div class="modal">
-    <h3 id="modalTitle">Reinstate</h3>
-    <p id="modalBody">Choose which seat to displace:</p>
-    <div class="modal-seats" id="modalSeats"></div>
-    <button class="btn-cancel" onclick="closeModal()">cancel</button>
-  </div>
-</div>
 
 <!-- Topic modal -->
 <div class="topic-modal-overlay" id="topicModal">
@@ -1443,7 +1367,6 @@
   let allActivePersonas = [];        // full roster of active non-moderator personas (never mutated by session loading)
   let sessionParticipantIds = null;  // Set of identity ids that participated in the current session (null = no session loaded)
   let firedPool = [];                // personas in severance
-  let pendingReinstate = null;       // persona waiting for seat selection
   let round = 0;
   let currentSessionId = null;       // active session id (from URL or newly started)
   let sessionPollTimer = null;
@@ -2028,12 +1951,6 @@
           card.appendChild(badge);
         }
 
-        const btn = document.createElement('button');
-        btn.className = 'btn-reinstate';
-        btn.textContent = '↑';
-        btn.title = 'Reinstate';
-        btn.addEventListener('click', () => openReinstateModal(p));
-        card.appendChild(btn);
 
         leftSeveranceList.appendChild(card);
       });
@@ -2095,60 +2012,6 @@
     setStatus((p.display_name || p.name) + ' moved to severance');
   }
 
-  function openReinstateModal(persona) {
-    pendingReinstate = persona;
-    document.getElementById('modalTitle').textContent = 'Reinstate ' + (persona.display_name || persona.name);
-    document.getElementById('modalBody').textContent = 'Choose a seat to place them in:';
-
-    const seatsEl = document.getElementById('modalSeats');
-    seatsEl.innerHTML = '';
-
-    for (let i = 0; i < SEAT_COUNT; i++) {
-      const s = seats[i];
-      const btn = document.createElement('button');
-      btn.className = 'modal-seat-btn' + (s ? '' : ' empty-slot');
-
-      btn.innerHTML = `<span class="slot-emoji">${s ? (s.emoji || '🤖') : '○'}</span>
-        <div class="slot-info">
-          <div class="slot-name">${s ? (s.display_name || s.name) : 'empty seat'}</div>
-          <div class="slot-num">seat ${i + 1}</div>
-        </div>`;
-      btn.addEventListener('click', () => doReinstate(i));
-      seatsEl.appendChild(btn);
-    }
-
-    document.getElementById('reinstateModal').classList.add('open');
-  }
-
-  function doReinstate(seatIndex) {
-    if (!pendingReinstate) return;
-    const displaced = seats[seatIndex];
-    const reinstated = Object.assign({}, pendingReinstate);
-    delete reinstated.fired_reason;
-
-    seats[seatIndex] = reinstated;
-    firedPool = firedPool.filter(p => p.id !== pendingReinstate.id);
-
-    if (displaced) {
-      const d = Object.assign({}, displaced);
-      if (!d.fired_reason) d.fired_reason = 'Displaced by ' + (reinstated.display_name || reinstated.name) + '.';
-      firedPool.unshift(d);
-    }
-
-    const rname = reinstated.display_name || reinstated.name;
-    pendingReinstate = null;
-    closeModal();
-    render();
-    setStatus(rname + ' reinstated to seat ' + (seatIndex + 1));
-  }
-
-  window.closeModal = function () {
-    pendingReinstate = null;
-    document.getElementById('reinstateModal').classList.remove('open');
-  };
-  document.getElementById('reinstateModal').addEventListener('click', function (e) {
-    if (e.target === this) closeModal();
-  });
 
   // ── Circle node state helpers ──────────────────────────────────────────────
   function setNodeState(seatIndex, state) {
