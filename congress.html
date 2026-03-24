@@ -223,6 +223,7 @@
       border-color: color-mix(in srgb, var(--sc, var(--fired-border)) 50%, var(--fired-border));
     }
     .fired-reason { font-size: 0.55rem; color: var(--text-muted); font-style: italic; line-height: 1.4; margin-top: 2px; }
+    .seat-stats { font-size: 0.6rem; color: var(--text-muted); line-height: 1.4; margin-top: 2px; letter-spacing: 0.03em; opacity: 0.75; }
     .btn-reinstate {
       background: none;
       border: 1px solid transparent;
@@ -1913,6 +1914,20 @@
     renderCircle();
   }
 
+  // Build a stats line element for a persona card.
+  // Returns an Element if the persona has any non-zero stats, null otherwise.
+  function buildStatsEl(p) {
+    const retained = p.stats_retained || 0;
+    const evolved  = p.stats_evolved  || 0;
+    const fired    = p.stats_fired    || 0;
+    if (retained === 0 && evolved === 0 && fired === 0) return null;
+    const el = document.createElement('div');
+    el.className = 'seat-stats';
+    el.textContent = '\u21a9\u00a0' + retained + ' \u00b7 \u2736\u00a0' + evolved + ' \u00b7 \u00d7\u00a0' + fired;
+    el.title = 'RETAIN \u00d7' + retained + '  EVOLVE \u00d7' + evolved + '  FIRE \u00d7' + fired;
+    return el;
+  }
+
   function renderRoster() {
     const list = document.getElementById('rosterList');
     list.innerHTML = '';
@@ -1979,6 +1994,8 @@
           desc.textContent = p.title || p.description || p.role || '';
           info.appendChild(desc);
         }
+        const statsEl = buildStatsEl(p);
+        if (statsEl) info.appendChild(statsEl);
         card.appendChild(info);
 
         // Seated badge (only shown in session mode)
@@ -2049,6 +2066,8 @@
           reason.textContent = '"' + p.fired_reason + '"';
           info.appendChild(reason);
         }
+        const firedStatsEl = buildStatsEl(p);
+        if (firedStatsEl) info.appendChild(firedStatsEl);
         card.appendChild(info);
 
         // Seated badge (only shown in session mode)
