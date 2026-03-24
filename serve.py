@@ -65,6 +65,9 @@ def _is_authed(request_headers):
 
 _EVENT_TO_STATUS = {
     'started': 'in_progress',
+    'milestone': 'in_progress',
+    'user_feedback': 'in_progress',
+    'blocked': 'in_progress',
     'done': 'done',
     'stale': 'stale',
     'failed': 'failed',
