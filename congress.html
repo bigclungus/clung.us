@@ -11,9 +11,15 @@
     :root {
       --card-bg: #22223a;
       --card-border: #333350;
+      --panel-bg: #16162a;
+      --panel-border: #2a2a45;
+      --seat-bg: #1e1e38;
+      --seat-border: #333355;
+      --fired-bg: #1a1226;
+      --fired-border: #3a2040;
+      --btn-bg: #22223a;
+      --btn-border: #444466;
       --node-idle: #22223a;
-      --node-active: #e94560;
-      --node-done: #2d6a4f;
       --node-border-idle: #444466;
       --node-border-active: #e94560;
       --node-border-done: #4ecca3;
@@ -25,9 +31,15 @@
     [data-theme="light"] {
       --card-bg: #fff8ea;
       --card-border: #d0c9b0;
+      --panel-bg: #f0ece0;
+      --panel-border: #ccc4a8;
+      --seat-bg: #fdf6e3;
+      --seat-border: #d0c9b0;
+      --fired-bg: #f5e8f0;
+      --fired-border: #c8a8c0;
+      --btn-bg: #ede7d4;
+      --btn-border: #bbb5a0;
       --node-idle: #f5efe0;
-      --node-active: #e94560;
-      --node-done: #d4edda;
       --node-border-idle: #c9b8a0;
       --node-border-active: #e94560;
       --node-border-done: #2aa198;
@@ -48,63 +60,342 @@
       flex-direction: column;
     }
 
-    /* ── Page header ── */
+    /* ── Three-column layout ── */
+    .congress-layout {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 210px 1fr 210px;
+      min-height: 0;
+    }
+
+    /* ── Shared sidebar styles ── */
+    .sidebar {
+      background: var(--panel-bg);
+      display: flex;
+      flex-direction: column;
+      border-top: none;
+      overflow: hidden;
+    }
+    .sidebar-left { border-right: 1px solid var(--panel-border); }
+    .sidebar-right { border-left: 1px solid var(--panel-border); }
+
+    .sidebar-header {
+      padding: 11px 13px 9px;
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .sidebar-header h2 {
+      margin: 0;
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      text-shadow: 0 0 7px var(--accent);
+    }
+    .sidebar-header .count-badge {
+      font-size: 0.6rem;
+      color: var(--text-muted);
+    }
+
+    .sidebar-body {
+      flex: 1;
+      padding: 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      overflow-y: auto;
+    }
+
+    /* ── Roster seat card ── */
+    .seat-card {
+      background: var(--seat-bg);
+      border: 1px solid var(--seat-border);
+      border-radius: 4px;
+      padding: 9px 10px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      position: relative;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      min-height: 54px;
+    }
+    .seat-card.occupied {
+      border-color: var(--sc, var(--accent));
+      box-shadow: 0 0 5px color-mix(in srgb, var(--sc, var(--accent)) 25%, transparent);
+    }
+    .seat-card.empty {
+      opacity: 0.3;
+      border-style: dashed;
+    }
+    .seat-num {
+      position: absolute;
+      top: 3px;
+      right: 6px;
+      font-size: 0.5rem;
+      color: var(--text-muted);
+      opacity: 0.45;
+    }
+    .seat-emoji { font-size: 1.3rem; flex-shrink: 0; line-height: 1; }
+    .seat-info { flex: 1; min-width: 0; }
+    .seat-name {
+      font-size: 0.73rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .seat-desc {
+      font-size: 0.58rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 1px;
+    }
+    .btn-remove {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-size: 0.6rem;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      padding: 2px 5px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      transition: color 0.12s, border-color 0.12s;
+    }
+    .btn-remove:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* ── Fired card (severance) ── */
+    .fired-card {
+      background: var(--fired-bg);
+      border: 1px solid var(--fired-border);
+      border-radius: 4px;
+      padding: 9px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .fired-card-top {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .fired-emoji { font-size: 1.1rem; flex-shrink: 0; }
+    .fired-name { font-size: 0.73rem; font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .fired-reason { font-size: 0.57rem; color: var(--text-muted); font-style: italic; line-height: 1.4; padding-left: 1px; }
+    .btn-reinstate {
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-border);
+      color: var(--text-muted);
+      font-size: 0.6rem;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      padding: 3px 7px;
+      border-radius: 3px;
+      margin-top: 3px;
+      align-self: flex-start;
+      transition: color 0.12s, border-color 0.12s;
+    }
+    .btn-reinstate:hover { color: var(--accent); border-color: var(--accent); }
+
+    .sidebar-empty {
+      font-size: 0.67rem;
+      color: var(--text-muted);
+      opacity: 0.45;
+      text-align: center;
+      padding: 18px 6px;
+    }
+
+    /* ── Center arena column ── */
+    .arena-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+      padding: 20px 16px 32px;
+      gap: 16px;
+    }
+
     .page-header {
-      padding: 24px 32px 12px;
-      border-bottom: 1px solid var(--card-border);
+      text-align: center;
     }
     .page-header h1 {
-      margin: 0 0 4px;
-      font-size: 1.6rem;
+      margin: 0 0 3px;
+      font-size: 1.4rem;
       color: var(--accent);
       text-shadow: 0 0 14px var(--accent);
     }
     .page-header .subtitle {
       color: var(--text-muted);
-      font-size: 0.78rem;
+      font-size: 0.72rem;
+    }
+
+    /* ── Circle visual ── */
+    .arena {
+      position: relative;
+      width: min(440px, 80vw);
+      height: min(440px, 80vw);
+      flex-shrink: 0;
+    }
+
+    .center-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 130px;
+      text-align: center;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      pointer-events: none;
+    }
+    .center-label .mod-emoji { font-size: 1.4rem; display: block; margin-bottom: 2px; }
+    .center-label .mod-name { font-size: 0.62rem; color: var(--accent); text-shadow: 0 0 6px var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
+    .center-label .mod-role { font-size: 0.5rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+    .center-label .task-preview { color: var(--text); font-size: 0.68rem; margin-top: 6px; font-style: italic; }
+
+    /* Persona nodes around circle */
+    .persona-node {
+      position: absolute;
+      width: 86px;
+      height: 86px;
+      transform: translate(-50%, -50%);
+      cursor: default;
+      z-index: 2;
+    }
+    .persona-node .node-circle {
+      width: 86px;
+      height: 86px;
+      border-radius: 50%;
+      background: var(--node-idle);
+      border: 2px solid var(--node-border-idle);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+    }
+    .persona-node.empty-node .node-circle {
+      opacity: 0.2;
+      border-style: dashed;
+    }
+    .persona-node .node-emoji { font-size: 1.45rem; line-height: 1; }
+    .persona-node .node-name {
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      text-align: center;
+      max-width: 76px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      transition: color 0.3s;
+    }
+    .persona-node.active .node-circle {
+      background: #2a1520;
+      border-color: var(--node-border-active);
+      box-shadow: 0 0 20px var(--accent), 0 0 40px rgba(233,69,96,0.3);
+    }
+    .persona-node.active .node-name { color: var(--accent); }
+    .persona-node.done .node-circle {
+      background: #102820;
+      border-color: var(--node-border-done);
+      box-shadow: 0 0 10px rgba(78,204,163,0.3);
+    }
+    .persona-node.done .node-name { color: var(--teal); }
+
+    /* Speech bubbles */
+    .speech-bubble {
+      position: absolute;
+      background: var(--bubble-bg);
+      border: 1px solid var(--bubble-border);
+      border-radius: 6px;
+      padding: 9px 11px;
+      font-size: 0.68rem;
+      line-height: 1.6;
+      color: var(--text);
+      max-width: 190px;
+      width: 190px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      z-index: 10;
+    }
+    .speech-bubble.visible { opacity: 1; pointer-events: auto; }
+    .speech-bubble .bubble-label {
+      color: var(--accent);
+      font-size: 0.6rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      letter-spacing: 0.06em;
+    }
+    .dot-pulse span {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      animation: dotpulse 1.2s infinite;
+    }
+    .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+    .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dotpulse {
+      0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+      30% { opacity: 1; transform: scale(1.1); }
+    }
+
+    /* Status line */
+    .status-line {
+      text-align: center;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      min-height: 1.1em;
     }
 
     /* ── Task input ── */
-    .task-input-section {
-      padding: 24px 32px 16px;
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      border-bottom: 1px solid var(--card-border);
+    .task-form { width: 100%; max-width: 520px; }
+    .task-form label {
+      display: block;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 5px;
     }
-    .task-input-section textarea {
-      flex: 1;
-      min-width: 240px;
-      min-height: 72px;
+    .task-form textarea {
+      width: 100%;
+      min-height: 64px;
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 4px;
       color: var(--text);
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
-      padding: 10px 12px;
+      font-size: 0.82rem;
+      padding: 9px 11px;
       resize: vertical;
       outline: none;
       transition: border-color 0.15s;
+      box-sizing: border-box;
     }
-    .task-input-section textarea:focus {
-      border-color: var(--accent);
-    }
-    .task-input-section textarea::placeholder {
-      color: var(--text-muted);
-    }
+    .task-form textarea:focus { border-color: var(--accent); }
+    .task-form textarea::placeholder { color: var(--text-muted); }
+    .task-form-row { display: flex; gap: 8px; margin-top: 7px; }
+
     .btn {
-      padding: 10px 20px;
+      padding: 9px 18px;
       background: var(--accent);
       color: #fff;
       border: none;
       border-radius: 4px;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.82rem;
+      font-size: 0.78rem;
       font-weight: 700;
       cursor: pointer;
-      letter-spacing: 0.05em;
       transition: opacity 0.15s, transform 0.1s;
       white-space: nowrap;
     }
@@ -122,175 +413,39 @@
     .btn-no { background: #6b2737; }
     .btn-no:hover { background: #8c3347; opacity: 1; }
 
-    /* ── Parliament arena ── */
-    .arena-wrap {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 32px 16px 16px;
-    }
-    .arena {
-      position: relative;
-      width: min(600px, 90vw);
-      height: min(600px, 90vw);
-    }
-    .center-label {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 160px;
-      text-align: center;
-      font-size: 0.72rem;
-      color: var(--text-muted);
-      line-height: 1.5;
-      pointer-events: none;
-      transition: color 0.3s;
-    }
-    .center-label .task-preview {
-      color: var(--text);
-      font-size: 0.76rem;
-      margin-top: 6px;
-      font-style: italic;
-    }
-
-    /* Persona node */
-    .persona-node {
-      position: absolute;
-      width: 90px;
-      height: 90px;
-      transform: translate(-50%, -50%);
-      cursor: default;
-      z-index: 2;
-    }
-    .persona-node .node-circle {
-      width: 90px;
-      height: 90px;
-      border-radius: 50%;
-      background: var(--node-idle);
-      border: 2px solid var(--node-border-idle);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
-    }
-    .persona-node .node-emoji {
-      font-size: 1.5rem;
-      line-height: 1;
-    }
-    .persona-node .node-name {
-      font-size: 0.65rem;
-      color: var(--text-muted);
-      letter-spacing: 0.05em;
-      text-align: center;
-      transition: color 0.3s;
-      max-width: 80px;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-    }
-
-    /* Active state */
-    .persona-node.active .node-circle {
-      background: #2a1520;
-      border-color: var(--node-border-active);
-      box-shadow: 0 0 20px var(--accent), 0 0 40px rgba(233,69,96,0.3);
-    }
-    .persona-node.active .node-name { color: var(--accent); }
-
-    /* Done state */
-    .persona-node.done .node-circle {
-      background: #102820;
-      border-color: var(--node-border-done);
-      box-shadow: 0 0 10px rgba(78, 204, 163, 0.3);
-    }
-    .persona-node.done .node-name { color: var(--teal); }
-
-    /* Speech bubble */
-    .speech-bubble {
-      position: absolute;
-      background: var(--bubble-bg);
-      border: 1px solid var(--bubble-border);
-      border-radius: 6px;
-      padding: 10px 12px;
-      font-size: 0.72rem;
-      line-height: 1.6;
-      color: var(--text);
-      max-width: 200px;
-      width: 200px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
-      z-index: 10;
-    }
-    .speech-bubble.visible { opacity: 1; pointer-events: auto; }
-    .speech-bubble .bubble-label {
-      color: var(--accent);
-      font-size: 0.65rem;
-      font-weight: 700;
-      margin-bottom: 5px;
-      letter-spacing: 0.06em;
-    }
-    .speech-bubble .bubble-text {
-      color: var(--text);
-    }
-    .speech-bubble .bubble-loading {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-      color: var(--text-muted);
-    }
-    .dot-pulse span {
-      display: inline-block;
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--text-muted);
-      animation: dotpulse 1.2s infinite;
-    }
-    .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
-    .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes dotpulse {
-      0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
-      30% { opacity: 1; transform: scale(1.1); }
-    }
-
     /* ── Review bar ── */
     .review-bar {
       background: var(--review-bg);
+      border: 1px solid var(--card-border);
       border-top: 2px solid var(--accent);
-      padding: 20px 32px;
+      border-radius: 4px;
+      padding: 16px 18px;
       display: none;
+      width: 100%;
+      max-width: 520px;
+      box-sizing: border-box;
     }
     .review-bar.visible { display: block; }
     .review-label {
-      font-size: 0.7rem;
+      font-size: 0.65rem;
       color: var(--accent);
       letter-spacing: 0.12em;
       font-weight: 700;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     .review-synthesis {
-      font-size: 0.82rem;
+      font-size: 0.78rem;
       line-height: 1.7;
       color: var(--text);
-      margin-bottom: 16px;
-      max-width: 720px;
+      margin-bottom: 14px;
       border-left: 3px solid var(--accent);
-      padding-left: 12px;
+      padding-left: 10px;
     }
-    .review-actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+    .review-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .verdict-msg {
-      margin-top: 14px;
-      font-size: 0.8rem;
-      padding: 8px 12px;
+      margin-top: 12px;
+      font-size: 0.75rem;
+      padding: 7px 11px;
       border-radius: 4px;
       display: none;
     }
@@ -298,274 +453,556 @@
     .verdict-msg.no { background: #200d10; border: 1px solid var(--accent); color: var(--accent); display: block; }
     .verdict-msg.again { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-muted); display: block; }
 
-    /* Status line */
-    .status-line {
-      text-align: center;
-      font-size: 0.72rem;
+    /* ── Reinstate modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 18px 22px;
+      max-width: 320px;
+      width: 92%;
+    }
+    .modal h3 { margin: 0 0 5px; font-size: 0.88rem; color: var(--accent); }
+    .modal p { font-size: 0.72rem; color: var(--text-muted); margin: 0 0 14px; line-height: 1.5; }
+    .modal-seats { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; }
+    .modal-seat-btn {
+      background: var(--seat-bg);
+      border: 1px solid var(--seat-border);
+      border-radius: 4px;
+      padding: 9px 11px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      cursor: pointer;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
+      transition: border-color 0.12s;
+      text-align: left;
+    }
+    .modal-seat-btn:hover { border-color: var(--accent); }
+    .modal-seat-btn.empty-slot .slot-name { color: var(--text-muted); font-style: italic; }
+    .slot-emoji { font-size: 1.05rem; }
+    .slot-info { flex: 1; min-width: 0; }
+    .slot-name { font-size: 0.72rem; font-weight: 700; }
+    .slot-num { font-size: 0.57rem; color: var(--text-muted); }
+    .btn-cancel {
+      background: none;
+      border: 1px solid var(--btn-border);
       color: var(--text-muted);
-      margin-top: 8px;
-      min-height: 1.2em;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: color 0.12s, border-color 0.12s;
+    }
+    .btn-cancel:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* ── Mobile ── */
+    @media (max-width: 820px) {
+      .congress-layout {
+        grid-template-columns: 1fr;
+      }
+      .sidebar-left { order: 2; border-right: none; border-bottom: 1px solid var(--panel-border); }
+      .arena-col { order: 1; }
+      .sidebar-right { order: 3; border-left: none; border-top: 1px solid var(--panel-border); }
     }
   </style>
 </head>
 <body>
 
-  <div class="page-header">
-    <h1>congress</h1>
-    <div class="subtitle">AI parliament — personas deliberate, vote, decide</div>
+<!-- Reinstate modal -->
+<div class="modal-overlay" id="reinstateModal">
+  <div class="modal">
+    <h3 id="modalTitle">Reinstate</h3>
+    <p id="modalBody">Choose which seat to displace:</p>
+    <div class="modal-seats" id="modalSeats"></div>
+    <button class="btn-cancel" onclick="closeModal()">cancel</button>
   </div>
+</div>
 
-  <div class="task-input-section">
-    <textarea id="taskInput" placeholder="Enter a task or question for congress to debate...&#10;e.g. &quot;Should we add user auth to the congress API?&quot;"></textarea>
-    <button class="btn" id="conveneBtn" onclick="convene()">Convene Congress</button>
-  </div>
+<div class="congress-layout">
 
-  <div class="arena-wrap">
+  <!-- LEFT: Roster -->
+  <aside class="sidebar sidebar-left">
+    <div class="sidebar-header">
+      <h2>Roster</h2>
+      <span class="count-badge" id="rosterCount">0 / 3</span>
+    </div>
+    <div class="sidebar-body" id="rosterList"></div>
+  </aside>
+
+  <!-- CENTER: Arena -->
+  <div class="arena-col">
+    <div class="page-header">
+      <h1>congress</h1>
+      <div class="subtitle">AI parliament — personas deliberate, vote, decide</div>
+    </div>
+
     <div class="arena" id="arena">
       <div class="center-label" id="centerLabel">
-        <span id="centerStatus">awaiting session</span>
+        <span class="mod-emoji">⚖️</span>
+        <span class="mod-name">Hiring Manager</span>
+        <span class="mod-role">moderator</span>
         <div class="task-preview" id="centerTask"></div>
       </div>
     </div>
-    <div class="status-line" id="statusLine"></div>
+
+    <div class="status-line" id="statusLine">loading roster…</div>
+
+    <div class="task-form">
+      <label for="taskInput">task for congress</label>
+      <textarea id="taskInput" placeholder="Enter a task or question for congress to debate…&#10;e.g. &quot;Should we rewrite the data pipeline?&quot;"></textarea>
+      <div class="task-form-row">
+        <button class="btn" id="conveneBtn" onclick="convene()" disabled>Convene Congress</button>
+      </div>
+    </div>
+
+    <div class="review-bar" id="reviewBar">
+      <div class="review-label">REVIEW — hiring-manager synthesis</div>
+      <div class="review-synthesis" id="reviewSynthesis"></div>
+      <div class="review-actions">
+        <button class="btn btn-yes" onclick="verdict('yes')">YES — EXECUTE</button>
+        <button class="btn btn-no" onclick="verdict('no')">NO — REJECT</button>
+        <button class="btn btn-secondary" onclick="verdict('again')">KEEP DEBATING</button>
+      </div>
+      <div class="verdict-msg" id="verdictMsg"></div>
+    </div>
   </div>
 
-  <div class="review-bar" id="reviewBar">
-    <div class="review-label">REVIEW — hiring-manager synthesis</div>
-    <div class="review-synthesis" id="reviewSynthesis">
-      <span class="dot-pulse"><span></span><span></span><span></span></span>
+  <!-- RIGHT: Severance -->
+  <aside class="sidebar sidebar-right">
+    <div class="sidebar-header">
+      <h2>Severance</h2>
     </div>
-    <div class="review-actions">
-      <button class="btn btn-yes" onclick="verdict('yes')">YES — EXECUTE</button>
-      <button class="btn btn-no" onclick="verdict('no')">NO — REJECT</button>
-      <button class="btn btn-secondary" onclick="verdict('again')">KEEP DEBATING</button>
-    </div>
-    <div class="verdict-msg" id="verdictMsg"></div>
-  </div>
+    <div class="sidebar-body" id="severanceList"></div>
+  </aside>
 
-  <script>
-    const EMOJI_MAP = {
-      critic: '🔍',
-      architect: '🏗️',
-      ux: '👤',
-      'hiring-manager': '⚖️',
-    };
+</div>
 
-    function getEmoji(name) {
-      return EMOJI_MAP[name] || '🤖';
-    }
+<script>
+(function () {
+  'use strict';
 
-    let currentTask = '';
-    let personas = [];
-    let round = 0;
-    let allResponses = [];
+  // ── Constants ──────────────────────────────────────────────────────────────
+  const SEAT_COUNT = 3;
+  // Fixed angles for the 3 seat positions (top, lower-right, lower-left)
+  const NODE_ANGLES_DEG = [270, 30, 150];
 
-    // ── Layout personas in a circle ──
-    function layoutNodes(identities) {
-      const arena = document.getElementById('arena');
-      // Remove old nodes and bubbles
-      arena.querySelectorAll('.persona-node, .speech-bubble').forEach(el => el.remove());
+  // Emoji & color defaults (server also provides these, used as fallback)
+  const EMOJI_MAP = { critic: '🔍', architect: '🏗️', ux: '🎨', 'hiring-manager': '⚖️' };
+  const COLOR_MAP = { architect: '#f59e0b', critic: '#f87171', ux: '#60a5fa' };
 
-      const W = arena.offsetWidth;
-      const H = arena.offsetHeight;
-      const cx = W / 2;
-      const cy = H / 2;
-      const r = Math.min(W, H) * 0.36;
+  // ── State ──────────────────────────────────────────────────────────────────
+  let seats = [null, null, null];   // persona | null for each seat
+  let firedPool = [];                // personas in severance
+  let pendingReinstate = null;       // persona waiting for seat selection
+  let round = 0;
 
-      identities.forEach((id, i) => {
-        const angle = (2 * Math.PI * i / identities.length) - Math.PI / 2;
-        const nx = cx + r * Math.cos(angle);
-        const ny = cy + r * Math.sin(angle);
-
-        // Node
-        const node = document.createElement('div');
-        node.className = 'persona-node';
-        node.id = `node-${id.name}`;
-        node.style.left = nx + 'px';
-        node.style.top = ny + 'px';
-        node.innerHTML = `
-          <div class="node-circle">
-            <div class="node-emoji">${getEmoji(id.name)}</div>
-            <div class="node-name">${id.name}</div>
-          </div>`;
-        arena.appendChild(node);
-
-        // Bubble — position outside the circle
-        const bubble = document.createElement('div');
-        bubble.className = 'speech-bubble';
-        bubble.id = `bubble-${id.name}`;
-
-        // Position bubble: push it further from center
-        const bOffset = 110;
-        const bx = cx + (r + bOffset) * Math.cos(angle);
-        const by = cy + (r + bOffset) * Math.sin(angle);
-
-        // Adjust so bubble doesn't overflow arena
-        const bw = 200;
-        let bleft = bx - bw / 2;
-        let btop = by - 50;
-        bleft = Math.max(4, Math.min(W - bw - 4, bleft));
-        btop = Math.max(4, Math.min(H - 120, btop));
-
-        bubble.style.left = bleft + 'px';
-        bubble.style.top = btop + 'px';
-        bubble.innerHTML = `<div class="bubble-label">${id.name}</div><div class="bubble-text"></div>`;
-        arena.appendChild(bubble);
-      });
-    }
-
-    function setNodeState(name, state) {
-      const node = document.getElementById(`node-${name}`);
-      if (node) {
-        node.classList.remove('active', 'done');
-        if (state) node.classList.add(state);
-      }
-    }
-
-    function showBubbleLoading(name) {
-      const bubble = document.getElementById(`bubble-${name}`);
-      if (!bubble) return;
-      bubble.querySelector('.bubble-text').innerHTML =
-        '<div class="bubble-loading"><div class="dot-pulse"><span></span><span></span><span></span></div></div>';
-      bubble.classList.add('visible');
-    }
-
-    function setBubbleText(name, text) {
-      const bubble = document.getElementById(`bubble-${name}`);
-      if (!bubble) return;
-      bubble.querySelector('.bubble-text').textContent = text;
-    }
-
-    function hideBubble(name) {
-      const bubble = document.getElementById(`bubble-${name}`);
-      if (bubble) bubble.classList.remove('visible');
-    }
-
-    function setStatus(msg) {
-      document.getElementById('statusLine').textContent = msg;
-    }
-
-    async function convene() {
-      const taskInput = document.getElementById('taskInput');
-      const task = taskInput.value.trim();
-      if (!task) { taskInput.focus(); return; }
-
-      currentTask = task;
-      round++;
-      allResponses = [];
-
-      document.getElementById('conveneBtn').disabled = true;
-      document.getElementById('reviewBar').classList.remove('visible');
-      document.getElementById('verdictMsg').className = 'verdict-msg';
-      document.getElementById('centerTask').textContent = task.length > 80 ? task.slice(0, 77) + '...' : task;
-      document.getElementById('centerStatus').textContent = 'loading personas...';
-
-      setStatus('fetching identities...');
-
-      let identities;
+  // ── Boot ───────────────────────────────────────────────────────────────────
+  async function init() {
+    try {
+      const res = await fetch('/api/agents');
+      if (!res.ok) throw new Error('status ' + res.status);
+      const data = await res.json();
+      const active = (data.active || []).slice(0, SEAT_COUNT);
+      for (let i = 0; i < SEAT_COUNT; i++) seats[i] = active[i] || null;
+      firedPool = data.fired || [];
+    } catch (e) {
+      // Fallback: load from /api/congress/identities
       try {
         const res = await fetch('/api/congress/identities');
-        identities = await res.json();
-      } catch (e) {
-        setStatus('error: could not load identities');
-        document.getElementById('conveneBtn').disabled = false;
-        return;
-      }
-
-      // Split hiring-manager from the rest
-      const moderator = identities.find(i => i.name === 'hiring-manager');
-      const debaters = identities.filter(i => i.name !== 'hiring-manager');
-      personas = identities;
-
-      // All nodes including hiring-manager in circle
-      layoutNodes(identities);
-      document.getElementById('centerStatus').textContent = 'in session';
-      setStatus(`round ${round} — ${debaters.length} persona(s) deliberating`);
-
-      // Debate phase
-      const debateTexts = [];
-      for (const persona of debaters) {
-        setNodeState(persona.name, 'active');
-        showBubbleLoading(persona.name);
-        setStatus(`${persona.name} is speaking...`);
-
-        try {
-          const res = await fetch('/api/congress', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ task, identity: persona.name }),
-          });
-          const data = await res.json();
-          if (data.error) throw new Error(data.error);
-          setBubbleText(persona.name, data.response);
-          debateTexts.push({ name: persona.name, text: data.response });
-          allResponses.push({ name: persona.name, text: data.response });
-        } catch (e) {
-          setBubbleText(persona.name, `[error: ${e.message}]`);
-          debateTexts.push({ name: persona.name, text: `(failed to respond)` });
+        const ids = await res.json();
+        const debaters = ids.filter(i => i.name !== 'hiring-manager');
+        for (let i = 0; i < SEAT_COUNT; i++) {
+          const d = debaters[i];
+          if (d) seats[i] = {
+            id: d.name, name: d.name,
+            emoji: EMOJI_MAP[d.name] || '🤖',
+            color: COLOR_MAP[d.name] || '#888',
+            description: d.role || '',
+          };
         }
-
-        setNodeState(persona.name, 'done');
-        // Small pause between speakers
-        await new Promise(r => setTimeout(r, 400));
+        firedPool = [];
+      } catch (e2) {
+        setStatus('could not load agents');
       }
-
-      setStatus('hiring-manager synthesizing...');
-
-      // Hiring-manager synthesis
-      if (moderator) {
-        setNodeState('hiring-manager', 'active');
-        showBubbleLoading('hiring-manager');
-
-        const summaryTask =
-          `The congress just debated the following task:\n\n"${task}"\n\nHere are the persona responses:\n\n` +
-          debateTexts.map(d => `[${d.name}]: ${d.text}`).join('\n\n') +
-          `\n\nSynthesize the key points, note consensus and disagreement, and issue a concise recommendation.`;
-
-        try {
-          const res = await fetch('/api/congress', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ task: summaryTask, identity: 'hiring-manager' }),
-          });
-          const data = await res.json();
-          if (data.error) throw new Error(data.error);
-          setBubbleText('hiring-manager', data.response);
-          document.getElementById('reviewSynthesis').textContent = data.response;
-          allResponses.push({ name: 'hiring-manager', text: data.response });
-        } catch (e) {
-          setBubbleText('hiring-manager', `[error: ${e.message}]`);
-          document.getElementById('reviewSynthesis').textContent = `Synthesis failed: ${e.message}`;
-        }
-
-        setNodeState('hiring-manager', 'done');
-      }
-
-      document.getElementById('reviewBar').classList.add('visible');
-      setStatus(`round ${round} complete — review the synthesis below`);
-      document.getElementById('conveneBtn').disabled = false;
     }
+    render();
+    const filled = seats.filter(Boolean).length;
+    setStatus(filled + ' debater' + (filled !== 1 ? 's' : '') + ' seated');
+  }
 
-    function verdict(choice) {
-      const msg = document.getElementById('verdictMsg');
-      msg.className = 'verdict-msg';
-      // Force reflow
-      void msg.offsetWidth;
-      if (choice === 'yes') {
-        msg.className = 'verdict-msg yes';
-        msg.textContent = 'Task marked for execution. Good luck.';
-        // Disable action buttons briefly
-        document.querySelectorAll('.review-actions .btn').forEach(b => b.disabled = true);
-      } else if (choice === 'no') {
-        msg.className = 'verdict-msg no';
-        msg.textContent = 'Task rejected by congress.';
-        document.querySelectorAll('.review-actions .btn').forEach(b => b.disabled = true);
+  // ── Rendering ──────────────────────────────────────────────────────────────
+  function render() {
+    renderRoster();
+    renderCircle();
+    renderSeverance();
+    updateConveneBtn();
+  }
+
+  function renderRoster() {
+    const list = document.getElementById('rosterList');
+    list.innerHTML = '';
+    const count = seats.filter(Boolean).length;
+    document.getElementById('rosterCount').textContent = count + ' / ' + SEAT_COUNT;
+
+    for (let i = 0; i < SEAT_COUNT; i++) {
+      const p = seats[i];
+      const card = document.createElement('div');
+      card.className = 'seat-card ' + (p ? 'occupied' : 'empty');
+      if (p && p.color) card.style.setProperty('--sc', p.color);
+
+      const num = document.createElement('span');
+      num.className = 'seat-num';
+      num.textContent = 'seat ' + (i + 1);
+      card.appendChild(num);
+
+      const emoji = document.createElement('span');
+      emoji.className = 'seat-emoji';
+      emoji.textContent = p ? (p.emoji || '🤖') : '○';
+      card.appendChild(emoji);
+
+      const info = document.createElement('div');
+      info.className = 'seat-info';
+      const name = document.createElement('div');
+      name.className = 'seat-name';
+      if (p) {
+        name.textContent = p.name;
       } else {
-        msg.className = 'verdict-msg again';
-        msg.textContent = 'Starting another round of deliberation...';
-        setTimeout(() => convene(), 800);
+        name.textContent = 'empty seat';
+        name.style.color = 'var(--text-muted)';
+        name.style.fontStyle = 'italic';
       }
+      info.appendChild(name);
+      if (p && p.description) {
+        const desc = document.createElement('div');
+        desc.className = 'seat-desc';
+        desc.textContent = p.description;
+        info.appendChild(desc);
+      }
+      card.appendChild(info);
+
+      if (p) {
+        const btn = document.createElement('button');
+        btn.className = 'btn-remove';
+        btn.textContent = '✕';
+        btn.title = 'Move to severance';
+        btn.addEventListener('click', () => removeToSeverance(i));
+        card.appendChild(btn);
+      }
+
+      list.appendChild(card);
     }
-  </script>
+  }
+
+  function renderCircle() {
+    const arena = document.getElementById('arena');
+    arena.querySelectorAll('.persona-node, .speech-bubble').forEach(el => el.remove());
+
+    const W = arena.offsetWidth || 440;
+    const H = arena.offsetHeight || 440;
+    const cx = W / 2;
+    const cy = H / 2;
+    const r = Math.min(W, H) * 0.36;
+
+    for (let i = 0; i < SEAT_COUNT; i++) {
+      const deg = NODE_ANGLES_DEG[i];
+      const rad = (deg * Math.PI) / 180;
+      const nx = cx + r * Math.cos(rad);
+      const ny = cy + r * Math.sin(rad);
+      const p = seats[i];
+
+      const node = document.createElement('div');
+      node.className = 'persona-node' + (p ? '' : ' empty-node');
+      node.id = 'node-seat-' + i;
+      node.style.left = nx + 'px';
+      node.style.top = ny + 'px';
+      node.innerHTML = `<div class="node-circle">
+        <div class="node-emoji">${p ? (p.emoji || '🤖') : '○'}</div>
+        <div class="node-name">${p ? p.name : ''}</div>
+      </div>`;
+      arena.appendChild(node);
+
+      // Speech bubble pushed further out
+      const bubble = document.createElement('div');
+      bubble.className = 'speech-bubble';
+      bubble.id = 'bubble-seat-' + i;
+
+      const bOff = 105;
+      const bx = cx + (r + bOff) * Math.cos(rad);
+      const by = cy + (r + bOff) * Math.sin(rad);
+      const bw = 190;
+      let bleft = Math.max(4, Math.min(W - bw - 4, bx - bw / 2));
+      let btop = Math.max(4, Math.min(H - 120, by - 50));
+
+      bubble.style.left = bleft + 'px';
+      bubble.style.top = btop + 'px';
+      bubble.innerHTML = `<div class="bubble-label">${p ? p.name : ''}</div><div class="bubble-text"></div>`;
+      arena.appendChild(bubble);
+    }
+  }
+
+  function renderSeverance() {
+    const list = document.getElementById('severanceList');
+    list.innerHTML = '';
+
+    if (firedPool.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'sidebar-empty';
+      empty.textContent = 'No one in severance.';
+      list.appendChild(empty);
+      return;
+    }
+
+    firedPool.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'fired-card';
+
+      const top = document.createElement('div');
+      top.className = 'fired-card-top';
+      const emoji = document.createElement('span');
+      emoji.className = 'fired-emoji';
+      emoji.textContent = p.emoji || '🤖';
+      const name = document.createElement('span');
+      name.className = 'fired-name';
+      name.textContent = p.name;
+      top.appendChild(emoji);
+      top.appendChild(name);
+      card.appendChild(top);
+
+      if (p.fired_reason) {
+        const reason = document.createElement('div');
+        reason.className = 'fired-reason';
+        reason.textContent = '"' + p.fired_reason + '"';
+        card.appendChild(reason);
+      }
+
+      const btn = document.createElement('button');
+      btn.className = 'btn-reinstate';
+      btn.textContent = '↑ reinstate';
+      btn.addEventListener('click', () => openReinstateModal(p));
+      card.appendChild(btn);
+
+      list.appendChild(card);
+    });
+  }
+
+  function updateConveneBtn() {
+    const filled = seats.filter(Boolean).length;
+    document.getElementById('conveneBtn').disabled = filled === 0;
+  }
+
+  // ── Roster actions ─────────────────────────────────────────────────────────
+  function removeToSeverance(seatIndex) {
+    const p = seats[seatIndex];
+    if (!p) return;
+    seats[seatIndex] = null;
+    const entry = Object.assign({}, p);
+    if (!entry.fired_reason) entry.fired_reason = 'Removed from active roster.';
+    firedPool.unshift(entry);
+    render();
+    setStatus(p.name + ' moved to severance');
+  }
+
+  function openReinstateModal(persona) {
+    pendingReinstate = persona;
+    document.getElementById('modalTitle').textContent = 'Reinstate ' + persona.name;
+    document.getElementById('modalBody').textContent = 'Choose a seat to place them in:';
+
+    const seatsEl = document.getElementById('modalSeats');
+    seatsEl.innerHTML = '';
+
+    for (let i = 0; i < SEAT_COUNT; i++) {
+      const s = seats[i];
+      const btn = document.createElement('button');
+      btn.className = 'modal-seat-btn' + (s ? '' : ' empty-slot');
+
+      btn.innerHTML = `<span class="slot-emoji">${s ? (s.emoji || '🤖') : '○'}</span>
+        <div class="slot-info">
+          <div class="slot-name">${s ? s.name : 'empty seat'}</div>
+          <div class="slot-num">seat ${i + 1}</div>
+        </div>`;
+      btn.addEventListener('click', () => doReinstate(i));
+      seatsEl.appendChild(btn);
+    }
+
+    document.getElementById('reinstateModal').classList.add('open');
+  }
+
+  function doReinstate(seatIndex) {
+    if (!pendingReinstate) return;
+    const displaced = seats[seatIndex];
+    const reinstated = Object.assign({}, pendingReinstate);
+    delete reinstated.fired_reason;
+
+    seats[seatIndex] = reinstated;
+    firedPool = firedPool.filter(p => p.id !== pendingReinstate.id);
+
+    if (displaced) {
+      const d = Object.assign({}, displaced);
+      if (!d.fired_reason) d.fired_reason = 'Displaced by ' + reinstated.name + '.';
+      firedPool.unshift(d);
+    }
+
+    const rname = reinstated.name;
+    pendingReinstate = null;
+    closeModal();
+    render();
+    setStatus(rname + ' reinstated to seat ' + (seatIndex + 1));
+  }
+
+  window.closeModal = function () {
+    pendingReinstate = null;
+    document.getElementById('reinstateModal').classList.remove('open');
+  };
+  document.getElementById('reinstateModal').addEventListener('click', function (e) {
+    if (e.target === this) closeModal();
+  });
+
+  // ── Circle node state helpers ──────────────────────────────────────────────
+  function setNodeState(seatIndex, state) {
+    const node = document.getElementById('node-seat-' + seatIndex);
+    if (node) {
+      node.classList.remove('active', 'done');
+      if (state) node.classList.add(state);
+    }
+  }
+
+  function showBubbleLoading(seatIndex, label) {
+    const bubble = document.getElementById('bubble-seat-' + seatIndex);
+    if (!bubble) return;
+    bubble.querySelector('.bubble-label').textContent = label || '';
+    bubble.querySelector('.bubble-text').innerHTML =
+      '<div style="display:flex;gap:4px;align-items:center;color:var(--text-muted)"><div class="dot-pulse"><span></span><span></span><span></span></div></div>';
+    bubble.classList.add('visible');
+  }
+
+  function setBubbleText(seatIndex, label, text) {
+    const bubble = document.getElementById('bubble-seat-' + seatIndex);
+    if (!bubble) return;
+    bubble.querySelector('.bubble-label').textContent = label || '';
+    bubble.querySelector('.bubble-text').textContent = text;
+  }
+
+  // ── Debate ─────────────────────────────────────────────────────────────────
+  window.convene = async function () {
+    const taskInput = document.getElementById('taskInput');
+    const task = taskInput.value.trim();
+    if (!task) { taskInput.focus(); return; }
+
+    const activeSeats = seats
+      .map((p, i) => ({ p, i }))
+      .filter(({ p }) => p !== null);
+
+    if (activeSeats.length === 0) { setStatus('no debaters in roster'); return; }
+
+    round++;
+    document.getElementById('conveneBtn').disabled = true;
+    document.getElementById('reviewBar').classList.remove('visible');
+    document.getElementById('verdictMsg').className = 'verdict-msg';
+    document.getElementById('centerTask').textContent =
+      task.length > 70 ? task.slice(0, 67) + '…' : task;
+
+    setStatus('round ' + round + ' — ' + activeSeats.length + ' debater(s) deliberating');
+
+    // Re-render circle to get fresh nodes (reset states)
+    renderCircle();
+
+    const debateTexts = [];
+
+    for (const { p, i } of activeSeats) {
+      setNodeState(i, 'active');
+      showBubbleLoading(i, p.name);
+      setStatus(p.name + ' is speaking…');
+
+      try {
+        const res = await fetch('/api/congress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task, identity: p.id }),
+        });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        setBubbleText(i, p.name, data.response);
+        debateTexts.push({ name: p.name, text: data.response });
+      } catch (e) {
+        setBubbleText(i, p.name, '[error: ' + e.message + ']');
+        debateTexts.push({ name: p.name, text: '(failed to respond)' });
+      }
+
+      setNodeState(i, 'done');
+      await new Promise(r => setTimeout(r, 350));
+    }
+
+    setStatus('hiring-manager synthesizing…');
+
+    // Moderator synthesis
+    const summaryTask =
+      'The congress just debated the following task:\n\n"' + task + '"\n\n' +
+      'Here are the persona responses:\n\n' +
+      debateTexts.map(d => '[' + d.name + ']: ' + d.text).join('\n\n') +
+      '\n\nSynthesize the key points, note consensus and disagreement, and issue a concise recommendation.';
+
+    const reviewEl = document.getElementById('reviewSynthesis');
+    reviewEl.innerHTML = '<div class="dot-pulse"><span></span><span></span><span></span></div>';
+    document.getElementById('reviewBar').classList.add('visible');
+
+    try {
+      const res = await fetch('/api/congress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task: summaryTask, identity: 'hiring-manager' }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      reviewEl.textContent = data.response;
+    } catch (e) {
+      reviewEl.textContent = 'Synthesis failed: ' + e.message;
+    }
+
+    setStatus('round ' + round + ' complete — review the synthesis below');
+    document.getElementById('conveneBtn').disabled = false;
+  };
+
+  window.verdict = function (choice) {
+    const msg = document.getElementById('verdictMsg');
+    msg.className = 'verdict-msg';
+    void msg.offsetWidth;
+    if (choice === 'yes') {
+      msg.className = 'verdict-msg yes';
+      msg.textContent = 'Task marked for execution. Good luck.';
+      document.querySelectorAll('.review-actions .btn').forEach(b => b.disabled = true);
+    } else if (choice === 'no') {
+      msg.className = 'verdict-msg no';
+      msg.textContent = 'Task rejected by congress.';
+      document.querySelectorAll('.review-actions .btn').forEach(b => b.disabled = true);
+    } else {
+      msg.className = 'verdict-msg again';
+      msg.textContent = 'Starting another round of deliberation…';
+      setTimeout(() => window.convene(), 800);
+    }
+  };
+
+  function setStatus(msg) {
+    document.getElementById('statusLine').textContent = msg;
+  }
+
+  // Re-render circle when window resizes (positions are layout-dependent)
+  window.addEventListener('resize', () => renderCircle());
+
+  init();
+})();
+</script>
 </body>
 </html>
