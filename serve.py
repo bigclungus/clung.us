@@ -410,7 +410,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def _serve_wallet_balance(self):
         """Fetch ETH balance on Base for the public wallet address."""
-        import urllib.request as _urlreq
         ADDRESS = '0x425bC492E43b2a5Eb7E02c9F5dd9c1D2F378f02f'
         BASE_RPC = 'https://base-mainnet.public.blastapi.io'
         payload = json.dumps({
@@ -420,7 +419,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             'id': 1,
         }).encode('utf-8')
         try:
-            req = _urlreq.Request(
+            req = urllib.request.Request(
                 BASE_RPC,
                 data=payload,
                 headers={
@@ -429,7 +428,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 },
                 method='POST',
             )
-            with _urlreq.urlopen(req, timeout=8) as resp:
+            with urllib.request.urlopen(req, timeout=8) as resp:
                 rdata = json.loads(resp.read().decode('utf-8'))
             hex_val = rdata.get('result', '0x0')
             wei = int(hex_val, 16)
@@ -747,7 +746,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             fpath = os.path.join(SESSIONS_DIR, f"{session_id}.json")
             if os.path.isfile(fpath):
                 try:
-                    import fcntl
                     with open(fpath, 'r+') as f:
                         fcntl.flock(f, fcntl.LOCK_EX)
                         try:
@@ -769,7 +767,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def _handle_congress_stream(self):
         """GET /api/congress/stream?session_id=... — SSE endpoint for live token streaming."""
-        import time
         qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         session_id = qs.get('session_id', [''])[0]
 
