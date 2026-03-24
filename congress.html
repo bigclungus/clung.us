@@ -602,54 +602,132 @@
     ::-webkit-scrollbar-thumb:hover { background: #555; }
     * { scrollbar-width: thin; scrollbar-color: #333 #0a0a0f; }
 
-    /* ── Speech feed panel ── */
-    #speech-feed {
-      width: 100%;
-      max-width: 520px;
-      display: none;
-      flex-direction: column;
-      gap: 6px;
+    /* ── Speech bubbles (in-arena, beside each node) ── */
+    .arena {
+      overflow: visible; /* allow bubbles to extend beyond arena bounds */
     }
-    #speech-feed.has-items { display: flex; }
-    .speech-feed-header {
-      font-size: 0.6rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      border-bottom: 1px solid var(--panel-border);
-      padding-bottom: 4px;
-      margin-bottom: 2px;
-    }
-    .speech-feed-item {
+    .node-bubble {
+      position: absolute;
+      width: 180px;
+      max-height: 180px;
+      overflow-y: auto;
       background: var(--bubble-bg);
       border: 1px solid var(--bubble-border);
-      border-radius: 5px;
-      padding: 8px 11px;
-      font-size: 0.68rem;
-      line-height: 1.55;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 0.63rem;
+      line-height: 1.5;
       color: var(--text);
-      animation: feedSlideIn 0.25s ease;
+      display: none;
+      z-index: 5;
+      top: 50%;
+      transform: translateY(-50%);
+      animation: bubbleFadeIn 0.25s ease;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
     }
-    @keyframes feedSlideIn {
-      from { opacity: 0; transform: translateY(-4px); }
-      to   { opacity: 1; transform: translateY(0); }
+    .node-bubble.visible { display: block; }
+    /* Bubble tail pseudo-element */
+    .node-bubble::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 6px solid transparent;
     }
-    .speech-feed-item .feed-label {
-      font-size: 0.6rem;
+    /* Right-side bubble: bubble is to the right of the node */
+    .persona-node.bubble-right .node-bubble {
+      left: calc(100% + 10px);
+    }
+    .persona-node.bubble-right .node-bubble::before {
+      left: -12px;
+      border-right-color: var(--bubble-border);
+    }
+    /* Left-side bubble: bubble is to the left of the node */
+    .persona-node.bubble-left .node-bubble {
+      right: calc(100% + 10px);
+    }
+    .persona-node.bubble-left .node-bubble::before {
+      right: -12px;
+      border-left-color: var(--bubble-border);
+    }
+    @keyframes bubbleFadeIn {
+      from { opacity: 0; transform: translateY(-50%) scale(0.97); }
+      to   { opacity: 1; transform: translateY(-50%) scale(1); }
+    }
+    .node-bubble .bubble-label {
+      font-size: 0.58rem;
       font-weight: 700;
       letter-spacing: 0.06em;
-      margin-bottom: 3px;
+      margin-bottom: 4px;
     }
-    .speech-feed-item .feed-text {
+    .node-bubble .bubble-text {
       color: var(--text-muted);
-      max-height: 6.5em;
-      overflow: hidden;
     }
-    .speech-feed-item .feed-text p { margin: 0 0 0.35em; }
-    .speech-feed-item .feed-text p:last-child { margin-bottom: 0; }
-    .speech-feed-item .feed-text strong { font-weight: 700; }
-    .speech-feed-item .feed-text em { font-style: italic; }
-    .speech-feed-item .feed-text code { font-size: 0.85em; background: var(--panel-bg); padding: 0 3px; border-radius: 2px; }
+    .node-bubble .bubble-text p { margin: 0 0 0.35em; }
+    .node-bubble .bubble-text p:last-child { margin-bottom: 0; }
+    .node-bubble .bubble-text strong { font-weight: 700; }
+    .node-bubble .bubble-text em { font-style: italic; }
+    .node-bubble .bubble-text code { font-size: 0.85em; background: var(--panel-bg); padding: 0 3px; border-radius: 2px; }
+
+    /* ── Topic modal ── */
+    .topic-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 400;
+      align-items: center;
+      justify-content: center;
+    }
+    .topic-modal-overlay.open { display: flex; }
+    .topic-modal {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 22px 24px;
+      max-width: 540px;
+      width: 92%;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    .topic-modal-close {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'JetBrains Mono', monospace;
+      transition: color 0.12s, border-color 0.12s;
+    }
+    .topic-modal-close:hover { color: var(--accent); border-color: var(--accent); }
+    .topic-modal-label {
+      font-size: 0.6rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 10px;
+    }
+    .topic-modal-text {
+      font-size: 0.82rem;
+      line-height: 1.65;
+      color: var(--text);
+    }
+
+    /* ── Center task — clickable hint ── */
+    .center-label .task-preview {
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-color: color-mix(in srgb, var(--text-muted) 40%, transparent);
+      text-underline-offset: 2px;
+      transition: color 0.12s;
+    }
+    .center-label .task-preview:hover { color: var(--accent); }
     .review-synthesis p { margin: 0 0 0.5em; }
     .review-synthesis p:last-child { margin-bottom: 0; }
     .review-synthesis strong { font-weight: 700; }
@@ -681,6 +759,15 @@
     <p id="modalBody">Choose which seat to displace:</p>
     <div class="modal-seats" id="modalSeats"></div>
     <button class="btn-cancel" onclick="closeModal()">cancel</button>
+  </div>
+</div>
+
+<!-- Topic modal -->
+<div class="topic-modal-overlay" id="topicModal">
+  <div class="topic-modal">
+    <button class="topic-modal-close" id="topicModalClose">✕</button>
+    <div class="topic-modal-label">topic</div>
+    <div class="topic-modal-text" id="topicModalText"></div>
   </div>
 </div>
 
@@ -716,11 +803,6 @@
 
     <div class="status-line" id="statusLine">loading roster…</div>
 
-    <!-- Live speech feed (shown during/after session view) -->
-    <div id="speech-feed">
-      <div class="speech-feed-header">live feed</div>
-    </div>
-
     <!-- Session list (shown when no session in URL) -->
     <div class="session-list-panel" id="sessionListPanel" style="display:none">
       <h2>Congress Sessions</h2>
@@ -751,6 +833,9 @@
   const SEAT_COUNT = 3;
   // Fixed angles for the 3 seat positions (top, lower-right, lower-left)
   const NODE_ANGLES_DEG = [270, 30, 150];
+  // Which side the speech bubble appears on for each seat (right or left)
+  // seat 0 = top (270°) → right side; seat 1 = lower-right (30°) → right; seat 2 = lower-left (150°) → left
+  const BUBBLE_SIDE = ['right', 'right', 'left'];
 
   // Emoji & color defaults (server also provides these, used as fallback)
   const EMOJI_MAP = { critic: '🔍', architect: '🏗️', ux: '🎨', 'hiring-manager': '⚖️' };
@@ -849,6 +934,7 @@
       const session = await res.json();
       // Show topic in center of circle
       if (session.topic) {
+        fullTopicText = session.topic;
         document.getElementById('centerTask').textContent =
           session.topic.length > 70 ? session.topic.slice(0, 67) + '…' : session.topic;
       }
@@ -1080,7 +1166,10 @@
       const displayNameHtml = p
         ? `<div class="node-display-name">${p.display_name || p.name}</div><div class="node-name">&lt;${p.name}&gt;</div>`
         : '';
-      node.innerHTML = `<div class="node-circle">${avatarHtml}${displayNameHtml}</div>`;
+      const side = BUBBLE_SIDE[i] || 'right';
+      node.classList.add('bubble-' + side);
+      node.innerHTML = `<div class="node-circle">${avatarHtml}${displayNameHtml}</div>` +
+        `<div class="node-bubble" id="bubble-seat-${i}"><div class="bubble-label"></div><div class="bubble-text"></div></div>`;
       arena.appendChild(node);
     }
   }
@@ -1208,29 +1297,22 @@
     }
   }
 
-  // ── Speech feed helpers ─────────────────────────────────────────────────────
-  function getFeedItem(seatIndex) {
-    const feed = document.getElementById('speech-feed');
-    let item = feed.querySelector('[data-seat="' + seatIndex + '"]');
-    if (!item) {
-      item = document.createElement('div');
-      item.className = 'speech-feed-item';
-      item.dataset.seat = seatIndex;
-      item.innerHTML = '<div class="feed-label"></div><div class="feed-text"></div>';
-      feed.appendChild(item);
-      feed.classList.add('has-items');
-    }
-    return item;
+  // ── Speech bubble helpers ─────────────────────────────────────────────────────
+  function getNodeBubble(seatIndex) {
+    // Try to find the bubble; it may not exist yet if renderCircle hasn't run
+    return document.getElementById('bubble-seat-' + seatIndex);
   }
 
   function showBubbleLoading(seatIndex, label) {
-    const item = getFeedItem(seatIndex);
+    const bubble = getNodeBubble(seatIndex);
+    if (!bubble) return;
     const p = seats[seatIndex];
     const color = (p && p.color) ? p.color : 'var(--accent)';
-    item.querySelector('.feed-label').textContent = label || '';
-    item.querySelector('.feed-label').style.color = color;
-    item.querySelector('.feed-text').innerHTML =
+    bubble.querySelector('.bubble-label').textContent = label || '';
+    bubble.querySelector('.bubble-label').style.color = color;
+    bubble.querySelector('.bubble-text').innerHTML =
       '<div class="dot-pulse-inline"><span></span><span></span><span></span></div>';
+    bubble.classList.add('visible');
   }
 
   function renderMarkdown(text) {
@@ -1254,17 +1336,39 @@
   }
 
   function setBubbleText(seatIndex, label, text) {
-    const item = getFeedItem(seatIndex);
+    const bubble = getNodeBubble(seatIndex);
+    if (!bubble) return;
     const p = seats[seatIndex];
     const color = (p && p.color) ? p.color : 'var(--accent)';
-    item.querySelector('.feed-label').textContent = label || '';
-    item.querySelector('.feed-label').style.color = color;
-    item.querySelector('.feed-text').innerHTML = renderMarkdown(text);
+    bubble.querySelector('.bubble-label').textContent = label || '';
+    bubble.querySelector('.bubble-label').style.color = color;
+    bubble.querySelector('.bubble-text').innerHTML = renderMarkdown(text);
+    bubble.classList.add('visible');
   }
 
   function setStatus(msg) {
     document.getElementById('statusLine').textContent = msg;
   }
+
+  // ── Topic modal ─────────────────────────────────────────────────────────────
+  let fullTopicText = '';
+
+  function openTopicModal() {
+    if (!fullTopicText) return;
+    document.getElementById('topicModalText').textContent = fullTopicText;
+    document.getElementById('topicModal').classList.add('open');
+  }
+
+  function closeTopicModal() {
+    document.getElementById('topicModal').classList.remove('open');
+  }
+
+  document.getElementById('topicModalClose').addEventListener('click', closeTopicModal);
+  document.getElementById('topicModal').addEventListener('click', function (e) {
+    if (e.target === this) closeTopicModal();
+  });
+
+  document.getElementById('centerTask').addEventListener('click', openTopicModal);
 
   // Re-render circle when window resizes (positions are layout-dependent)
   window.addEventListener('resize', () => renderCircle());
