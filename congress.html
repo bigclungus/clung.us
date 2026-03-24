@@ -2357,9 +2357,10 @@
     const debaterOrder = seats.filter(Boolean).map(s => s.id || s.name);
 
     // Helper: detect vote entries (response starts with AGREE or DISAGREE)
+    // Strip trailing punctuation (e.g. "AGREE." or "DISAGREE,") before comparing.
     function isVoteEntry(entry) {
       if (!entry.response) return false;
-      const first = entry.response.trim().toUpperCase().split(/[\s\n]/)[0];
+      const first = entry.response.trim().toUpperCase().split(/[\s\n]/)[0].replace(/[^A-Z]/g, '');
       return first === 'AGREE' || first === 'DISAGREE';
     }
 
