@@ -9,6 +9,7 @@ import re
 import datetime
 import subprocess
 import fcntl
+import secrets
 import time
 import urllib.parse
 import urllib.request
@@ -50,7 +51,10 @@ COLOR_MAP = {
 GITHUB_COOKIE = "tauth_github"
 GITHUB_ALLOWED_USERS = {u.lower() for u in os.environ.get('GITHUB_ALLOWED_USERS', '').split(',') if u.strip()}
 COOKIE_SECRET = os.environ.get('COOKIE_SECRET', '')
-CONGRESS_LOGIN_URL = "https://terminal.clung.us/auth/github?next=https://hello.clung.us/congress"
+GITHUB_CLIENT_ID     = os.environ.get('GITHUB_CLIENT_ID', '')
+GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET', '')
+COOKIE_MAX_AGE = 86400  # 24 hours
+CONGRESS_LOGIN_URL = "https://clung.us/auth/github?next=https://clung.us/congress"
 
 
 def _verify_cookie(value: str) -> str:
@@ -62,6 +66,25 @@ def _verify_cookie(value: str) -> str:
     if hmac.compare_digest(sig, expected):
         return username
     return ''
+
+
+def _sign_cookie(username: str) -> str:
+    """Return a signed cookie value: username.hmac_hex"""
+    if not COOKIE_SECRET:
+        return username
+    sig = hmac.new(COOKIE_SECRET.encode(), username.encode(), hashlib.sha256).hexdigest()
+    return f'{username}.{sig}'
+
+
+def _is_safe_redirect(url: str) -> bool:
+    if not url:
+        return False
+    try:
+        parsed = urllib.parse.urlparse(url)
+        host = parsed.hostname or ''
+        return (host == 'clung.us' or host.endswith('.clung.us')) and parsed.scheme == 'https'
+    except Exception:
+        return False
 
 
 def _is_authed(request_headers):
@@ -76,6 +99,30 @@ def _is_authed(request_headers):
                 if not GITHUB_ALLOWED_USERS or gh_user.lower() in GITHUB_ALLOWED_USERS:
                     return True
     return False
+
+
+# ── GitHub OAuth state store (in-memory; short-lived) ──────────────────────────
+_oauth_states: dict = {}  # state_token -> next_url
+_oauth_states_lock = threading.Lock()
+
+
+def _oauth_state_new(next_url: str = '') -> str:
+    state = secrets.token_urlsafe(16)
+    with _oauth_states_lock:
+        _oauth_states[state] = next_url
+        # Prune old entries (keep last 100)
+        if len(_oauth_states) > 100:
+            oldest = list(_oauth_states.keys())[:50]
+            for k in oldest:
+                _oauth_states.pop(k, None)
+    return state
+
+
+def _oauth_state_consume(state: str):
+    """Return next_url for state token and remove it, or None if invalid."""
+    with _oauth_states_lock:
+        return _oauth_states.pop(state, None)
+
 
 _EVENT_TO_STATUS = {
     'started': 'in_progress',
@@ -379,13 +426,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', 'https://hello.clung.us')
+        self.send_header('Access-Control-Allow-Origin', 'https://clung.us')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
 
     def do_GET(self):
         path = urllib.parse.urlparse(self.path).path
+
+        if path == '/auth/github':
+            self._handle_github_auth()
+            return
+
+        if path == '/auth/callback':
+            self._handle_github_callback()
+            return
+
+        if path == '/terminal':
+            self.send_response(302)
+            self.send_header('Location', 'https://terminal.clung.us/')
+            self.end_headers()
+            return
 
         if path == '/api/tasks':
             if not _is_authed(self.headers):
@@ -1002,7 +1063,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_response(code)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', str(len(body)))
-        self.send_header('Access-Control-Allow-Origin', 'https://hello.clung.us')
+        self.send_header('Access-Control-Allow-Origin', 'https://clung.us')
         self.end_headers()
         self.wfile.write(body)
 
@@ -1026,6 +1087,132 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             except FileNotFoundError:
                 pass
         super().send_error(code, message, explain)
+
+    # ── GitHub OAuth handlers ──────────────────────────────────────────────────
+
+    def _handle_github_auth(self):
+        """Redirect to GitHub OAuth. Accepts ?next=<url> for post-auth redirect."""
+        if not GITHUB_CLIENT_ID:
+            self._send_html(500, '<h1>GitHub OAuth not configured</h1>')
+            return
+        qs = urllib.parse.urlparse(self.path).query
+        params = urllib.parse.parse_qs(qs)
+        next_url = params.get('next', [''])[0]
+        state = _oauth_state_new(next_url)
+        redirect_uri = 'https://clung.us/auth/callback'
+        gh_url = (
+            f'https://github.com/login/oauth/authorize'
+            f'?client_id={urllib.parse.quote(GITHUB_CLIENT_ID)}'
+            f'&scope=read:user'
+            f'&state={urllib.parse.quote(state)}'
+            f'&redirect_uri={urllib.parse.quote(redirect_uri)}'
+        )
+        self.send_response(302)
+        self.send_header('Location', gh_url)
+        # Store state in cookie for CSRF validation
+        self.send_header('Set-Cookie',
+            f'gh_oauth_state={state}; Max-Age=600; HttpOnly; SameSite=Lax; Path=/')
+        self.end_headers()
+
+    def _handle_github_callback(self):
+        """Handle GitHub OAuth callback: exchange code, validate user, set cookie."""
+        qs = urllib.parse.urlparse(self.path).query
+        params = urllib.parse.parse_qs(qs)
+        code = params.get('code', [''])[0]
+        state = params.get('state', [''])[0]
+
+        # Validate state (CSRF check via in-memory store)
+        next_url = _oauth_state_consume(state)
+        if next_url is None:
+            self._send_html(403, '<h1>Invalid OAuth state — please try again.</h1>')
+            return
+
+        if not code:
+            self._send_html(403, '<h1>Missing OAuth code.</h1>')
+            return
+
+        try:
+            # Exchange code for access token
+            token_payload = json.dumps({
+                'client_id':     GITHUB_CLIENT_ID,
+                'client_secret': GITHUB_CLIENT_SECRET,
+                'code':          code,
+                'redirect_uri':  'https://clung.us/auth/callback',
+            }).encode()
+            token_req = urllib.request.Request(
+                'https://github.com/login/oauth/access_token',
+                data=token_payload,
+                headers={
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'BigClungus',
+                },
+                method='POST',
+            )
+            with urllib.request.urlopen(token_req, timeout=10) as resp:
+                token_data = json.loads(resp.read().decode())
+            access_token = token_data.get('access_token', '')
+            if not access_token:
+                self._send_html(403, '<h1>Failed to obtain GitHub access token.</h1>')
+                return
+
+            # Get GitHub username
+            user_req = urllib.request.Request(
+                'https://api.github.com/user',
+                headers={
+                    'Authorization': f'token {access_token}',
+                    'Accept': 'application/json',
+                    'User-Agent': 'BigClungus',
+                },
+            )
+            with urllib.request.urlopen(user_req, timeout=10) as resp:
+                user_data = json.loads(resp.read().decode())
+            username = user_data.get('login', '')
+        except Exception as e:
+            print(f'[auth] GitHub OAuth error: {e}', flush=True)
+            self._send_html(502, f'<h1>GitHub OAuth error: {e}</h1>')
+            return
+
+        if not username:
+            self._send_html(403, '<h1>Could not determine GitHub username.</h1>')
+            return
+
+        if GITHUB_ALLOWED_USERS and username.lower() not in GITHUB_ALLOWED_USERS:
+            self._send_html(403, f'<h1>GitHub user {username!r} is not allowed.</h1>')
+            return
+
+        # Sign and set cookie
+        cookie_value = _sign_cookie(username)
+        redirect_to = next_url if _is_safe_redirect(next_url) else '/'
+        html = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8">
+<style>body{{background:#0a0a0f;color:#4ecca3;font-family:monospace;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;}}</style>
+</head>
+<body><div>authenticated — redirecting...</div>
+<script>window.location.replace({json.dumps(redirect_to)});</script>
+</body>
+</html>"""
+        body = html.encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Set-Cookie',
+            f'{GITHUB_COOKIE}={cookie_value}; Max-Age={COOKIE_MAX_AGE}; '
+            f'HttpOnly; Secure; SameSite=Lax; Domain=.clung.us; Path=/')
+        # Clear state cookie
+        self.send_header('Set-Cookie',
+            'gh_oauth_state=; Max-Age=0; HttpOnly; SameSite=Lax; Path=/')
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _send_html(self, code, html_body):
+        body = f'<!DOCTYPE html><html><body>{html_body}</body></html>'.encode('utf-8')
+        self.send_response(code)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def log_message(self, fmt, *args):
         pass  # suppress access logs
