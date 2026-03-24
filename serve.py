@@ -6,8 +6,10 @@ import glob
 import re
 import datetime
 import subprocess
-import tempfile
+import fcntl
+import time
 import urllib.parse
+import urllib.request
 import socketserver
 import threading
 
@@ -137,13 +139,15 @@ def _load_identity(name):
     return None, None
 
 
-def _call_claude_cli(system_prompt, user_message, on_token=None):
+def _call_claude_cli(system_prompt, user_message, on_token=None, model=None):
     """Call Claude via the claude CLI (OAuth auth, no API key needed)."""
     # Strip YAML frontmatter before passing via -p — the CLI treats '---' as
     # an unknown option flag if the prompt starts with it.
     _, system_prompt_body = _parse_frontmatter(system_prompt)
     cmd = ['/home/clungus/.local/bin/claude', '-p', system_prompt_body,
            '--output-format', 'stream-json', '--verbose', '--max-turns', '1']
+    if model:
+        cmd += ['--model', model]
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.DEVNULL, text=True)
     stdout, _ = proc.communicate(input=user_message, timeout=120)
@@ -189,7 +193,6 @@ def _call_gemini_cli(system_prompt, user_message, on_token=None):
 
 def _call_grok(system_prompt: str, user_message: str, on_token=None) -> str:
     """Call xAI Grok via OpenAI-compatible API using XAI_API_KEY (streaming)."""
-    import urllib.request as _urlreq
     api_key = os.environ.get("XAI_API_KEY", "")
     payload = json.dumps({
         "model": "grok-4.20-0309-reasoning",
@@ -200,7 +203,7 @@ def _call_grok(system_prompt: str, user_message: str, on_token=None) -> str:
         "max_tokens": LLM_MAX_TOKENS,
         "stream": True,
     }).encode()
-    req = _urlreq.Request(
+    req = urllib.request.Request(
         "https://api.x.ai/v1/chat/completions",
         data=payload,
         headers={
@@ -210,7 +213,7 @@ def _call_grok(system_prompt: str, user_message: str, on_token=None) -> str:
         }
     )
     full_text = ""
-    with _urlreq.urlopen(req, timeout=60) as resp:
+    with urllib.request.urlopen(req, timeout=60) as resp:
         for raw_line in resp:
             line = raw_line.decode('utf-8').rstrip('\n')
             if not line.startswith('data: '):
@@ -230,10 +233,11 @@ def _call_grok(system_prompt: str, user_message: str, on_token=None) -> str:
     return full_text.strip()
 
 
-def _call_claude(system_prompt, user_message, on_token=None):
+def _call_claude(system_prompt, user_message, on_token=None, model=None):
     """Call Claude and return the text response.
     Uses the anthropic Python client if ANTHROPIC_API_KEY is set, otherwise
     falls back to the claude CLI (authenticated via OAuth).
+    model: override the Claude model (e.g. 'claude-opus-4-6'); defaults to haiku via API key path.
     """
     api_key = os.environ.get('ANTHROPIC_API_KEY')
     if api_key:
@@ -241,7 +245,7 @@ def _call_claude(system_prompt, user_message, on_token=None):
         client = anthropic.Anthropic(api_key=api_key)
         full_text = ""
         with client.messages.stream(
-            model="claude-haiku-4-5-20251001",
+            model=model or "claude-haiku-4-5-20251001",
             max_tokens=LLM_MAX_TOKENS,
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}]
@@ -252,7 +256,7 @@ def _call_claude(system_prompt, user_message, on_token=None):
                     on_token(chunk)
         return full_text
     else:
-        return _call_claude_cli(system_prompt, user_message, on_token=on_token)
+        return _call_claude_cli(system_prompt, user_message, on_token=on_token, model=model)
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -443,7 +447,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def _serve_agents(self):
         """Return active debaters and fired personas for the congress page."""
-        AGENTS_DIR_BASE = os.path.dirname(AGENTS_ACTIVE_DIR)
         active = []
         fired = []
 
@@ -477,7 +480,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 pass
 
         load_agent_dir(AGENTS_ACTIVE_DIR, active)
-        load_agent_dir(os.path.join(AGENTS_DIR_BASE, 'fired'), fired)
+        load_agent_dir(AGENTS_FIRED_DIR, fired)
 
         # Separate moderator from debaters
         debaters = [a for a in active if not a.get('is_moderator')]
@@ -712,20 +715,26 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 try:
                     response_text = _call_grok(full_content, user_message, on_token=on_token)
                 except Exception as e:
-                    print(f"Grok error for {name}: {type(e).__name__}: {e}", flush=True)
+                    print(f"Grok error for {identity}: {type(e).__name__}: {e}", flush=True)
                     print("Grok unavailable, falling back to Claude")
                     response_text = _call_claude(full_content, user_message, on_token=on_token)
+            elif persona_model == 'opus':
+                response_text = _call_claude(full_content, user_message, on_token=on_token, model='claude-opus-4-6')
             else:
                 response_text = _call_claude(full_content, user_message, on_token=on_token)
-        except (ValueError, Exception) as e:
+        except ValueError as e:
             if session_id:
                 with _streams_lock:
                     if session_id in _active_streams:
                         _active_streams[session_id]["done"] = True
-            if isinstance(e, ValueError):
-                self._json_error(503, str(e))
-            else:
-                self._json_error(500, f"LLM API error ({persona_model}): {e}")
+            self._json_error(503, str(e))
+            return
+        except Exception as e:
+            if session_id:
+                with _streams_lock:
+                    if session_id in _active_streams:
+                        _active_streams[session_id]["done"] = True
+            self._json_error(500, f"LLM API error ({persona_model}): {e}")
             return
 
         if session_id:
