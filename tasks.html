@@ -183,6 +183,48 @@
       word-break: break-word;
     }
 
+    .card-log-toggle {
+      margin-top: 6px;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      font-family: 'JetBrains Mono', monospace;
+      opacity: 0.7;
+      transition: opacity 0.15s;
+    }
+    .card-log-toggle:hover { opacity: 1; color: var(--accent); }
+
+    .card-log {
+      margin-top: 6px;
+      display: none;
+    }
+    .card-log.open { display: block; }
+    .log-entry {
+      display: flex;
+      gap: 8px;
+      font-size: 0.68rem;
+      padding: 3px 0;
+      border-left: 2px solid var(--card-border);
+      padding-left: 8px;
+      margin-bottom: 3px;
+      line-height: 1.4;
+    }
+    .log-entry:last-child { margin-bottom: 0; }
+    .log-event {
+      flex-shrink: 0;
+      font-weight: bold;
+      min-width: 56px;
+    }
+    .log-event.started { color: #3b82f6; }
+    .log-event.done { color: #22c55e; }
+    .log-event.stale { color: #f59e0b; }
+    .log-event.failed { color: #ef4444; }
+    .log-ts { color: var(--text-muted); flex-shrink: 0; }
+    .log-context { color: var(--text-dim); word-break: break-word; flex: 1; }
+
     .empty-col {
       color: var(--text-muted);
       font-size: 0.75rem;
@@ -305,16 +347,40 @@
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
+    var _cardCounter = 0;
+
+    function makeLogTimeline(log) {
+      if (!log || !log.length) return '';
+      var entries = log.map(function(entry) {
+        var ev = escHtml(entry.event || '?');
+        var ts = entry.ts ? ageStr(entry.ts) : '?';
+        var ctx = entry.context ? entry.context.slice(0, 160) : '';
+        return '<div class="log-entry">' +
+          '<span class="log-event ' + escHtml(entry.event || '') + '">' + ev + '</span>' +
+          '<span class="log-ts">' + escHtml(ts) + '</span>' +
+          '<span class="log-context">' + escHtml(ctx) + (entry.context && entry.context.length > 160 ? '…' : '') + '</span>' +
+        '</div>';
+      });
+      return entries.join('');
+    }
+
     function makeCard(task) {
       var title = escHtml(task.title || '(no title)');
       var agentType = escHtml(task.agent_type || '?');
       var sessionShort = task.session_id ? escHtml(task.session_id.slice(0, 12)) : '?';
+      // status and started_at are derived by serve.py from log[]
       var age = ageStr(task.started_at);
       var userTag = task.discord_user ? '<span class="tag user">@' + escHtml(task.discord_user) + '</span>' : '';
       var summaryHtml = '';
       if (task.summary) {
         var s = task.summary.slice(0, 200);
         summaryHtml = '<div class="card-summary">' + escHtml(s) + (task.summary.length > 200 ? '…' : '') + '</div>';
+      }
+      var logHtml = '';
+      if (task.log && task.log.length > 0) {
+        var cardId = 'log-' + (++_cardCounter);
+        logHtml = '<button class="card-log-toggle" onclick="toggleLog(\'' + cardId + '\', this)">▶ log (' + task.log.length + ')</button>' +
+          '<div class="card-log" id="' + cardId + '">' + makeLogTimeline(task.log) + '</div>';
       }
       return '<div class="task-card">' +
         '<div class="card-title">' + title + '</div>' +
@@ -325,12 +391,22 @@
           '<span class="tag" title="' + escHtml(task.session_id) + '">session:' + sessionShort + '</span>' +
         '</div>' +
         summaryHtml +
+        logHtml +
       '</div>';
     }
 
+    function toggleLog(id, btn) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var isOpen = el.classList.toggle('open');
+      btn.textContent = (isOpen ? '▼' : '▶') + btn.textContent.slice(1);
+    }
+
     function render(tasks) {
+      _cardCounter = 0; // reset card IDs on each render
       var buckets = { in_progress: [], done: [], stale: [] };
       tasks.forEach(function(t) {
+        // status is derived by serve.py from last log event (or fallback to top-level status)
         var s = t.status;
         if (s === 'in_progress') buckets.in_progress.push(t);
         else if (s === 'done') buckets.done.push(t);

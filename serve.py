@@ -8,6 +8,47 @@ import glob
 SERVE_DIR = os.path.dirname(os.path.abspath(__file__))
 TASKS_DIR = "/home/clungus/work/bigclungus-meta/tasks"
 
+_EVENT_TO_STATUS = {
+    'started': 'in_progress',
+    'done': 'done',
+    'stale': 'stale',
+    'failed': 'failed',
+}
+
+def _enrich_task(task):
+    """
+    Derive status, started_at, finished_at, and summary from the log array.
+    Falls back to top-level fields for old-format tasks without a log.
+    Mutates and returns the task dict.
+    """
+    log = task.get('log')
+    if log and isinstance(log, list) and len(log) > 0:
+        last_event = log[-1].get('event', '')
+        task['status'] = _EVENT_TO_STATUS.get(last_event, last_event)
+
+        # started_at: ts of first 'started' entry
+        for entry in log:
+            if entry.get('event') == 'started':
+                task['started_at'] = entry.get('ts', '')
+                break
+
+        # finished_at: ts of last non-started entry
+        for entry in reversed(log):
+            if entry.get('event') != 'started':
+                task['finished_at'] = entry.get('ts', '')
+                break
+
+        # summary: context of last non-started entry
+        for entry in reversed(log):
+            if entry.get('event') != 'started' and entry.get('context'):
+                task['summary'] = entry.get('context', '')
+                break
+    else:
+        # Old format: status/started_at/finished_at/summary already at top level
+        pass
+    return task
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=SERVE_DIR, **kwargs)
@@ -35,6 +76,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 try:
                     with open(fpath, 'r') as f:
                         task = json.load(f)
+                        task = _enrich_task(task)
                         tasks.append(task)
                 except Exception:
                     pass
