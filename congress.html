@@ -1529,24 +1529,16 @@
               seats[i] = null;
             }
           }
-          // Also pull in any participants not currently in seats (e.g. was in severance, or hiring-manager)
+          // Also pull in any participants not currently in seats (e.g. was in severance)
+          // hiring-manager (Ibrahim) is excluded from seats — he lives in the center node only
           const seatedIds = new Set(seats.filter(Boolean).map(s => s.id));
-          const unseated = [...participantIds].filter(id => !seatedIds.has(id));
+          const unseated = [...participantIds].filter(id => !seatedIds.has(id) && id !== 'hiring-manager');
           if (unseated.length > 0) {
-            // Try to get their info from allActivePersonas, firedPool, or build a minimal entry
-            // hiring-manager (Ibrahim) is excluded from those lists so handle it explicitly
+            // Try to get their info from allActivePersonas or firedPool
             unseated.forEach(id => {
               const fromActive = allActivePersonas.find(p => p.id === id || p.name === id);
               const fromFired = firedPool.find(p => p.id === id || p.name === id);
-              const isIbrahim = id === 'hiring-manager';
-              const ibrahimEntry = isIbrahim ? {
-                id: 'hiring-manager', name: 'hiring-manager',
-                display_name: 'Ibrahim the Immovable',
-                emoji: EMOJI_MAP['hiring-manager'] || '⚖️',
-                color: COLOR_MAP['hiring-manager'] || '#a3e635',
-                description: 'Hiring manager & moderator',
-              } : null;
-              const entry = fromActive || fromFired || ibrahimEntry || { id, name: id, display_name: id, emoji: '🤖', color: '#888' };
+              const entry = fromActive || fromFired || { id, name: id, display_name: id, emoji: '🤖', color: '#888' };
               const emptySlot = seats.indexOf(null);
               if (emptySlot !== -1) seats[emptySlot] = entry;
             });
