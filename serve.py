@@ -269,6 +269,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 return
             # fall through to static serve
 
+        if path in ('/congress', '/congress.html', '/congress/'):
+            if not _is_authed(self.headers):
+                self.send_response(302)
+                self.send_header('Location', CONGRESS_LOGIN_URL)
+                self.end_headers()
+                return
+            # fall through to static serve
+
         if '.' not in path.split('/')[-1]:
             candidate = os.path.join(SERVE_DIR, path.lstrip('/') + '.html')
             if os.path.isfile(candidate):
