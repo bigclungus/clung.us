@@ -253,14 +253,15 @@
     /* ── Session list ── */
     .session-list-panel {
       width: 100%;
-      max-width: 520px;
+      max-width: 560px;
     }
     .session-list-panel h2 {
-      font-size: 0.72rem;
+      font-size: 0.85rem;
       color: var(--accent);
       text-transform: uppercase;
       letter-spacing: 0.12em;
-      margin: 0 0 10px;
+      text-shadow: 0 0 8px var(--accent);
+      margin: 0 0 14px;
     }
     .session-list-empty {
       font-size: 0.72rem;
@@ -458,34 +459,44 @@
       min-height: 1.1em;
     }
 
-    /* ── Task input ── */
-    .task-form { width: 100%; max-width: 520px; }
-    .task-form label {
-      display: block;
-      font-size: 0.65rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 5px;
-    }
-    .task-form textarea {
+    /* ── Session hint banner ── */
+    .session-hint {
+      display: none;
       width: 100%;
-      min-height: 64px;
+      max-width: 520px;
       background: var(--card-bg);
       border: 1px solid var(--card-border);
+      border-left: 3px solid var(--accent);
       border-radius: 4px;
-      color: var(--text);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.82rem;
-      padding: 9px 11px;
-      resize: vertical;
-      outline: none;
-      transition: border-color 0.15s;
+      padding: 10px 14px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
       box-sizing: border-box;
     }
-    .task-form textarea:focus { border-color: var(--accent); }
-    .task-form textarea::placeholder { color: var(--text-muted); }
-    .task-form-row { display: flex; gap: 8px; margin-top: 7px; }
+    .session-hint strong { color: var(--text); }
+    .session-hint code { color: var(--teal); font-size: 0.78rem; }
+
+    /* ── Status badge dots ── */
+    .status-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+    .status-dot.deliberating {
+      background: #f59e0b;
+      animation: pulse-dot 1.2s infinite;
+    }
+    .status-dot.complete { background: #4ecca3; }
+    .status-dot.failed { background: #e94560; }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+    .session-item-status { display: flex; align-items: center; }
 
     .btn {
       padding: 9px 18px;
@@ -645,6 +656,9 @@
 
   <!-- CENTER: Arena -->
   <div class="arena-col">
+    <!-- Session hint banner (shown when viewing a session) -->
+    <div class="session-hint" id="sessionHint"></div>
+
     <div class="page-header">
       <h1>congress<span class="session-badge" id="sessionBadge" style="display:none"></span></h1>
       <div class="subtitle">AI parliament — personas deliberate, vote, decide</div>
@@ -661,35 +675,15 @@
 
     <div class="status-line" id="statusLine">loading roster…</div>
 
-    <div id="authBanner" style="display:none; margin: 12px 0; padding: 12px 16px; background: var(--card-bg); border: 1px solid var(--node-border-active); border-radius: 5px; font-size: 0.8rem; color: var(--text);">
-      <strong>Login required.</strong>
-      Congress requires a GitHub login.
-      <a id="authLink" href="https://terminal.clung.us/auth/github?next=https://hello.clung.us/congress" style="color: var(--teal); text-decoration: underline; margin-left: 6px;">Login with GitHub →</a>
-    </div>
-
-    <div class="task-form">
-      <label for="taskInput">task for congress</label>
-      <textarea id="taskInput" placeholder="Enter a task or question for congress to debate…&#10;e.g. &quot;Should we rewrite the data pipeline?&quot;"></textarea>
-      <div class="task-form-row">
-        <button class="btn" id="conveneBtn" onclick="convene()" disabled>Convene Congress</button>
-      </div>
-    </div>
-
     <!-- Session list (shown when no session in URL) -->
     <div class="session-list-panel" id="sessionListPanel" style="display:none">
-      <h2>Sessions</h2>
+      <h2>Congress Sessions</h2>
       <div id="sessionListBody"><div class="session-list-empty">Loading sessions…</div></div>
     </div>
 
     <div class="review-bar" id="reviewBar">
-      <div class="review-label">REVIEW — hiring-manager synthesis</div>
+      <div class="review-label">HIRING MANAGER — synthesis</div>
       <div class="review-synthesis" id="reviewSynthesis"></div>
-      <div class="review-actions">
-        <button class="btn btn-yes" onclick="verdict('yes')">YES — EXECUTE</button>
-        <button class="btn btn-no" onclick="verdict('no')">NO — REJECT</button>
-        <button class="btn btn-secondary" onclick="verdict('again')">KEEP DEBATING</button>
-      </div>
-      <div class="verdict-msg" id="verdictMsg"></div>
     </div>
   </div>
 
@@ -730,20 +724,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const sessionParam = urlParams.get('session');
 
-    if (sessionParam && /^congress-\d+$/.test(sessionParam)) {
-      currentSessionId = sessionParam;
-      applySessionBadge(sessionParam);
-      await loadSessionIntoPage(sessionParam);
-    } else {
-      // No session in URL — show session list
-      document.getElementById('sessionListPanel').style.display = '';
-      await loadSessionList();
-      // Hide the convene button and task form in "no-session" mode
-      document.getElementById('conveneBtn').style.display = 'none';
-      document.querySelector('.task-form label').style.display = 'none';
-      document.getElementById('taskInput').style.display = 'none';
-    }
-
+    // Load identities for circle rendering
     try {
       const res = await fetch('/api/agents');
       if (!res.ok) throw new Error('status ' + res.status);
@@ -755,32 +736,52 @@
       // Fallback: load from /api/congress/identities
       try {
         const res = await fetch('/api/congress/identities');
-        if (res.status === 401) {
-          const data = await res.json().catch(() => ({}));
-          showAuthError(data);
-          return;
+        if (res.ok) {
+          const ids = await res.json();
+          const debaters = ids.filter(i => i.name !== 'hiring-manager');
+          for (let i = 0; i < SEAT_COUNT; i++) {
+            const d = debaters[i];
+            if (d) seats[i] = {
+              id: d.name, name: d.name,
+              display_name: d.display_name || '',
+              avatar_url: d.avatar_url || '',
+              emoji: EMOJI_MAP[d.name] || '🤖',
+              color: COLOR_MAP[d.name] || '#888',
+              description: d.role || '',
+            };
+          }
+          firedPool = [];
         }
-        const ids = await res.json();
-        const debaters = ids.filter(i => i.name !== 'hiring-manager');
-        for (let i = 0; i < SEAT_COUNT; i++) {
-          const d = debaters[i];
-          if (d) seats[i] = {
-            id: d.name, name: d.name,
-            display_name: d.display_name || '',
-            avatar_url: d.avatar_url || '',
-            emoji: EMOJI_MAP[d.name] || '🤖',
-            color: COLOR_MAP[d.name] || '#888',
-            description: d.role || '',
-          };
-        }
-        firedPool = [];
-      } catch (e2) {
-        setStatus('could not load agents');
-      }
+      } catch (e2) { /* ignore */ }
     }
-    render();
-    const filled = seats.filter(Boolean).length;
-    setStatus(filled + ' debater' + (filled !== 1 ? 's' : '') + ' seated');
+
+    if (sessionParam && /^congress-\d+$/.test(sessionParam)) {
+      // ── Session view ──
+      currentSessionId = sessionParam;
+      applySessionBadge(sessionParam);
+      showSessionHint(sessionParam);
+      render();
+      setStatus('loading session…');
+      await loadSessionIntoPage(sessionParam);
+    } else {
+      // ── Default view: session list ──
+      document.getElementById('sessionListPanel').style.display = '';
+      // Hide circle arena and sidebars in list mode — just show session list
+      document.getElementById('arena').style.display = 'none';
+      document.getElementById('statusLine').style.display = 'none';
+      document.querySelector('.sidebar-left').style.display = 'none';
+      document.querySelector('.sidebar-right').style.display = 'none';
+      document.querySelector('.page-header .subtitle').textContent = 'select a session to replay';
+      await loadSessionList();
+    }
+  }
+
+  function showSessionHint(sessionParam) {
+    const m = sessionParam.match(/^congress-(\d+)$/);
+    const num = m ? parseInt(m[1], 10) : '?';
+    const hint = document.getElementById('sessionHint');
+    hint.style.display = '';
+    hint.innerHTML = '<strong>Session #' + num + '</strong> — use <code>[congress] &lt;topic&gt;</code> in Discord to start a new session';
   }
 
   function applySessionBadge(sessionId) {
@@ -800,13 +801,13 @@
         return;
       }
       const session = await res.json();
-      // Pre-fill topic if available
+      // Show topic in center of circle
       if (session.topic) {
-        document.getElementById('taskInput').value = session.topic;
         document.getElementById('centerTask').textContent =
           session.topic.length > 70 ? session.topic.slice(0, 67) + '…' : session.topic;
       }
-      setStatus('session ' + sessionId + ' — status: ' + (session.status || 'unknown'));
+
+      renderSessionStatus(sessionId, session.status);
 
       // Show rounds if any
       if (session.rounds && session.rounds.length > 0) {
@@ -824,6 +825,12 @@
         }, 300);
       }
 
+      // Show hiring manager synthesis if present
+      if (session.synthesis) {
+        document.getElementById('reviewSynthesis').textContent = session.synthesis;
+        document.getElementById('reviewBar').classList.add('visible');
+      }
+
       // If deliberating, start polling for updates
       if (session.status === 'deliberating') {
         startSessionPolling(sessionId);
@@ -833,6 +840,16 @@
     }
   }
 
+  function renderSessionStatus(sessionId, status) {
+    const st = status || 'unknown';
+    const statusLine = document.getElementById('statusLine');
+    const dot = document.createElement('span');
+    dot.className = 'status-dot ' + st;
+    statusLine.innerHTML = '';
+    statusLine.appendChild(dot);
+    statusLine.appendChild(document.createTextNode(sessionId + ' — ' + st));
+  }
+
   function startSessionPolling(sessionId) {
     if (sessionPollTimer) clearInterval(sessionPollTimer);
     sessionPollTimer = setInterval(async () => {
@@ -840,10 +857,10 @@
         const res = await fetch('/api/congress/sessions/' + sessionId);
         if (!res.ok) return;
         const session = await res.json();
+        renderSessionStatus(sessionId, session.status);
         if (session.status !== 'deliberating') {
           clearInterval(sessionPollTimer);
           sessionPollTimer = null;
-          setStatus('session ' + sessionId + ' — status: ' + session.status);
         }
         if (session.rounds && session.rounds.length > 0) {
           const lastRoundsByIdentity = {};
@@ -856,6 +873,10 @@
             }
           });
         }
+        if (session.synthesis) {
+          document.getElementById('reviewSynthesis').textContent = session.synthesis;
+          document.getElementById('reviewBar').classList.add('visible');
+        }
       } catch (e) {
         // Ignore polling errors
       }
@@ -867,12 +888,14 @@
     try {
       const res = await fetch('/api/congress/sessions');
       if (!res.ok) throw new Error('status ' + res.status);
-      const sessions = await res.json();
+      let sessions = await res.json();
       body.innerHTML = '';
       if (sessions.length === 0) {
-        body.innerHTML = '<div class="session-list-empty">No sessions yet. Start one externally via <code>POST /api/congress/start</code>.</div>';
+        body.innerHTML = '<div class="session-list-empty">No sessions yet. Use <code>[congress] &lt;topic&gt;</code> in Discord to start one.</div>';
         return;
       }
+      // Sort by session number descending
+      sessions = sessions.slice().sort((a, b) => (b.session_number || 0) - (a.session_number || 0));
       sessions.forEach(s => {
         const a = document.createElement('a');
         a.className = 'session-item';
@@ -891,8 +914,12 @@
         bodyEl.appendChild(topic);
         bodyEl.appendChild(meta);
         const statusEl = document.createElement('div');
-        statusEl.className = 'session-item-status ' + (s.status || '');
-        statusEl.textContent = s.status || '';
+        statusEl.className = 'session-item-status';
+        const dot = document.createElement('span');
+        const st = s.status || '';
+        dot.className = 'status-dot ' + st;
+        statusEl.appendChild(dot);
+        statusEl.appendChild(document.createTextNode(st));
         a.appendChild(numEl);
         a.appendChild(bodyEl);
         a.appendChild(statusEl);
@@ -1070,10 +1097,7 @@
     });
   }
 
-  function updateConveneBtn() {
-    const filled = seats.filter(Boolean).length;
-    document.getElementById('conveneBtn').disabled = filled === 0;
-  }
+  function updateConveneBtn() { /* no-op: convene button removed */ }
 
   // ── Roster actions ─────────────────────────────────────────────────────────
   function removeToSeverance(seatIndex) {
@@ -1167,133 +1191,8 @@
     bubble.querySelector('.bubble-text').textContent = text;
   }
 
-  // ── Debate ─────────────────────────────────────────────────────────────────
-  window.convene = async function () {
-    const taskInput = document.getElementById('taskInput');
-    const task = taskInput.value.trim();
-    if (!task) { taskInput.focus(); return; }
-
-    const activeSeats = seats
-      .map((p, i) => ({ p, i }))
-      .filter(({ p }) => p !== null);
-
-    if (activeSeats.length === 0) { setStatus('no debaters in roster'); return; }
-
-    round++;
-    document.getElementById('conveneBtn').disabled = true;
-    document.getElementById('reviewBar').classList.remove('visible');
-    document.getElementById('verdictMsg').className = 'verdict-msg';
-    document.getElementById('centerTask').textContent =
-      task.length > 70 ? task.slice(0, 67) + '…' : task;
-
-    setStatus('round ' + round + ' — ' + activeSeats.length + ' debater(s) deliberating');
-
-    // Re-render circle to get fresh nodes (reset states)
-    renderCircle();
-
-    const debateTexts = [];
-
-    for (const { p, i } of activeSeats) {
-      const speakerLabel = p.display_name || p.name;
-      setNodeState(i, 'active');
-      showBubbleLoading(i, speakerLabel);
-      setStatus(speakerLabel + ' is speaking…');
-
-      try {
-        const payload = { task, identity: p.id };
-        if (currentSessionId) payload.session_id = currentSessionId;
-        const res = await fetch('/api/congress', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (res.status === 401) {
-          const authData = await res.json().catch(() => ({}));
-          showAuthError(authData);
-          return;
-        }
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
-        setBubbleText(i, speakerLabel, data.response);
-        debateTexts.push({ name: speakerLabel, text: data.response });
-      } catch (e) {
-        setBubbleText(i, speakerLabel, '[error: ' + e.message + ']');
-        debateTexts.push({ name: speakerLabel, text: '(failed to respond)' });
-      }
-
-      setNodeState(i, 'done');
-      await new Promise(r => setTimeout(r, 350));
-    }
-
-    setStatus('hiring-manager synthesizing…');
-
-    // Moderator synthesis
-    const summaryTask =
-      'The congress just debated the following task:\n\n"' + task + '"\n\n' +
-      'Here are the persona responses:\n\n' +
-      debateTexts.map(d => '[' + d.name + ']: ' + d.text).join('\n\n') +
-      '\n\nSynthesize the key points, note consensus and disagreement, and issue a concise recommendation.';
-
-    const reviewEl = document.getElementById('reviewSynthesis');
-    reviewEl.innerHTML = '<div class="dot-pulse"><span></span><span></span><span></span></div>';
-    document.getElementById('reviewBar').classList.add('visible');
-
-    try {
-      const synthPayload = { task: summaryTask, identity: 'hiring-manager' };
-      if (currentSessionId) synthPayload.session_id = currentSessionId;
-      const res = await fetch('/api/congress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(synthPayload),
-      });
-      if (res.status === 401) {
-        const authData = await res.json().catch(() => ({}));
-        showAuthError(authData);
-        reviewEl.textContent = 'Login required.';
-        return;
-      }
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      reviewEl.textContent = data.response;
-    } catch (e) {
-      reviewEl.textContent = 'Synthesis failed: ' + e.message;
-    }
-
-    setStatus('round ' + round + ' complete — review the synthesis below');
-    document.getElementById('conveneBtn').disabled = false;
-  };
-
-  window.verdict = function (choice) {
-    const msg = document.getElementById('verdictMsg');
-    msg.className = 'verdict-msg';
-    void msg.offsetWidth;
-    if (choice === 'yes') {
-      msg.className = 'verdict-msg yes';
-      msg.textContent = 'Task marked for execution. Good luck.';
-      document.querySelectorAll('.review-actions .btn').forEach(b => b.disabled = true);
-    } else if (choice === 'no') {
-      msg.className = 'verdict-msg no';
-      msg.textContent = 'Task rejected by congress.';
-      document.querySelectorAll('.review-actions .btn').forEach(b => b.disabled = true);
-    } else {
-      msg.className = 'verdict-msg again';
-      msg.textContent = 'Starting another round of deliberation…';
-      setTimeout(() => window.convene(), 800);
-    }
-  };
-
   function setStatus(msg) {
     document.getElementById('statusLine').textContent = msg;
-  }
-
-  function showAuthError(data) {
-    const banner = document.getElementById('authBanner');
-    banner.style.display = '';
-    if (data && data.login_url) {
-      document.getElementById('authLink').href = data.login_url;
-    }
-    setStatus('login required — click the link above to authenticate');
-    document.getElementById('conveneBtn').disabled = true;
   }
 
   // Re-render circle when window resizes (positions are layout-dependent)
