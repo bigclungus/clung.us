@@ -157,8 +157,11 @@ def _call_claude_cli(system_prompt, user_message, on_token=None):
 
 def _call_gemini_cli(system_prompt, user_message, on_token=None):
     """Call Gemini via the gemini CLI (OAuth auth, no API key needed)."""
-    # Combine system prompt + user message as the full prompt; gemini -p appends to stdin
-    full_prompt = system_prompt + "\n\n" + user_message
+    # Strip YAML frontmatter (---\n...\n---\n) from system_prompt — gemini CLI fails if
+    # the prompt passed via -p starts with '---'.
+    _, system_prompt_body = _parse_frontmatter(system_prompt)
+    # Combine system prompt body + user message as the full prompt; gemini -p appends to stdin
+    full_prompt = system_prompt_body + "\n\n" + user_message
     proc = subprocess.Popen(
         ['/usr/local/bin/gemini', '--yolo', '-p', full_prompt],
         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True
