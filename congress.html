@@ -608,22 +608,22 @@
     }
     .node-bubble {
       position: absolute;
-      width: 180px;
-      max-height: 180px;
+      width: 150px;
+      max-height: 100px;
       overflow-y: auto;
       background: var(--bubble-bg);
       border: 1px solid var(--bubble-border);
       border-radius: 6px;
-      padding: 8px 10px;
-      font-size: 0.63rem;
-      line-height: 1.5;
+      padding: 6px 8px;
+      font-size: 0.65rem;
+      line-height: 1.4;
       color: var(--text);
       display: none;
       z-index: 5;
       top: 50%;
       transform: translateY(-50%);
       animation: bubbleFadeIn 0.25s ease;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
     }
     .node-bubble.visible { display: block; }
     /* Bubble tail pseudo-element */
