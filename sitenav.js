@@ -12,10 +12,10 @@
     { href: 'https://1998.clung.us', label: '1998', external: true },
   ];
 
-  var SUBHEADER_LINKS = [
-    { href: 'https://terminal.clung.us', label: '🔒 terminal', external: true },
-    { href: 'https://temporal.clung.us', label: '⏱ temporal', external: true },
-    { href: 'https://terminal.clung.us/topology', label: '🕸 topology', external: true },
+  var TOOL_LINKS = [
+    { href: 'https://terminal.clung.us', label: 'terminal', external: true },
+    { href: 'https://temporal.clung.us', label: 'temporal', external: true },
+    { href: 'https://terminal.clung.us/topology', label: 'topology', external: true },
   ];
 
   /* ── Active link detection ── */
@@ -54,6 +54,23 @@
       links.appendChild(a);
     });
 
+    var sep = document.createElement('span');
+    sep.className = 'sitenav-sep';
+    sep.textContent = '|';
+    links.appendChild(sep);
+
+    TOOL_LINKS.forEach(function (item) {
+      var a = document.createElement('a');
+      a.href = item.href;
+      a.textContent = item.label;
+      a.className = 'sitenav-tool-link';
+      if (item.external) {
+        a.target = '_blank';
+        a.rel = 'noopener';
+      }
+      links.appendChild(a);
+    });
+
     nav.appendChild(links);
 
     var toggle = document.createElement('button');
@@ -64,36 +81,6 @@
     nav.appendChild(toggle);
 
     return nav;
-  }
-
-  /* ── Build subheader ── */
-  function buildSubheader() {
-    var sub = document.createElement('div');
-    sub.className = 'sitenav-subheader';
-
-    var label = document.createElement('span');
-    label.className = 'sitenav-subheader-label';
-    label.textContent = 'tools';
-    sub.appendChild(label);
-
-    SUBHEADER_LINKS.forEach(function (item, i) {
-      if (i > 0) {
-        var sep = document.createElement('span');
-        sep.className = 'sitenav-subheader-sep';
-        sep.textContent = '|';
-        sub.appendChild(sep);
-      }
-      var a = document.createElement('a');
-      a.href = item.href;
-      a.textContent = item.label;
-      if (item.external) {
-        a.target = '_blank';
-        a.rel = 'noopener';
-      }
-      sub.appendChild(a);
-    });
-
-    return sub;
   }
 
   /* ── Theme logic ── */
@@ -122,11 +109,9 @@
   /* ── Inject into page ── */
   function inject() {
     var nav = buildNav();
-    var sub = buildSubheader();
 
     var body = document.body;
-    body.insertBefore(sub, body.firstChild);
-    body.insertBefore(nav, sub);
+    body.insertBefore(nav, body.firstChild);
 
     var toggleBtn = document.getElementById('theme-toggle');
     initTheme(toggleBtn);

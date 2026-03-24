@@ -10,7 +10,6 @@
   --nav-bg: #1a1a2e;
   --nav-border: #e94560;
   --hover-fg: #fff;
-  --subheader-bg: #141425;
 }
 
 [data-theme="light"] {
@@ -22,7 +21,6 @@
   --nav-bg: #f5efe0;
   --nav-border: #2aa198;
   --hover-fg: #073642;
-  --subheader-bg: #ede7d4;
 }
 
 /* ── Main nav ── */
@@ -113,46 +111,20 @@
   border-color: var(--accent);
 }
 
-/* ── Subheader: tools bar ── */
-.sitenav-subheader {
-  position: sticky;
-  top: 37px; /* sits just below main nav (approx nav height) */
-  z-index: 99;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 4px 16px;
-  background: var(--subheader-bg);
-  border-bottom: 1px solid rgba(128, 128, 160, 0.18);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-}
-
-.sitenav-subheader-label {
+/* ── Nav separator and tool links ── */
+.sitenav-sep {
   color: var(--text-muted);
-  opacity: 0.45;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  opacity: 0.4;
+  padding: 0 4px;
   user-select: none;
 }
 
-.sitenav-subheader a {
-  color: var(--text-muted);
-  text-decoration: none;
-  opacity: 0.55;
-  transition: color 0.15s ease, opacity 0.15s ease;
+.sitenav-tool-link {
+  opacity: 0.6;
 }
 
-.sitenav-subheader a:hover {
-  color: var(--accent);
+.sitenav-tool-link:hover {
   opacity: 1;
-}
-
-.sitenav-subheader-sep {
-  color: var(--text-muted);
-  opacity: 0.2;
-  user-select: none;
 }
 
 /* ── Mobile responsive ── */
@@ -183,13 +155,5 @@
 
   .theme-toggle {
     margin-left: auto;
-  }
-
-  .sitenav-subheader {
-    top: auto;
-    position: relative;
-    flex-wrap: wrap;
-    gap: 8px 12px;
-    padding: 5px 12px;
   }
 }
