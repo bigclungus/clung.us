@@ -1713,7 +1713,10 @@
     const st = status || 'unknown';
     const statusLine = document.getElementById('statusLine');
     const dot = document.createElement('span');
-    dot.className = 'status-dot ' + st;
+    // Only apply a dot class for statuses that have a defined style; unknown statuses
+    // get a plain dot rather than a spurious CSS class.
+    const dotStatus = (st === 'deliberating' || st === 'done' || st === 'failed') ? st : '';
+    dot.className = 'status-dot' + (dotStatus ? ' ' + dotStatus : '');
     statusLine.innerHTML = '';
     statusLine.appendChild(dot);
     statusLine.appendChild(document.createTextNode(sessionId + ' — ' + st));
@@ -1855,59 +1858,6 @@
 
     scheduleNext();
   }
-  async function loadSessionList() {
-    const body = document.getElementById('sessionListBody');
-    try {
-      const res = await fetch('/api/congress/sessions');
-      if (!res.ok) throw new Error('status ' + res.status);
-      let sessions = await res.json();
-      body.innerHTML = '';
-      if (sessions.length === 0) {
-        body.innerHTML = '<div class="session-list-empty">No sessions yet. Use <code>[congress] &lt;topic&gt;</code> in Discord to start one.</div>';
-        return;
-      }
-      // Sort: in-progress (deliberating) first, then by session number descending
-      sessions = sessions.slice().sort((a, b) => {
-        const aActive = a.status === 'deliberating' ? 0 : 1;
-        const bActive = b.status === 'deliberating' ? 0 : 1;
-        if (aActive !== bActive) return aActive - bActive;
-        return (b.session_number || 0) - (a.session_number || 0);
-      });
-      sessions.forEach(s => {
-        const a = document.createElement('a');
-        a.className = 'session-item';
-        a.href = '/congress?session=' + s.session_id;
-        const numEl = document.createElement('div');
-        numEl.className = 'session-item-num';
-        numEl.textContent = '#' + s.session_number;
-        const bodyEl = document.createElement('div');
-        bodyEl.className = 'session-item-body';
-        const topic = document.createElement('div');
-        topic.className = 'session-item-topic';
-        topic.textContent = s.topic || '(no topic)';
-        const meta = document.createElement('div');
-        meta.className = 'session-item-meta';
-        meta.textContent = s.started_at ? new Date(s.started_at).toLocaleString() : '';
-        bodyEl.appendChild(topic);
-        bodyEl.appendChild(meta);
-        const statusEl = document.createElement('div');
-        statusEl.className = 'session-item-status';
-        const dot = document.createElement('span');
-        const st = s.status || '';
-        dot.className = 'status-dot ' + st;
-        statusEl.appendChild(dot);
-        statusEl.appendChild(document.createTextNode(st));
-        a.appendChild(numEl);
-        a.appendChild(bodyEl);
-        a.appendChild(statusEl);
-        body.appendChild(a);
-      });
-    } catch (e) {
-      console.error('[congress] loadSessionList error:', e);
-      body.innerHTML = '<div class="session-list-empty">Could not load sessions. Check console for details.</div>';
-    }
-  }
-
   // ── Rendering ──────────────────────────────────────────────────────────────
   function render() {
     renderRoster();

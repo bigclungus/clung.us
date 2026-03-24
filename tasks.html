@@ -563,19 +563,14 @@
         '<span class="sum-pill pill-fg"><span>&#9889;</span><span class="sum-val">' + fg + '</span><span>foreground</span></span>' +
         lastHtml;
 
-      // Wire up filter clicks
-      bar.querySelectorAll('.filterable').forEach(function(pill) {
-        pill.addEventListener('click', function() {
-          var f = pill.getAttribute('data-filter') || null;
-          currentFilter = (currentFilter === f && f !== null) ? null : f;
-          render(_lastTasks);
-        });
-      });
-
-      // Mark active filter pill
+      // Wire up filter clicks and mark active pill in one pass
       bar.querySelectorAll('.filterable').forEach(function(pill) {
         var f = pill.getAttribute('data-filter') || null;
         pill.classList.toggle('active-filter', f === currentFilter && currentFilter !== null);
+        pill.addEventListener('click', function() {
+          currentFilter = (currentFilter === f && f !== null) ? null : f;
+          render(_lastTasks);
+        });
       });
 
       bar.style.display = '';
