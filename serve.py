@@ -160,7 +160,7 @@ def _call_grok(system_prompt: str, user_message: str) -> str:
     import urllib.request as _urlreq
     api_key = os.environ.get("XAI_API_KEY", "")
     payload = json.dumps({
-        "model": "grok-4-fast-non-reasoning",
+        "model": "grok-4.20-0309-non-reasoning",
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message}
