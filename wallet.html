@@ -312,7 +312,7 @@
     // Generate QR code
     window.addEventListener('DOMContentLoaded', function () {
       var canvas = document.getElementById('qr-canvas');
-      QRCode.toCanvas(canvas, ADDR, {
+      QRCode.toCanvas(canvas, 'ethereum:' + ADDR + '@8453', {
         width: 160,
         margin: 2,
         color: {
