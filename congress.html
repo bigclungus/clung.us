@@ -60,11 +60,11 @@
       flex-direction: column;
     }
 
-    /* ── Three-column layout ── */
+    /* ── Two-column layout ── */
     .congress-layout {
       flex: 1;
       display: grid;
-      grid-template-columns: 240px 1fr 210px;
+      grid-template-columns: 240px 1fr;
       min-height: 0;
     }
 
@@ -684,7 +684,6 @@
       }
       .sidebar-left { order: 2; border-right: none; border-bottom: 1px solid var(--panel-border); }
       .arena-col { order: 1; }
-      .sidebar-right { order: 3; border-left: none; border-top: 1px solid var(--panel-border); }
     }
 
     /* Custom scrollbar */
@@ -1203,7 +1202,7 @@
       <div class="session-list-empty">Loading…</div>
     </div>
     <div class="sidebar-section-divider">
-      Full Panel <span class="count-badge" id="rosterCount" style="font-size:0.55rem; color: var(--text-muted); margin-left:4px;"></span>
+      Active <span class="count-badge" id="rosterCount" style="font-size:0.55rem; color: var(--text-muted); margin-left:4px;"></span>
     </div>
     <div class="sidebar-body" id="rosterList" style="flex: 1;"></div>
     <div class="sidebar-section-divider" id="leftSeveranceDivider" style="display:none;">
@@ -1276,13 +1275,6 @@
     </div>
   </div>
 
-  <!-- RIGHT: Severance -->
-  <aside class="sidebar sidebar-right">
-    <div class="sidebar-header">
-      <h2>Severance</h2>
-    </div>
-    <div class="sidebar-body" id="severanceList"></div>
-  </aside>
 
 </div>
 
@@ -1728,7 +1720,6 @@
   function render() {
     renderRoster();
     renderCircle();
-    renderSeverance();
   }
 
   function renderRoster() {
@@ -1861,6 +1852,12 @@
           desc.textContent = p.title || p.role;
           info.appendChild(desc);
         }
+        if (p.fired_reason) {
+          const reason = document.createElement('div');
+          reason.className = 'fired-reason';
+          reason.textContent = '"' + p.fired_reason + '"';
+          info.appendChild(reason);
+        }
         card.appendChild(info);
 
         // Seated badge (only shown in session mode)
@@ -1870,6 +1867,13 @@
           badge.textContent = 'seated';
           card.appendChild(badge);
         }
+
+        const btn = document.createElement('button');
+        btn.className = 'btn-reinstate';
+        btn.textContent = '↑';
+        btn.title = 'Reinstate';
+        btn.addEventListener('click', () => openReinstateModal(p));
+        card.appendChild(btn);
 
         leftSeveranceList.appendChild(card);
       });
@@ -1914,79 +1918,6 @@
       arena.appendChild(node);
     }
   }
-
-  function renderSeverance() {
-    const list = document.getElementById('severanceList');
-    list.innerHTML = '';
-
-    if (firedPool.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'sidebar-empty';
-      empty.textContent = 'No one in severance.';
-      list.appendChild(empty);
-      return;
-    }
-
-    const sessionMode = sessionParticipantIds !== null;
-
-    firedPool.forEach(p => {
-      const isSeated = sessionMode ? sessionParticipantIds.has(p.id || p.name) : false;
-      const card = document.createElement('div');
-      card.className = 'fired-card' + (sessionMode ? (isSeated ? ' seated' : ' bench') : '');
-      if (p.color) card.style.setProperty('--sc', p.color);
-
-      if (p.avatar_url) {
-        const avatar = document.createElement('img');
-        avatar.className = 'seat-avatar';
-        avatar.src = p.avatar_url;
-        avatar.alt = p.display_name || p.name;
-        card.appendChild(avatar);
-      } else {
-        const emoji = document.createElement('span');
-        emoji.className = 'seat-emoji';
-        emoji.textContent = p.emoji || '🤖';
-        card.appendChild(emoji);
-      }
-
-      const info = document.createElement('div');
-      info.className = 'seat-info';
-      const name = document.createElement('div');
-      name.className = 'seat-name';
-      name.textContent = p.display_name || p.name;
-      info.appendChild(name);
-      if (p.title || p.role) {
-        const desc = document.createElement('div');
-        desc.className = 'seat-desc';
-        desc.textContent = p.title || p.role;
-        info.appendChild(desc);
-      }
-      if (p.fired_reason) {
-        const reason = document.createElement('div');
-        reason.className = 'fired-reason';
-        reason.textContent = '"' + p.fired_reason + '"';
-        info.appendChild(reason);
-      }
-      card.appendChild(info);
-
-      // Seated badge (only shown in session mode)
-      if (sessionMode && isSeated) {
-        const badge = document.createElement('span');
-        badge.className = 'roster-badge seated';
-        badge.textContent = 'seated';
-        card.appendChild(badge);
-      }
-
-      const btn = document.createElement('button');
-      btn.className = 'btn-reinstate';
-      btn.textContent = '↑';
-      btn.title = 'Reinstate';
-      btn.addEventListener('click', () => openReinstateModal(p));
-      card.appendChild(btn);
-
-      list.appendChild(card);
-    });
-  }
-
 
   // ── Roster actions ─────────────────────────────────────────────────────────
   function removeToSeverance(seatIndex) {
