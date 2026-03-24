@@ -10,6 +10,24 @@ SERVE_DIR = os.path.dirname(os.path.abspath(__file__))
 TASKS_DIR = "/home/clungus/work/bigclungus-meta/tasks"
 AGENTS_ACTIVE_DIR = "/home/clungus/work/bigclungus-meta/agents/active"
 
+# ── GitHub auth ────────────────────────────────────────────────────────────────
+GITHUB_COOKIE = "tauth_github"
+GITHUB_ALLOWED_USERS = {u.lower() for u in os.environ.get('GITHUB_ALLOWED_USERS', '').split(',') if u.strip()}
+CONGRESS_LOGIN_URL = "https://terminal.clung.us/auth/github?next=https://hello.clung.us/congress"
+
+
+def _is_authed(request_headers):
+    """Check tauth_github cookie against GITHUB_ALLOWED_USERS. Empty set = any authed user ok."""
+    cookie_header = request_headers.get('Cookie', '')
+    for part in cookie_header.split(';'):
+        part = part.strip()
+        if part.startswith(GITHUB_COOKIE + '='):
+            gh_user = part[len(GITHUB_COOKIE) + 1:].strip()
+            if gh_user:
+                if not GITHUB_ALLOWED_USERS or gh_user.lower() in GITHUB_ALLOWED_USERS:
+                    return True
+    return False
+
 _EVENT_TO_STATUS = {
     'started': 'in_progress',
     'done': 'done',
@@ -93,20 +111,50 @@ def _load_identity(name):
     return meta, content
 
 
+def _call_claude_cli(system_prompt, user_message):
+    """Call Claude via the claude CLI (OAuth auth, no API key needed)."""
+    import subprocess
+    import tempfile
+    # Write system prompt to a temp file to avoid argument-parsing issues
+    # with content that starts with dashes (e.g. YAML frontmatter "---")
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+        f.write(system_prompt)
+        sysprompt_file = f.name
+    try:
+        result = subprocess.run(
+            ['/home/clungus/.local/bin/claude', '--print',
+             '--system-prompt-file', sysprompt_file,
+             '--output-format', 'text'],
+            input=user_message,
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+    finally:
+        os.unlink(sysprompt_file)
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr or f"claude CLI exited with code {result.returncode}")
+    return result.stdout.strip()
+
+
 def _call_claude(system_prompt, user_message):
-    """Call Claude claude-haiku-4-5-20251001 and return the text response."""
-    import anthropic
+    """Call Claude and return the text response.
+    Uses the anthropic Python client if ANTHROPIC_API_KEY is set, otherwise
+    falls back to the claude CLI (authenticated via OAuth).
+    """
     api_key = os.environ.get('ANTHROPIC_API_KEY')
-    if not api_key:
-        raise ValueError("ANTHROPIC_API_KEY not set")
-    client = anthropic.Anthropic(api_key=api_key)
-    message = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=512,
-        system=system_prompt,
-        messages=[{"role": "user", "content": user_message}]
-    )
-    return message.content[0].text
+    if api_key:
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=512,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_message}]
+        )
+        return message.content[0].text
+    else:
+        return _call_claude_cli(system_prompt, user_message)
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -129,6 +177,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
 
         if path == '/api/congress/identities':
+            if not _is_authed(self.headers):
+                self._json_auth_error()
+                return
             self._serve_congress_identities()
             return
 
@@ -147,6 +198,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         path = urllib.parse.urlparse(self.path).path
 
         if path == '/api/congress':
+            if not _is_authed(self.headers):
+                self._json_auth_error()
+                return
             self._handle_congress_post()
             return
 
@@ -306,6 +360,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         body = json.dumps({"response": response_text, "identity": identity}).encode('utf-8')
         self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _json_auth_error(self):
+        body = json.dumps({"error": "unauthorized", "login_url": CONGRESS_LOGIN_URL}).encode('utf-8')
+        self.send_response(401)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', str(len(body)))
         self.send_header('Access-Control-Allow-Origin', '*')

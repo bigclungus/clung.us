@@ -560,6 +560,12 @@
 
     <div class="status-line" id="statusLine">loading roster…</div>
 
+    <div id="authBanner" style="display:none; margin: 12px 0; padding: 12px 16px; background: var(--card-bg); border: 1px solid var(--node-border-active); border-radius: 5px; font-size: 0.8rem; color: var(--text);">
+      <strong>Login required.</strong>
+      Congress requires a GitHub login.
+      <a id="authLink" href="https://terminal.clung.us/auth/github?next=https://hello.clung.us/congress" style="color: var(--teal); text-decoration: underline; margin-left: 6px;">Login with GitHub →</a>
+    </div>
+
     <div class="task-form">
       <label for="taskInput">task for congress</label>
       <textarea id="taskInput" placeholder="Enter a task or question for congress to debate…&#10;e.g. &quot;Should we rewrite the data pipeline?&quot;"></textarea>
@@ -622,6 +628,11 @@
       // Fallback: load from /api/congress/identities
       try {
         const res = await fetch('/api/congress/identities');
+        if (res.status === 401) {
+          const data = await res.json().catch(() => ({}));
+          showAuthError(data);
+          return;
+        }
         const ids = await res.json();
         const debaters = ids.filter(i => i.name !== 'hiring-manager');
         for (let i = 0; i < SEAT_COUNT; i++) {
@@ -932,6 +943,11 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ task, identity: p.id }),
         });
+        if (res.status === 401) {
+          const authData = await res.json().catch(() => ({}));
+          showAuthError(authData);
+          return;
+        }
         const data = await res.json();
         if (data.error) throw new Error(data.error);
         setBubbleText(i, p.name, data.response);
@@ -964,6 +980,12 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ task: summaryTask, identity: 'hiring-manager' }),
       });
+      if (res.status === 401) {
+        const authData = await res.json().catch(() => ({}));
+        showAuthError(authData);
+        reviewEl.textContent = 'Login required.';
+        return;
+      }
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       reviewEl.textContent = data.response;
@@ -996,6 +1018,16 @@
 
   function setStatus(msg) {
     document.getElementById('statusLine').textContent = msg;
+  }
+
+  function showAuthError(data) {
+    const banner = document.getElementById('authBanner');
+    banner.style.display = '';
+    if (data && data.login_url) {
+      document.getElementById('authLink').href = data.login_url;
+    }
+    setStatus('login required — click the link above to authenticate');
+    document.getElementById('conveneBtn').disabled = true;
   }
 
   // Re-render circle when window resizes (positions are layout-dependent)
