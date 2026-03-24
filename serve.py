@@ -11,6 +11,15 @@ import urllib.parse
 import socketserver
 
 SERVE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Load .env from the same directory (before any env-dependent constants)
+_dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+if os.path.isfile(_dotenv_path):
+    for _line in open(_dotenv_path).read().splitlines():
+        if '=' in _line and not _line.startswith('#'):
+            _k, _v = _line.split('=', 1)
+            os.environ.setdefault(_k.strip(), _v.strip())
+
 TASKS_DIR = "/home/clungus/work/bigclungus-meta/tasks"
 AGENTS_ACTIVE_DIR = "/home/clungus/work/bigclungus-meta/agents/active"
 SESSIONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sessions')
@@ -144,6 +153,30 @@ def _call_gemini_cli(system_prompt, user_message):
     if result.returncode != 0:
         raise RuntimeError(result.stderr or f"gemini CLI exited with code {result.returncode}")
     return result.stdout.strip()
+
+
+def _call_grok(system_prompt: str, user_message: str) -> str:
+    """Call xAI Grok via OpenAI-compatible API using XAI_API_KEY."""
+    import urllib.request as _urlreq
+    api_key = os.environ.get("XAI_API_KEY", "")
+    payload = json.dumps({
+        "model": "grok-3-mini",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message}
+        ],
+        "max_tokens": 1000
+    }).encode()
+    req = _urlreq.Request(
+        "https://api.x.ai/v1/chat/completions",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+    )
+    resp = json.loads(_urlreq.urlopen(req, timeout=60).read())
+    return resp["choices"][0]["message"]["content"]
 
 
 def _call_claude(system_prompt, user_message):
@@ -576,6 +609,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         try:
             if persona_model == 'gemini':
                 response_text = _call_gemini_cli(full_content, user_message)
+            elif persona_model == 'grok':
+                response_text = _call_grok(full_content, user_message)
             else:
                 response_text = _call_claude(full_content, user_message)
         except ValueError as e:
