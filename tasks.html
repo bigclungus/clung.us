@@ -502,6 +502,12 @@
       btn.textContent = (isOpen ? '▼' : '▶') + btn.textContent.slice(1);
     }
 
+    function fmtTime(d) {
+      return String(d.getHours()).padStart(2,'0') + ':' +
+             String(d.getMinutes()).padStart(2,'0') + ':' +
+             String(d.getSeconds()).padStart(2,'0');
+    }
+
     function sectionHeader(key, label, count) {
       return '<div class="section-header sec-' + key + '">' +
         '<span class="section-dot"></span>' +
@@ -587,12 +593,8 @@
           '</div>' +
         '</div>';
 
-        var now = new Date();
-        var hh = String(now.getHours()).padStart(2,'0');
-        var mm = String(now.getMinutes()).padStart(2,'0');
-        var ss = String(now.getSeconds()).padStart(2,'0');
         document.getElementById('refresh-status').innerHTML =
-          '<span class="blink">_</span> updated ' + hh + ':' + mm + ':' + ss + ' &middot; 0 tasks';
+          '<span class="blink">_</span> updated ' + fmtTime(new Date()) + ' &middot; 0 tasks';
         return;
       }
 
@@ -627,12 +629,8 @@
         });
       }
 
-      var now = new Date();
-      var hh = String(now.getHours()).padStart(2,'0');
-      var mm = String(now.getMinutes()).padStart(2,'0');
-      var ss = String(now.getSeconds()).padStart(2,'0');
       document.getElementById('refresh-status').innerHTML =
-        '<span class="blink">_</span> updated ' + hh + ':' + mm + ':' + ss + ' &middot; ' + tasks.length + ' tasks';
+        '<span class="blink">_</span> updated ' + fmtTime(new Date()) + ' &middot; ' + tasks.length + ' tasks';
     }
 
     function fetchTasks() {

@@ -8,6 +8,7 @@ import datetime
 import subprocess
 import tempfile
 import urllib.parse
+import socketserver
 
 SERVE_DIR = os.path.dirname(os.path.abspath(__file__))
 TASKS_DIR = "/home/clungus/work/bigclungus-meta/tasks"
@@ -339,17 +340,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self._send_json(identities)
 
     def _next_session_number(self):
-        """Return the next session number by scanning existing session files."""
         os.makedirs(SESSIONS_DIR, exist_ok=True)
-        highest = 0
-        for fpath in glob.glob(os.path.join(SESSIONS_DIR, 'congress-*.json')):
-            fname = os.path.basename(fpath)
-            m = re.match(r'^congress-(\d+)\.json$', fname)
-            if m:
-                n = int(m.group(1))
-                if n > highest:
-                    highest = n
-        return highest + 1
+        nums = [
+            int(m.group(1))
+            for fpath in glob.glob(os.path.join(SESSIONS_DIR, 'congress-*.json'))
+            for m in [re.match(r'^congress-(\d+)\.json$', os.path.basename(fpath))]
+            if m
+        ]
+        return max(nums, default=0) + 1
 
     def _handle_congress_start(self):
         try:
@@ -543,7 +541,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         pass  # suppress access logs
 
 if __name__ == '__main__':
-    import socketserver
     PORT = 8080
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(('', PORT), Handler) as httpd:

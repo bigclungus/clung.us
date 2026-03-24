@@ -940,35 +940,33 @@
       }
 
       renderSessionStatus(sessionId, session.status);
+      applySessionData(session, true);
 
-      // Show rounds if any
-      if (session.rounds && session.rounds.length > 0) {
-        const lastRoundsByIdentity = {};
-        session.rounds.forEach(r => { lastRoundsByIdentity[r.identity] = r.response; });
-        // Populate bubbles when circle is rendered (deferred slightly)
-        setTimeout(() => {
-          seats.forEach((p, i) => {
-            if (p && lastRoundsByIdentity[p.id]) {
-              setNodeState(i, 'done');
-              setBubbleText(i, p.display_name || p.name, lastRoundsByIdentity[p.id]);
-              // feed item is shown automatically by setBubbleText
-            }
-          });
-        }, 300);
-      }
-
-      // Show hiring manager synthesis if present
-      if (session.synthesis) {
-        document.getElementById('reviewSynthesis').innerHTML = renderMarkdown(session.synthesis);
-        document.getElementById('reviewBar').classList.add('visible');
-      }
-
-      // If deliberating, start polling for updates
       if (session.status === 'deliberating') {
         startSessionPolling(sessionId);
       }
     } catch (e) {
       setStatus('could not load session: ' + e.message);
+    }
+  }
+
+  function applySessionData(session, deferred) {
+    if (session.rounds && session.rounds.length > 0) {
+      const lastRoundsByIdentity = {};
+      session.rounds.forEach(r => { lastRoundsByIdentity[r.identity] = r.response; });
+      const applyRounds = () => {
+        seats.forEach((p, i) => {
+          if (p && lastRoundsByIdentity[p.id]) {
+            setNodeState(i, 'done');
+            setBubbleText(i, p.display_name || p.name, lastRoundsByIdentity[p.id]);
+          }
+        });
+      };
+      if (deferred) setTimeout(applyRounds, 300); else applyRounds();
+    }
+    if (session.synthesis) {
+      document.getElementById('reviewSynthesis').innerHTML = renderMarkdown(session.synthesis);
+      document.getElementById('reviewBar').classList.add('visible');
     }
   }
 
@@ -994,21 +992,7 @@
           clearInterval(sessionPollTimer);
           sessionPollTimer = null;
         }
-        if (session.rounds && session.rounds.length > 0) {
-          const lastRoundsByIdentity = {};
-          session.rounds.forEach(r => { lastRoundsByIdentity[r.identity] = r.response; });
-          seats.forEach((p, i) => {
-            if (p && lastRoundsByIdentity[p.id]) {
-              setNodeState(i, 'done');
-              setBubbleText(i, p.display_name || p.name, lastRoundsByIdentity[p.id]);
-              // feed item is shown automatically by setBubbleText
-            }
-          });
-        }
-        if (session.synthesis) {
-          document.getElementById('reviewSynthesis').innerHTML = renderMarkdown(session.synthesis);
-          document.getElementById('reviewBar').classList.add('visible');
-        }
+        applySessionData(session, false);
       } catch (e) {
         // Ignore polling errors
       }
@@ -1072,7 +1056,6 @@
     renderRoster();
     renderCircle();
     renderSeverance();
-    updateConveneBtn();
   }
 
   function renderRoster() {
@@ -1219,7 +1202,6 @@
     });
   }
 
-  function updateConveneBtn() { /* no-op: convene button removed */ }
 
   // ── Roster actions ─────────────────────────────────────────────────────────
   function removeToSeverance(seatIndex) {
