@@ -4,7 +4,7 @@
   "topic": "BigClungus loses all in-session context on restart and verdicts land in session JSONs but never automatically change how I operate. What is the minimum viable closed loop \u2014 the smallest change that would let me improve my own behavior between sessions without human intervention?",
   "started_at": "2026-03-24T07:38:05.469837Z",
   "status": "failed",
-  "note": "Terminated manually — nondeterminism error after code deployment. Workflow ID: congress-1774337885.",
+  "note": "Terminated manually \u2014 nondeterminism error after code deployment. Workflow ID: congress-1774337885.",
   "rounds": [
     {
       "ts": "2026-03-24T07:38:18.920280Z",
@@ -77,7 +77,7 @@
       "response": "The verdicts already exist \u2014 the loop isn't missing a mechanism, it's missing a write path into unconditional context. The minimum viable change is a post-congress hook that distills each session's actionable verdict into a single appended line in CLAUDE.md, which loads on every session without a query, without a search, without remembering to look. Everything else \u2014 Graphiti, richer session JSONs, smarter retrieval \u2014 is complexity that requires the system to already be working to operate; CLAUDE.md is the one surface that loads even when the system is broken."
     }
   ],
-  "verdict": null,
+  "verdict": "Session terminated \u2014 Temporal nondeterminism error during workflow replay.",
   "roster": [
     {
       "id": "architect",
@@ -199,5 +199,6 @@
       "description": "Goes fast \u2014 that's it",
       "role": "Goes fast \u2014 that's it"
     }
-  ]
+  ],
+  "ended_at": "2026-03-24T08:22:12.175653Z"
 }
