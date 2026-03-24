@@ -2381,9 +2381,10 @@
         const resp = (entry.response || '').trim();
         const isEvolution = resp.startsWith('PERSONA:');
         const isTasks = resp.startsWith('TASK:');
+        const isNone = resp === 'NONE' || resp === '';
         // Seat selector: all lines are short names with no punctuation; typically no period chars
         const isSeatSelector = !debateStarted;
-        if (!isEvolution && !isTasks && !isSeatSelector) {
+        if (!isEvolution && !isTasks && !isNone && !isSeatSelector) {
           synthesisEntries.push(entry);
         }
         return;
