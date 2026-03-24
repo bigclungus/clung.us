@@ -463,7 +463,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
 
         # Only allow updating specific fields
-        ALLOWED = {'verdict', 'status', 'finished_at'}
+        ALLOWED = {'verdict', 'status', 'finished_at', 'evolution'}
         try:
             with open(fpath, 'r') as f:
                 session = json.load(f)
