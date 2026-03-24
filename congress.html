@@ -1203,7 +1203,10 @@
     // Load identities for circle rendering
     try {
       const res = await fetch('/api/agents');
-      if (res.status === 401) { window.location.href = 'https://terminal.clung.us/auth/github?next=' + encodeURIComponent(window.location.href); return; }
+      if (res.status === 401) {
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0a0a0f;font-family:\'JetBrains Mono\',monospace;flex-direction:column;gap:16px;"><div style="color:#e94560;font-size:1.1rem;font-weight:700;text-shadow:0 0 12px #e94560">congress — access restricted</div><a href="https://terminal.clung.us/auth/github?next=' + encodeURIComponent(window.location.href) + '" style="color:#4ecca3;font-size:0.8rem;border:1px solid #4ecca3;padding:8px 18px;border-radius:4px;text-decoration:none">sign in with github →</a></div>';
+        return;
+      }
       if (!res.ok) throw new Error('status ' + res.status);
       const data = await res.json();
       // Use all active personas (up to SEAT_COUNT), filtering out hiring-manager (center)
