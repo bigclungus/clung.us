@@ -170,35 +170,30 @@
     }
     .btn-remove:hover { color: var(--accent); border-color: var(--accent); }
 
-    /* ── Fired card (severance) ── */
+    /* ── Fired card (severance) — same layout as seat-card ── */
     .fired-card {
       background: var(--fired-bg);
       border: 1px solid var(--fired-border);
       border-radius: 4px;
       padding: 9px 10px;
       display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .fired-card-top {
-      display: flex;
       align-items: center;
-      gap: 7px;
+      gap: 9px;
+      position: relative;
+      min-height: 54px;
+      border-color: color-mix(in srgb, var(--sc, var(--fired-border)) 50%, var(--fired-border));
     }
-    .fired-emoji { font-size: 1.1rem; flex-shrink: 0; }
-    .fired-name { font-size: 0.73rem; font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .fired-reason { font-size: 0.57rem; color: var(--text-muted); font-style: italic; line-height: 1.4; padding-left: 1px; }
+    .fired-reason { font-size: 0.55rem; color: var(--text-muted); font-style: italic; line-height: 1.4; margin-top: 2px; }
     .btn-reinstate {
-      background: var(--btn-bg);
-      border: 1px solid var(--btn-border);
+      background: none;
+      border: 1px solid transparent;
       color: var(--text-muted);
       font-size: 0.6rem;
       font-family: 'JetBrains Mono', monospace;
       cursor: pointer;
-      padding: 3px 7px;
+      padding: 2px 5px;
       border-radius: 3px;
-      margin-top: 3px;
-      align-self: flex-start;
+      flex-shrink: 0;
       transition: color 0.12s, border-color 0.12s;
     }
     .btn-reinstate:hover { color: var(--accent); border-color: var(--accent); }
@@ -1599,29 +1594,45 @@
     firedPool.forEach(p => {
       const card = document.createElement('div');
       card.className = 'fired-card';
+      if (p.color) card.style.setProperty('--sc', p.color);
 
-      const top = document.createElement('div');
-      top.className = 'fired-card-top';
-      const emoji = document.createElement('span');
-      emoji.className = 'fired-emoji';
-      emoji.textContent = p.emoji || '🤖';
-      const name = document.createElement('span');
-      name.className = 'fired-name';
+      if (p.avatar_url) {
+        const avatar = document.createElement('img');
+        avatar.className = 'seat-avatar';
+        avatar.src = p.avatar_url;
+        avatar.alt = p.display_name || p.name;
+        card.appendChild(avatar);
+      } else {
+        const emoji = document.createElement('span');
+        emoji.className = 'seat-emoji';
+        emoji.textContent = p.emoji || '🤖';
+        card.appendChild(emoji);
+      }
+
+      const info = document.createElement('div');
+      info.className = 'seat-info';
+      const name = document.createElement('div');
+      name.className = 'seat-name';
       name.textContent = p.display_name || p.name;
-      top.appendChild(emoji);
-      top.appendChild(name);
-      card.appendChild(top);
-
+      info.appendChild(name);
+      if (p.title || p.role) {
+        const desc = document.createElement('div');
+        desc.className = 'seat-desc';
+        desc.textContent = p.title || p.role;
+        info.appendChild(desc);
+      }
       if (p.fired_reason) {
         const reason = document.createElement('div');
         reason.className = 'fired-reason';
         reason.textContent = '"' + p.fired_reason + '"';
-        card.appendChild(reason);
+        info.appendChild(reason);
       }
+      card.appendChild(info);
 
       const btn = document.createElement('button');
       btn.className = 'btn-reinstate';
-      btn.textContent = '↑ reinstate';
+      btn.textContent = '↑';
+      btn.title = 'Reinstate';
       btn.addEventListener('click', () => openReinstateModal(p));
       card.appendChild(btn);
 
