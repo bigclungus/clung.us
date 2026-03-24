@@ -1372,7 +1372,7 @@
   let currentSessionId = null;       // active session id (from URL or newly started)
   let sessionPollTimer = null;
   let sidebarPollTimer = null;
-  let sidebarLastFingerprint = null;  // "<count>|<newestId>|<newestStatus>" — skip re-render when unchanged
+  let sidebarLastFingerprint = null;  // "<count>|<id:status,...>" — skip re-render when unchanged
   let streamingEventSource = null;
   let streamingSessionId = null;
   let streamingPlaceholderIdentity = null;  // identity currently streaming in feed
@@ -1419,6 +1419,7 @@
 
     // Always load sessions into the left sidebar
     loadSidebarSessionList(sessionParam);
+    startSidebarPolling(sessionParam);
 
     if (sessionParam && /^congress-\d+$/.test(sessionParam)) {
       // ── Session view ──
@@ -1696,6 +1697,13 @@
       const res = await fetch('/api/congress/sessions');
       if (!res.ok) throw new Error('status ' + res.status);
       let sessions = await res.json();
+
+      // Build a fingerprint to skip unnecessary re-renders
+      const byNum = sessions.slice().sort((a, b) => (b.session_number || 0) - (a.session_number || 0));
+      const fingerprint = byNum.length + '|' + byNum.map(s => s.session_id + ':' + s.status).join(',');
+      if (fingerprint === sidebarLastFingerprint) return;
+      sidebarLastFingerprint = fingerprint;
+
       container.innerHTML = '';
       if (sessions.length === 0) {
         container.innerHTML = '<div class="session-list-empty">No sessions yet.</div>';
@@ -1740,6 +1748,26 @@
     }
   }
 
+  // ── Sidebar auto-refresh ────────────────────────────────────────────────────
+  // Keeps the session list current without a manual page reload.
+  // Uses a self-rescheduling setTimeout so the interval adapts each tick:
+  // fast (7 s) while a session is deliberating, relaxed (20 s) otherwise.
+  function startSidebarPolling(selectedId) {
+    if (sidebarPollTimer) clearTimeout(sidebarPollTimer);
+
+    function scheduleNext() {
+      // Poll faster while a session is actively deliberating
+      const interval = sessionPollTimer !== null ? 7000 : 20000;
+      sidebarPollTimer = setTimeout(async () => {
+        try {
+          await loadSidebarSessionList(selectedId);
+        } catch (e) { /* silently ignore network errors */ }
+        scheduleNext();
+      }, interval);
+    }
+
+    scheduleNext();
+  }
   async function loadSessionList() {
     const body = document.getElementById('sessionListBody');
     try {
