@@ -131,7 +131,7 @@ def _load_identity(name):
 def _call_claude_cli(system_prompt, user_message, on_token=None):
     """Call Claude via the claude CLI (OAuth auth, no API key needed)."""
     cmd = ['/home/clungus/.local/bin/claude', '-p', system_prompt,
-           '--output-format', 'streaming-json', '--max-turns', '1']
+           '--output-format', 'stream-json', '--verbose', '--max-turns', '1']
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.DEVNULL, text=True)
     stdout, _ = proc.communicate(input=user_message, timeout=120)
