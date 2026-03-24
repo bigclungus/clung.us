@@ -46,6 +46,12 @@ def _enrich_task(task):
     else:
         # Old format: status/started_at/finished_at/summary already at top level
         pass
+
+    # Pass through new metadata fields (present in newer task files)
+    task.setdefault('run_in_background', task.get('run_in_background', None))
+    task.setdefault('isolation', task.get('isolation', None))
+    task.setdefault('model', task.get('model', None))
+
     return task
 
 

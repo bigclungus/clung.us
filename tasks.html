@@ -518,6 +518,18 @@
         ? '<span class="meta-item"><span class="label">session</span><span class="value" title="' + escHtml(task.session_id) + '">' + sessionShort + '</span></span>'
         : '';
 
+      var bgMeta = (task.run_in_background !== null && task.run_in_background !== undefined)
+        ? '<span class="meta-item"><span class="value">' + (task.run_in_background ? '🔄 background' : '⚡ foreground') + '</span></span>'
+        : '';
+
+      var isolationMeta = (task.isolation === 'worktree')
+        ? '<span class="meta-item"><span class="value">🌳 worktree</span></span>'
+        : '';
+
+      var modelMeta = task.model
+        ? '<span class="meta-item"><span class="label">model</span><span class="value">' + escHtml(task.model) + '</span></span>'
+        : '';
+
       var summaryHtml = task.summary
         ? '<div class="card-summary">' + escHtml(task.summary.slice(0, 200)) + (task.summary.length > 200 ? '…' : '') + '</div>'
         : '';
@@ -539,6 +551,9 @@
           userMeta +
           '<span class="meta-item"><span class="label">age</span><span class="value">' + escHtml(age) + '</span></span>' +
           sessionMeta +
+          bgMeta +
+          isolationMeta +
+          modelMeta +
         '</div>' +
         summaryHtml +
         logHtml +
