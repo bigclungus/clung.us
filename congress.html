@@ -1194,22 +1194,14 @@
 
 <div class="congress-layout">
 
-  <!-- LEFT: Sessions + Roster -->
+  <!-- LEFT: Sessions only -->
   <aside class="sidebar sidebar-left">
     <div class="sidebar-header">
       <h2>Sessions</h2>
     </div>
-    <div class="sidebar-body" id="sidebarSessionList" style="flex: 0 1 auto; max-height: 45%; min-height: 80px;">
+    <div class="sidebar-body" id="sidebarSessionList" style="flex: 1 1 auto; min-height: 80px;">
       <div class="session-list-empty">Loading…</div>
     </div>
-    <div class="sidebar-section-divider">
-      Active <span class="count-badge" id="rosterCount" style="font-size:0.55rem; color: var(--text-muted); margin-left:4px;"></span>
-    </div>
-    <div class="sidebar-body" id="rosterList" style="flex: 0 1 auto;"></div>
-    <div class="sidebar-section-divider" id="leftSeveranceDivider" style="display:none;">
-      Severance <span class="count-badge" id="leftSeveranceCount" style="font-size:0.55rem; color: var(--text-muted); margin-left:4px;"></span>
-    </div>
-    <div class="sidebar-body" id="leftSeveranceList" style="flex: 0 1 auto; max-height: 30%;"></div>
   </aside>
 
   <!-- CENTER: Arena -->
@@ -1276,6 +1268,17 @@
     </div>
   </div>
 
+  <!-- RIGHT: Roster (Active + Severance) -->
+  <aside class="sidebar sidebar-right">
+    <div class="sidebar-section-divider" style="border-top: none; padding-top: 11px;">
+      Active <span class="count-badge" id="rosterCount" style="font-size:0.55rem; color: var(--text-muted); margin-left:4px;"></span>
+    </div>
+    <div class="sidebar-body" id="rosterList" style="flex: 0 1 auto;"></div>
+    <div class="sidebar-section-divider" id="leftSeveranceDivider" style="display:none;">
+      Severance <span class="count-badge" id="leftSeveranceCount" style="font-size:0.55rem; color: var(--text-muted); margin-left:4px;"></span>
+    </div>
+    <div class="sidebar-body" id="leftSeveranceList" style="flex: 1 1 auto;"></div>
+  </aside>
 
 </div>
 
