@@ -330,6 +330,10 @@
     .sum-pill.pill-stale .sum-val { color: #666; }
     .sum-pill.pill-bg .sum-val,
     .sum-pill.pill-fg .sum-val { color: var(--text-dim); }
+    .sum-pill.filterable { cursor: pointer; }
+    .sum-pill.filterable:hover { border-color: rgba(255,255,255,0.25); color: var(--text); }
+    .sum-pill.active-filter { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.35); color: var(--text); }
+    .sum-pill.active-filter .sum-val { opacity: 1; }
     .sum-sep {
       color: var(--card-border);
       padding: 0 2px;
@@ -550,19 +554,39 @@
       }
 
       bar.innerHTML =
-        '<span class="sum-pill"><span>total</span><span class="sum-val">' + tasks.length + '</span></span>' +
-        '<span class="sum-pill pill-inprogress"><span>&#9889;</span><span class="sum-val">' + inProgress + '</span><span>in progress</span></span>' +
-        '<span class="sum-pill pill-done"><span>&#10003;</span><span class="sum-val">' + done + '</span><span>done</span></span>' +
-        '<span class="sum-pill pill-stale"><span>&#9888;</span><span class="sum-val">' + stale + '</span><span>stale/failed</span></span>' +
+        '<span class="sum-pill filterable" data-filter=""><span>total</span><span class="sum-val">' + tasks.length + '</span></span>' +
+        '<span class="sum-pill pill-inprogress filterable" data-filter="in_progress"><span>&#9889;</span><span class="sum-val">' + inProgress + '</span><span>in progress</span></span>' +
+        '<span class="sum-pill pill-done filterable" data-filter="done"><span>&#10003;</span><span class="sum-val">' + done + '</span><span>done</span></span>' +
+        '<span class="sum-pill pill-stale filterable" data-filter="stale"><span>&#9888;</span><span class="sum-val">' + stale + '</span><span>stale/failed</span></span>' +
         '<span class="sum-sep">|</span>' +
         '<span class="sum-pill pill-bg"><span>&#128260;</span><span class="sum-val">' + bg + '</span><span>background</span></span>' +
         '<span class="sum-pill pill-fg"><span>&#9889;</span><span class="sum-val">' + fg + '</span><span>foreground</span></span>' +
         lastHtml;
 
+      // Wire up filter clicks
+      bar.querySelectorAll('.filterable').forEach(function(pill) {
+        pill.addEventListener('click', function() {
+          var f = pill.getAttribute('data-filter') || null;
+          currentFilter = (currentFilter === f && f !== null) ? null : f;
+          render(_lastTasks);
+        });
+      });
+
+      // Mark active filter pill
+      bar.querySelectorAll('.filterable').forEach(function(pill) {
+        var f = pill.getAttribute('data-filter') || null;
+        pill.classList.toggle('active-filter', f === currentFilter && currentFilter !== null);
+      });
+
       bar.style.display = '';
     }
 
+    var currentFilter = null;
+    var _lastTasks = [];
+
     function render(tasks) {
+      _lastTasks = tasks;
+
       // Save the set of task IDs whose log panels are currently open
       var openLogIds = new Set(
         Array.prototype.slice.call(document.querySelectorAll('.card-log.open[data-task-id]'))
@@ -607,12 +631,16 @@
       ];
 
       sections.forEach(function(sec) {
+        if (currentFilter && currentFilter !== sec.key) return;
         var items = buckets[sec.key];
         if (items.length === 0) return;
         html += sectionHeader(sec.key, sec.label, items.length);
         html += items.map(makeCard).join('');
       });
 
+      if (!html) {
+        html = '<div class="empty-state"><div class="empty-msg"><em>no tasks in this category.</em></div></div>';
+      }
       container.innerHTML = html;
 
       // Re-open any log panels that were open before the re-render
