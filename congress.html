@@ -6,6 +6,9 @@
   <title>congress — clung.us</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="stylesheet" href="/sitenav.css?v=2">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
   <script src="/sitenav.js?v=2" defer></script>
   <style>
     :root {
@@ -776,6 +779,17 @@
     .node-bubble .bubble-text strong { font-weight: 700; }
     .node-bubble .bubble-text em { font-style: italic; }
     .node-bubble .bubble-text code { font-size: 0.85em; background: var(--panel-bg); padding: 0 3px; border-radius: 2px; }
+
+    /* ── Persona-specific fonts (bubbles + feed entries) ── */
+    .persona-font-spengler    { font-family: Georgia, 'Times New Roman', serif; }
+    .persona-font-galactus    { font-family: Impact, 'Arial Narrow', sans-serif; }
+    .persona-font-pm          { font-family: Arial, Helvetica, sans-serif; }
+    .persona-font-uncle-bob   { font-family: 'Courier New', Courier, monospace; }
+    .persona-font-vesper      { font-family: 'Raleway', sans-serif; }
+    .persona-font-architect   { font-family: 'Trebuchet MS', sans-serif; }
+    .persona-font-hiring-manager { font-family: 'JetBrains Mono', 'Courier New', monospace; }
+    .persona-font-ux          { font-family: 'Comic Sans MS', cursive; }
+    .persona-font-jhaddu      { font-family: Papyrus, 'Comic Sans MS', cursive; }
 
     /* ── Round/status banner ── */
     .round-banner {
@@ -2051,6 +2065,10 @@
       node.classList.add('bubble-' + side);
       node.innerHTML = `<div class="node-circle">${avatarHtml}${displayNameHtml}</div>` +
         `<div class="node-bubble" id="bubble-seat-${i}"><div class="bubble-label"></div><div class="bubble-text"></div></div>`;
+      if (p && p.name) {
+        const bubbleEl = node.querySelector('.node-bubble');
+        if (bubbleEl) bubbleEl.classList.add('persona-font-' + p.name);
+      }
       arena.appendChild(node);
     }
   }
@@ -2392,6 +2410,7 @@
 
     const body = document.createElement('div');
     body.className = 'feed-entry-body';
+    if (identity) body.classList.add('persona-font-' + identity);
     div.appendChild(body);
 
     return div;
@@ -2559,6 +2578,7 @@
 
     const body = document.createElement('div');
     body.className = 'feed-entry-body';
+    if (entry.identity) body.classList.add('persona-font-' + entry.identity);
     body.innerHTML = renderMarkdown(entry.response);
     div.appendChild(body);
 
