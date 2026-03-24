@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Simple static file server with custom 404 page support."""
 import http.server
 import json
 import os
 import glob
 import re
+import datetime
+import subprocess
+import tempfile
+import urllib.parse
 
 SERVE_DIR = os.path.dirname(os.path.abspath(__file__))
 TASKS_DIR = "/home/clungus/work/bigclungus-meta/tasks"
@@ -64,15 +67,6 @@ def _enrich_task(task):
             if entry.get('event') != 'started' and entry.get('context'):
                 task['summary'] = entry.get('context', '')
                 break
-    else:
-        # Old format: status/started_at/finished_at/summary already at top level
-        pass
-
-    # Pass through new metadata fields (present in newer task files)
-    task.setdefault('run_in_background', task.get('run_in_background', None))
-    task.setdefault('isolation', task.get('isolation', None))
-    task.setdefault('model', task.get('model', None))
-
     return task
 
 
@@ -114,10 +108,6 @@ def _load_identity(name):
 
 def _call_claude_cli(system_prompt, user_message):
     """Call Claude via the claude CLI (OAuth auth, no API key needed)."""
-    import subprocess
-    import tempfile
-    # Write system prompt to a temp file to avoid argument-parsing issues
-    # with content that starts with dashes (e.g. YAML frontmatter "---")
     with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
         f.write(system_prompt)
         sysprompt_file = f.name
@@ -145,7 +135,7 @@ def _call_claude(system_prompt, user_message):
     """
     api_key = os.environ.get('ANTHROPIC_API_KEY')
     if api_key:
-        import anthropic
+        import anthropic  # optional dependency, only imported when API key is set
         client = anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
@@ -164,13 +154,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', 'https://hello.clung.us')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
 
     def do_GET(self):
-        import urllib.parse
         path = urllib.parse.urlparse(self.path).path
 
         if path == '/api/tasks':
@@ -204,7 +193,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
-        import urllib.parse
         path = urllib.parse.urlparse(self.path).path
 
         if path == '/api/congress/start':
@@ -232,7 +220,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_error(404)
 
     def do_PATCH(self):
-        import urllib.parse
         path = urllib.parse.urlparse(self.path).path
 
         m = re.match(r'^/api/congress/sessions/(congress-\d+)$', path)
@@ -264,13 +251,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         # Sort by started_at descending (newest first)
         tasks.sort(key=lambda t: t.get('started_at', ''), reverse=True)
 
-        body = json.dumps(tasks, indent=2).encode('utf-8')
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(body)))
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        self.wfile.write(body)
+        self._send_json(tasks, indent=2)
 
     def _serve_agents(self):
         """Return active debaters and fired personas for the congress page."""
@@ -319,13 +300,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         # Separate moderator from debaters
         debaters = [a for a in active if not a.get('is_moderator')]
 
-        body = json.dumps({'active': debaters, 'fired': fired}).encode('utf-8')
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(body)))
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        self.wfile.write(body)
+        self._send_json({'active': debaters, 'fired': fired})
 
     def _serve_congress_identities(self):
         identities = []
@@ -349,13 +324,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         except Exception:
             pass
 
-        body = json.dumps(identities).encode('utf-8')
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(body)))
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        self.wfile.write(body)
+        self._send_json(identities)
 
     def _next_session_number(self):
         """Return the next session number by scanning existing session files."""
@@ -371,7 +340,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         return highest + 1
 
     def _handle_congress_start(self):
-        import datetime
         try:
             length = int(self.headers.get('Content-Length', 0))
             raw = self.rfile.read(length)
@@ -402,13 +370,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         with open(fpath, 'w') as f:
             json.dump(session, f, indent=2)
 
-        body = json.dumps({"session_id": session_id, "session_number": num}).encode('utf-8')
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(body)))
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        self.wfile.write(body)
+        self._send_json({"session_id": session_id, "session_number": num})
 
     def _serve_congress_sessions(self):
         sessions = []
@@ -421,13 +383,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             except Exception:
                 pass
         sessions.sort(key=lambda s: s.get('session_number', 0), reverse=True)
-        body = json.dumps(sessions, indent=2).encode('utf-8')
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(body)))
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        self.wfile.write(body)
+        self._send_json(sessions, indent=2)
 
     def _serve_congress_session(self, session_id):
         fpath = os.path.join(SESSIONS_DIR, f"{session_id}.json")
@@ -440,13 +396,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             self._json_error(500, f"Could not read session: {e}")
             return
-        body = json.dumps(s, indent=2).encode('utf-8')
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(body)))
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        self.wfile.write(body)
+        self._send_json(s, indent=2)
 
     def _handle_congress_session_patch(self, session_id):
         """PATCH /api/congress/sessions/<session_id> — update verdict/status."""
@@ -480,12 +430,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', str(len(body)))
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', 'https://hello.clung.us')
         self.end_headers()
         self.wfile.write(body)
 
     def _handle_congress_post(self):
-        import datetime
         try:
             length = int(self.headers.get('Content-Length', 0))
             raw = self.rfile.read(length)
@@ -556,27 +505,24 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', str(len(body)))
-        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Origin', 'https://hello.clung.us')
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _send_json(self, data, code=200, indent=None):
+        body = json.dumps(data, indent=indent).encode('utf-8')
+        self.send_response(code)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Access-Control-Allow-Origin', 'https://hello.clung.us')
         self.end_headers()
         self.wfile.write(body)
 
     def _json_auth_error(self):
-        body = json.dumps({"error": "unauthorized", "login_url": CONGRESS_LOGIN_URL}).encode('utf-8')
-        self.send_response(401)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(body)))
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        self.wfile.write(body)
+        self._send_json({"error": "unauthorized", "login_url": CONGRESS_LOGIN_URL}, 401)
 
     def _json_error(self, code, message):
-        body = json.dumps({"error": message}).encode('utf-8')
-        self.send_response(code)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(body)))
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.end_headers()
-        self.wfile.write(body)
+        self._send_json({"error": message}, code)
 
     def send_error(self, code, message=None, explain=None):
         if code == 404:
