@@ -165,7 +165,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
 
@@ -219,6 +219,28 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self._json_auth_error()
                 return
             self._handle_congress_post()
+            return
+
+        m = re.match(r'^/api/congress/sessions/(congress-\d+)$', path)
+        if m:
+            if not _is_authed(self.headers):
+                self._json_auth_error()
+                return
+            self._handle_congress_session_patch(m.group(1))
+            return
+
+        self.send_error(404)
+
+    def do_PATCH(self):
+        import urllib.parse
+        path = urllib.parse.urlparse(self.path).path
+
+        m = re.match(r'^/api/congress/sessions/(congress-\d+)$', path)
+        if m:
+            if not _is_authed(self.headers):
+                self._json_auth_error()
+                return
+            self._handle_congress_session_patch(m.group(1))
             return
 
         self.send_error(404)
@@ -419,6 +441,42 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._json_error(500, f"Could not read session: {e}")
             return
         body = json.dumps(s, indent=2).encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _handle_congress_session_patch(self, session_id):
+        """PATCH /api/congress/sessions/<session_id> — update verdict/status."""
+        fpath = os.path.join(SESSIONS_DIR, f"{session_id}.json")
+        if not os.path.isfile(fpath):
+            self._json_error(404, f"Session '{session_id}' not found")
+            return
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+            raw = self.rfile.read(length)
+            updates = json.loads(raw) if raw else {}
+        except Exception as e:
+            self._json_error(400, f"Invalid JSON: {e}")
+            return
+
+        # Only allow updating specific fields
+        ALLOWED = {'verdict', 'status', 'finished_at'}
+        try:
+            with open(fpath, 'r') as f:
+                session = json.load(f)
+            for key in ALLOWED:
+                if key in updates:
+                    session[key] = updates[key]
+            with open(fpath, 'w') as f:
+                json.dump(session, f, indent=2)
+        except Exception as e:
+            self._json_error(500, f"Could not update session: {e}")
+            return
+
+        body = json.dumps({"ok": True, "session_id": session_id}).encode('utf-8')
         self.send_response(200)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', str(len(body)))
