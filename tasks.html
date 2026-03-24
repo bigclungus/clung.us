@@ -373,6 +373,65 @@
       font-style: normal;
     }
 
+    /* ── Summary bar ── */
+    #tasks-summary {
+      padding: 10px 32px;
+      border-bottom: 1px solid var(--card-border);
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      font-size: 0.72rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .sum-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 3px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .sum-pill .sum-val { font-weight: bold; }
+    .sum-pill.pill-inprogress { border-color: rgba(233,69,96,0.4); }
+    .sum-pill.pill-inprogress .sum-val { color: var(--accent); }
+    .sum-pill.pill-done { border-color: rgba(78,204,163,0.35); }
+    .sum-pill.pill-done .sum-val { color: var(--teal); }
+    .sum-pill.pill-stale .sum-val { color: #666; }
+    .sum-pill.pill-bg .sum-val,
+    .sum-pill.pill-fg .sum-val { color: var(--text-dim); }
+    .sum-sep {
+      color: var(--card-border);
+      padding: 0 2px;
+      user-select: none;
+    }
+    .sum-last {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text-muted);
+      padding: 3px 9px;
+      border-radius: 3px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      max-width: 340px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .sum-last .sum-last-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text-dim);
+    }
+    .sum-last .sum-last-age { flex-shrink: 0; opacity: 0.6; }
+    @media (max-width: 768px) {
+      #tasks-summary { padding: 8px 16px; }
+    }
+
     /* ── Error banner ── */
     .error-banner {
       margin: 16px 32px;
@@ -445,6 +504,8 @@
       <span class="blink">_</span> loading...
     </span>
   </div>
+
+  <div id="tasks-summary" style="display:none;"></div>
 
   <div id="error-banner" class="error-banner" style="display:none;"></div>
 
@@ -575,6 +636,52 @@
       '</div>';
     }
 
+    function updateSummary(tasks) {
+      var bar = document.getElementById('tasks-summary');
+      if (!tasks || tasks.length === 0) { bar.style.display = 'none'; return; }
+
+      var inProgress = 0, done = 0, stale = 0, bg = 0, fg = 0;
+      var newest = null;
+
+      tasks.forEach(function(t) {
+        var s = t.status;
+        if (s === 'in_progress') inProgress++;
+        else if (s === 'done') done++;
+        else stale++;
+
+        if (t.run_in_background === true) bg++;
+        else if (t.run_in_background === false) fg++;
+
+        if (t.started_at) {
+          if (!newest || new Date(t.started_at) > new Date(newest.started_at)) newest = t;
+        }
+      });
+
+      var lastHtml = '';
+      if (newest) {
+        var titleShort = (newest.title || '(no title)').slice(0, 50);
+        if ((newest.title || '').length > 50) titleShort += '…';
+        lastHtml = '<span class="sum-sep">|</span>' +
+          '<span class="sum-last">' +
+            '<span>last:</span>' +
+            '<span class="sum-last-title">&ldquo;' + escHtml(titleShort) + '&rdquo;</span>' +
+            '<span class="sum-last-age">(' + ageStr(newest.started_at) + ')</span>' +
+          '</span>';
+      }
+
+      bar.innerHTML =
+        '<span class="sum-pill"><span>total</span><span class="sum-val">' + tasks.length + '</span></span>' +
+        '<span class="sum-pill pill-inprogress"><span>&#9889;</span><span class="sum-val">' + inProgress + '</span><span>in progress</span></span>' +
+        '<span class="sum-pill pill-done"><span>&#10003;</span><span class="sum-val">' + done + '</span><span>done</span></span>' +
+        '<span class="sum-pill pill-stale"><span>&#9888;</span><span class="sum-val">' + stale + '</span><span>stale/failed</span></span>' +
+        '<span class="sum-sep">|</span>' +
+        '<span class="sum-pill pill-bg"><span>&#128260;</span><span class="sum-val">' + bg + '</span><span>background</span></span>' +
+        '<span class="sum-pill pill-fg"><span>&#9889;</span><span class="sum-val">' + fg + '</span><span>foreground</span></span>' +
+        lastHtml;
+
+      bar.style.display = '';
+    }
+
     function render(tasks) {
       _cardCounter = 0;
       var buckets = { in_progress: [], done: [], stale: [] };
@@ -584,6 +691,8 @@
         else if (s === 'done') buckets.done.push(t);
         else buckets.stale.push(t);
       });
+
+      updateSummary(tasks);
 
       var container = document.getElementById('task-list');
 
