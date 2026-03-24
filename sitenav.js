@@ -13,13 +13,29 @@
   ];
 
   var TOOL_LINKS = [
-    { href: 'https://terminal.clung.us', label: 'terminal', external: true },
-    { href: 'https://temporal.clung.us', label: 'temporal', external: true },
+    { href: 'https://terminal.clung.us', label: 'terminal', external: true, toolHost: 'terminal.clung.us' },
+    { href: 'https://temporal.clung.us', label: 'temporal', external: true, toolHost: 'temporal.clung.us' },
     { href: 'https://terminal.clung.us/topology', label: 'topology', external: true },
   ];
 
   /* ── Active link detection ── */
   function isActive(link) {
+    if (link.external) return false;
+    // Tool links with a toolHost: active when on that hostname
+    if (link.toolHost) {
+      return window.location.hostname === link.toolHost;
+    }
+    // For links with a full href, compare hostname + pathname
+    if (link.href) {
+      try {
+        var linkUrl = new URL(link.href);
+        if (linkUrl.hostname === window.location.hostname) {
+          var lp = linkUrl.pathname.replace(/\/+$/, '') || '/';
+          var p = window.location.pathname.replace(/\/+$/, '') || '/';
+          return p === lp;
+        }
+      } catch(e) {}
+    }
     if (!link.path) return false;
     var p = window.location.pathname.replace(/\/+$/, '') || '/';
     var lp = link.path.replace(/\/+$/, '') || '/';
@@ -63,8 +79,8 @@
       var a = document.createElement('a');
       a.href = item.href;
       a.textContent = item.label;
-      a.className = 'sitenav-tool-link';
-      if (item.external) {
+      a.className = isActive(item) ? 'sitenav-tool-link active' : 'sitenav-tool-link';
+      if (item.external && !item.toolHost) {
         a.target = '_blank';
         a.rel = 'noopener';
       }
