@@ -586,6 +586,7 @@
 
     function render(tasks) {
       _lastTasks = tasks;
+      tasks = tasks.filter(function(t) { return t.status !== 'milestone'; });
 
       // Save the set of task IDs whose log panels are currently open
       var openLogIds = new Set(
