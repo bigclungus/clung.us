@@ -5,88 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Changelog — hello.clung.us</title>
   <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="stylesheet" href="/sitenav-auth.css">
+  <link rel="stylesheet" href="/sitenav.css">
+  <script src="/sitenav.js" defer></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
-
-    :root {
-      --bg: #1a1a2e;
-      --accent: #e94560;
-      --text: #ccc;
-      --text-muted: #888;
-      --text-dim: #aaa;
-      --nav-bg: #1a1a2e;
-      --nav-border: #e94560;
-      --hover-fg: #fff;
-    }
-
-    [data-theme="light"] {
-      --bg: #fdf6e3;
-      --accent: #2aa198;
-      --text: #586e75;
-      --text-muted: #839496;
-      --text-dim: #93a1a1;
-      --nav-bg: #f5efe0;
-      --nav-border: #2aa198;
-      --hover-fg: #073642;
-    }
-
-    .sitenav {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 16px;
-      background: var(--nav-bg);
-      border-bottom: 1px solid var(--nav-border);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      gap: 24px;
-    }
-    .sitenav-brand {
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: bold;
-      white-space: nowrap;
-    }
-    .sitenav-links {
-      display: flex;
-      flex: 1;
-      gap: 20px;
-      align-items: center;
-    }
-    .sitenav-links a {
-      color: var(--text-muted);
-      text-decoration: none;
-      transition: color 0.15s ease;
-    }
-    .sitenav-links a:hover, .sitenav-links a.active {
-      color: var(--accent);
-    }
-    .sitenav a {
-      transition: color 0.15s ease;
-    }
-    .sitenav a:hover {
-      color: var(--hover-fg);
-    }
-    .theme-toggle {
-      background: none;
-      border: 1px solid var(--nav-border);
-      color: var(--text-muted);
-      border-radius: 4px;
-      padding: 2px 8px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      cursor: pointer;
-      transition: color 0.15s ease, border-color 0.15s ease;
-      line-height: 1.4;
-    }
-    .theme-toggle:hover {
-      color: var(--accent);
-      border-color: var(--accent);
-    }
     body {
       margin: 0;
       padding: 2rem;
@@ -116,19 +37,6 @@
   </style>
 </head>
 <body>
-  <nav class="sitenav">
-    <a class="sitenav-brand" href="https://hello.clung.us/">🤖 clung.us</a>
-    <div class="sitenav-links">
-      <a href="https://hello.clung.us/">hello</a>
-      <a href="https://hello.clung.us/changelog" class="active">changelog</a>
-      <a href="https://1998.clung.us" target="_blank" rel="noopener">1998</a>
-    </div>
-    <div class="sitenav-links-auth">
-      <a href="https://terminal.clung.us">🔒 terminal</a>
-      <a href="https://temporal.clung.us" target="_blank" rel="noopener">🔒 temporal</a>
-    </div>
-    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">🌙</button>
-  </nav>
   <h1>changelog</h1>
   <p><a href="/">← back to hello world</a></p>
 
@@ -271,31 +179,5 @@
     <div class="ts">2026-03-22 18:42 UTC</div>
     <div class="desc">Initial hello world — created <code>index.html</code> with a dark theme and neon red styling, served via Python's built-in HTTP server on port 8080.</div>
   </div>
-  <script>
-    (function() {
-      var toggleBtn = document.getElementById('theme-toggle');
-      var root = document.documentElement;
-
-      function applyTheme(theme) {
-        if (theme === 'light') {
-          root.setAttribute('data-theme', 'light');
-          toggleBtn.textContent = '☀';
-        } else {
-          root.removeAttribute('data-theme');
-          toggleBtn.textContent = '🌙';
-        }
-      }
-
-      var savedTheme = localStorage.getItem('theme') || 'dark';
-      applyTheme(savedTheme);
-
-      toggleBtn.addEventListener('click', function() {
-        var current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-        var next = current === 'light' ? 'dark' : 'light';
-        localStorage.setItem('theme', next);
-        applyTheme(next);
-      });
-    })();
-  </script>
 </body>
 </html>

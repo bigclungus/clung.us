@@ -1,0 +1,195 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+
+/* ── CSS variables ── */
+:root {
+  --bg: #1a1a2e;
+  --accent: #e94560;
+  --text: #ccc;
+  --text-muted: #888;
+  --text-dim: #aaa;
+  --nav-bg: #1a1a2e;
+  --nav-border: #e94560;
+  --hover-fg: #fff;
+  --subheader-bg: #141425;
+}
+
+[data-theme="light"] {
+  --bg: #fdf6e3;
+  --accent: #2aa198;
+  --text: #586e75;
+  --text-muted: #839496;
+  --text-dim: #93a1a1;
+  --nav-bg: #f5efe0;
+  --nav-border: #2aa198;
+  --hover-fg: #073642;
+  --subheader-bg: #ede7d4;
+}
+
+/* ── Main nav ── */
+.sitenav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--nav-bg);
+  border-bottom: 1px solid var(--nav-border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  gap: 24px;
+}
+
+.sitenav-brand {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.sitenav-links {
+  display: flex;
+  flex: 1;
+  gap: 20px;
+  align-items: center;
+}
+
+.sitenav-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.sitenav-links a:hover,
+.sitenav-links a.active {
+  color: var(--accent);
+}
+
+.sitenav a {
+  transition: color 0.15s ease;
+}
+
+.sitenav a:hover {
+  color: var(--hover-fg);
+}
+
+/* ── Auth links (kept for legacy compat, now unused in main nav) ── */
+.sitenav-links-auth {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.sitenav-links-auth a {
+  color: var(--text-muted);
+  text-decoration: none;
+  opacity: 0.6;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.sitenav-links-auth a:hover {
+  color: var(--accent);
+  opacity: 1;
+}
+
+/* ── Theme toggle ── */
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--nav-border);
+  color: var(--text-muted);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  line-height: 1.4;
+}
+
+.theme-toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ── Subheader: tools bar ── */
+.sitenav-subheader {
+  position: sticky;
+  top: 37px; /* sits just below main nav (approx nav height) */
+  z-index: 99;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 16px;
+  background: var(--subheader-bg);
+  border-bottom: 1px solid rgba(128, 128, 160, 0.18);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+.sitenav-subheader-label {
+  color: var(--text-muted);
+  opacity: 0.45;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.sitenav-subheader a {
+  color: var(--text-muted);
+  text-decoration: none;
+  opacity: 0.55;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.sitenav-subheader a:hover {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.sitenav-subheader-sep {
+  color: var(--text-muted);
+  opacity: 0.2;
+  user-select: none;
+}
+
+/* ── Mobile responsive ── */
+@media (max-width: 768px) {
+  .sitenav {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .sitenav-brand {
+    flex: 0 0 auto;
+  }
+
+  .sitenav-links {
+    flex: 0 0 100%;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    order: 3;
+  }
+
+  .sitenav-links-auth {
+    flex: 0 0 100%;
+    display: flex;
+    gap: 12px;
+    order: 4;
+  }
+
+  .theme-toggle {
+    margin-left: auto;
+  }
+
+  .sitenav-subheader {
+    top: auto;
+    position: relative;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 5px 12px;
+  }
+}
