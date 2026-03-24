@@ -160,11 +160,9 @@ def _call_gemini_cli(system_prompt, user_message, on_token=None):
     # Combine system prompt + user message as the full prompt; gemini -p appends to stdin
     full_prompt = system_prompt + "\n\n" + user_message
     proc = subprocess.Popen(
-        ['/usr/local/bin/gemini', '--output-format', 'text', '-p', full_prompt],
-        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True
+        ['/usr/local/bin/gemini', '--yolo', '-p', full_prompt],
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True
     )
-    proc.stdin.write('')
-    proc.stdin.close()
     full_text = ""
     for line in proc.stdout:
         full_text += line
