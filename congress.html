@@ -1075,6 +1075,37 @@
       border-color: var(--accent);
       box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 30%, transparent);
     }
+
+    /* ── Streaming feed placeholder ── */
+    .feed-entry.streaming-placeholder {
+      opacity: 0.88;
+    }
+    .feed-entry.streaming-placeholder .feed-entry-body {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .streaming-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: var(--accent);
+      vertical-align: text-bottom;
+      margin-left: 1px;
+      animation: blink 0.8s step-end infinite;
+    }
+
+    /* ── Ibrahim thinking pulse ── */
+    @keyframes ibrahim-pulse {
+      0%, 100% { opacity: 0.7; box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 20%, transparent); }
+      50% { opacity: 1; box-shadow: 0 0 30px color-mix(in srgb, var(--accent) 50%, transparent), 0 0 55px color-mix(in srgb, var(--accent) 20%, transparent); }
+    }
+    .center-label.thinking {
+      animation: ibrahim-pulse 1.5s ease-in-out infinite;
+    }
+    .center-label.thinking .mod-name {
+      color: #f59e0b;
+      text-shadow: 0 0 8px #f59e0b;
+    }
   </style>
 </head>
 <body>
@@ -1205,6 +1236,9 @@
   let sessionPollTimer = null;
   let streamingEventSource = null;
   let streamingSessionId = null;
+  let streamingPlaceholderIdentity = null;  // identity currently streaming in feed
+  let streamingPlaceholderText = '';         // accumulated text for feed placeholder
+  let lastRenderedRound = 0;                 // track round transitions for bubble clearing
 
   // ── Boot ───────────────────────────────────────────────────────────────────
   async function init() {
@@ -1324,6 +1358,26 @@
     if (session.rounds && session.rounds.length > 0) {
       const lastRoundsByIdentity = {};
       session.rounds.forEach(r => { lastRoundsByIdentity[r.identity] = r.response; });
+
+      // Detect round transitions — clear bubbles when moving to a new round
+      const debaterCount = seats.filter(Boolean).length || 3;
+      const debateEntries = session.rounds.filter(r => r.identity !== 'hiring-manager');
+      const currentRound = debateEntries.length > 0
+        ? Math.floor((debateEntries.length - 1) / debaterCount) + 1
+        : 0;
+      if (currentRound > lastRenderedRound && lastRenderedRound > 0) {
+        // Transitioning to a new round — clear all bubble text
+        for (let i = 0; i < SEAT_COUNT; i++) {
+          const bubbleEl = document.getElementById('bubble-seat-' + i);
+          if (bubbleEl && !bubbleEl.classList.contains('streaming')) {
+            bubbleEl.classList.remove('visible');
+            const textEl = bubbleEl.querySelector('.bubble-text');
+            if (textEl) textEl.innerHTML = '';
+          }
+        }
+      }
+      lastRenderedRound = currentRound;
+
       const applyRounds = () => {
         seats.forEach((p, i) => {
           if (p && lastRoundsByIdentity[p.id]) {
@@ -1817,11 +1871,13 @@
       const textEl = bubbleEl.querySelector('.bubble-text');
       const labelEl = bubbleEl.querySelector('.bubble-label');
 
+      const p = seats[seatIdx];
+      const isIbrahim = identity === 'hiring-manager';
+
       if (!done && chunk) {
-        // Show streaming text
+        // Show streaming text in bubble
         bubbleEl.classList.add('active', 'streaming', 'visible');
         if (labelEl) {
-          const p = seats[seatIdx];
           labelEl.textContent = (p && (p.display_name || p.name)) || identity;
           if (p && p.color) labelEl.style.color = p.color;
         }
@@ -1829,10 +1885,31 @@
           textEl.textContent += chunk;
           textEl.dataset.streaming = 'true';
         }
+
+        // Ibrahim thinking state on center node
+        if (isIbrahim) {
+          const cl = document.getElementById('centerLabel');
+          if (cl) cl.classList.add('thinking');
+        }
+
+        // Update feed placeholder
+        updateStreamingFeedPlaceholder(identity, p, chunk, false);
+
       } else if (done) {
         // Streaming complete for this persona
         if (textEl) delete textEl.dataset.streaming;
         bubbleEl.classList.remove('streaming');
+
+        // Clear Ibrahim thinking state
+        if (isIbrahim) {
+          const cl = document.getElementById('centerLabel');
+          if (cl) cl.classList.remove('thinking');
+        }
+
+        // Remove feed placeholder (real entry will come in via polling)
+        if (streamingPlaceholderIdentity === identity) {
+          removeStreamingFeedPlaceholder();
+        }
       }
     };
 
@@ -1848,6 +1925,102 @@
       streamingEventSource = null;
     }
     streamingSessionId = null;
+    // Clear any lingering thinking/placeholder state
+    const cl = document.getElementById('centerLabel');
+    if (cl) cl.classList.remove('thinking');
+    removeStreamingFeedPlaceholder();
+  }
+
+  // ── Streaming feed placeholder helpers ────────────────────────────────────
+  function updateStreamingFeedPlaceholder(identity, persona, chunk, done) {
+    const feed = document.getElementById('debateFeed');
+    if (!feed || !feed.classList.contains('visible')) return;
+
+    // If this is a new persona streaming, reset accumulator and swap placeholder
+    if (streamingPlaceholderIdentity !== identity) {
+      removeStreamingFeedPlaceholder();
+      streamingPlaceholderIdentity = identity;
+      streamingPlaceholderText = '';
+    }
+
+    streamingPlaceholderText += chunk;
+
+    // Find or create placeholder
+    let placeholder = feed.querySelector('.streaming-placeholder');
+    if (!placeholder) {
+      placeholder = buildStreamingPlaceholder(identity, persona);
+      feed.appendChild(placeholder);
+    }
+
+    // Update body text (plain text, no markdown yet — it's streaming)
+    const bodyEl = placeholder.querySelector('.feed-entry-body');
+    if (bodyEl) {
+      bodyEl.textContent = streamingPlaceholderText;
+      // Append blinking cursor span
+      const cursor = document.createElement('span');
+      cursor.className = 'streaming-cursor';
+      bodyEl.appendChild(cursor);
+    }
+
+    // Scroll feed to bottom
+    feed.scrollTop = feed.scrollHeight;
+  }
+
+  function removeStreamingFeedPlaceholder() {
+    const feed = document.getElementById('debateFeed');
+    if (!feed) return;
+    const placeholder = feed.querySelector('.streaming-placeholder');
+    if (placeholder) placeholder.remove();
+    streamingPlaceholderIdentity = null;
+    streamingPlaceholderText = '';
+  }
+
+  function buildStreamingPlaceholder(identity, persona) {
+    const isSynthesis = identity === 'hiring-manager';
+    const div = document.createElement('div');
+    div.className = 'feed-entry streaming-placeholder' + (isSynthesis ? ' synthesis-entry' : '');
+
+    const headerColor = persona && persona.color ? persona.color : (isSynthesis ? 'var(--teal)' : 'var(--text-muted)');
+    if (persona && persona.color) {
+      div.style.setProperty('--fe-color', persona.color);
+    } else if (isSynthesis) {
+      div.style.setProperty('--fe-color', 'var(--teal)');
+    }
+
+    const header = document.createElement('div');
+    header.className = 'feed-entry-header';
+
+    if (persona && persona.avatar_url) {
+      const img = document.createElement('img');
+      img.className = 'feed-entry-avatar';
+      img.src = persona.avatar_url;
+      img.alt = persona.display_name || persona.name;
+      header.appendChild(img);
+    } else {
+      const emoji = document.createElement('div');
+      emoji.className = 'feed-entry-emoji';
+      emoji.textContent = persona ? (persona.emoji || '🤖') : (isSynthesis ? '⚖️' : '🤖');
+      header.appendChild(emoji);
+    }
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'feed-entry-name';
+    nameEl.style.color = headerColor;
+    nameEl.textContent = persona ? (persona.display_name || persona.name) : (isSynthesis ? 'Ibrahim the Immovable' : identity);
+    header.appendChild(nameEl);
+
+    const tag = document.createElement('div');
+    tag.className = 'feed-entry-round-tag' + (isSynthesis ? ' synthesis' : '');
+    tag.textContent = isSynthesis ? 'synthesis' : 'generating…';
+    header.appendChild(tag);
+
+    div.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'feed-entry-body';
+    div.appendChild(body);
+
+    return div;
   }
 
   function setStatus(msg) {
@@ -1902,7 +2075,10 @@
     }
 
     feed.classList.add('visible');
+    // Remove streaming placeholder before full re-render; it will be re-injected by SSE
     feed.innerHTML = '';
+    streamingPlaceholderIdentity = null;
+    streamingPlaceholderText = '';
 
     // Build a map of persona info by identity id
     const personaMap = {};
