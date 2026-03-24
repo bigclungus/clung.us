@@ -752,6 +752,18 @@
       color: var(--teal);
     }
 
+    /* ── Soundtrack link ── */
+    #soundtrackLink {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+      letter-spacing: 0.04em;
+      padding: 3px 0;
+    }
+    #soundtrackLink:hover { opacity: 1; color: var(--teal); }
+
     /* ── Topic display ── */
     .topic-display {
       display: none;
@@ -1164,6 +1176,10 @@
     <!-- Round/status banner -->
     <div class="round-banner" id="roundBanner"></div>
 
+    <!-- Soundtrack link (shown only during deliberation) -->
+    <a id="soundtrackLink" href="https://www.youtube.com/watch?v=h6N1_GJAyFw" target="_blank" rel="noopener"
+       style="display:none">🎵 Congressional Soundtrack</a>
+
     <div class="arena" id="arena">
       <div class="center-label" id="centerLabel">
         <span class="mod-emoji">⚖️</span>
@@ -1456,6 +1472,8 @@
     } else {
       cl.classList.remove('deliberating-active');
     }
+    const sl = document.getElementById('soundtrackLink');
+    if (sl) sl.style.display = active ? 'inline' : 'none';
   }
 
   function startSessionPolling(sessionId) {
