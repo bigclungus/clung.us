@@ -784,6 +784,38 @@
     /* keep the old id as an alias so nothing else breaks */
     #soundtrackLink { display: none; }
 
+    /* ── Bottom music bar ── */
+    #musicBar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 16px;
+      background: var(--panel-bg);
+      border-top: 1px solid var(--panel-border);
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+    #musicBar.visible { display: flex; }
+    #musicBarLabel {
+      flex: 1;
+      animation: soundtrackPulse 1.6s ease-in-out infinite;
+      letter-spacing: 0.04em;
+    }
+    #musicMuteBtn {
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-border);
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.62rem;
+      padding: 3px 9px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: border-color 0.12s, color 0.12s;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    #musicMuteBtn:hover { border-color: var(--accent); color: var(--accent); }
+
     /* ── Topic display ── */
     .topic-display {
       display: none;
@@ -1429,10 +1461,39 @@
       setStatus('loading session…');
       await loadSessionIntoPage(sessionParam);
     } else {
-      // ── Default view: no session selected ──
+      // ── Default view: auto-load most recent session ──
       render();
-      setStatus('select a session from the sidebar');
-      document.querySelector('.page-header .subtitle').textContent = 'select a session to replay';
+      setStatus('loading most recent session…');
+      try {
+        const res = await fetch('/api/congress/sessions');
+        if (res.ok) {
+          const sessions = await res.json();
+          if (sessions && sessions.length > 0) {
+            // Sort: deliberating first, then by session number descending
+            const sorted = sessions.slice().sort((a, b) => {
+              const aActive = a.status === 'deliberating' ? 0 : 1;
+              const bActive = b.status === 'deliberating' ? 0 : 1;
+              if (aActive !== bActive) return aActive - bActive;
+              return (b.session_number || 0) - (a.session_number || 0);
+            });
+            const latest = sorted[0];
+            currentSessionId = latest.session_id;
+            applySessionBadge(latest.session_id);
+            showSessionHint(latest.session_id);
+            setStatus('loading session…');
+            await loadSessionIntoPage(latest.session_id);
+          } else {
+            setStatus('no sessions yet');
+            document.querySelector('.page-header .subtitle').textContent = 'use [congress] <topic> in Discord to start a session';
+          }
+        } else {
+          setStatus('select a session from the sidebar');
+          document.querySelector('.page-header .subtitle').textContent = 'select a session to replay';
+        }
+      } catch (e) {
+        setStatus('select a session from the sidebar');
+        document.querySelector('.page-header .subtitle').textContent = 'select a session to replay';
+      }
     }
   }
 
@@ -2834,8 +2895,82 @@
   // Re-render circle when window resizes (positions are layout-dependent)
   window.addEventListener('resize', () => renderCircle());
 
+  // ── Music bar (bottom of page, visible only when music is playing) ──────────
+  let musicPlaying = false;
+  let musicMuted = (localStorage.getItem('congressMusicMuted') === 'true');
+
+  const musicBar = document.getElementById('musicBar');
+  const musicMuteBtn = document.getElementById('musicMuteBtn');
+
+  function updateMuteBtnLabel() {
+    musicMuteBtn.textContent = musicMuted ? 'unmute' : 'mute';
+  }
+
+  function applyMusicMute() {
+    // If muted: remove iframe (silence), if unmuted and playing: restore it
+    const wrap = document.getElementById('soundtrackWrap');
+    if (!wrap) return;
+    if (musicMuted) {
+      const old = document.getElementById('soundtrackFrame');
+      if (old) old.remove();
+    } else if (musicPlaying && !document.getElementById('soundtrackFrame')) {
+      const iframe = document.createElement('iframe');
+      iframe.id = 'soundtrackFrame';
+      iframe.className = 'soundtrackFrame';
+      iframe.src = SOUNDTRACK_URL + '?autoplay=1&loop=1&playlist=h6N1_GJAyFw&rel=0';
+      iframe.allow = 'autoplay; encrypted-media';
+      iframe.allowFullscreen = true;
+      wrap.appendChild(iframe);
+    }
+  }
+
+  musicMuteBtn.addEventListener('click', function () {
+    musicMuted = !musicMuted;
+    localStorage.setItem('congressMusicMuted', musicMuted ? 'true' : 'false');
+    updateMuteBtnLabel();
+    applyMusicMute();
+  });
+
+  updateMuteBtnLabel();
+
+  // Patch setCenterDeliberating to also control the music bar
+  const _origSetCenterDeliberating = setCenterDeliberating;
+  setCenterDeliberating = function (active) {
+    musicPlaying = active;
+    if (active) {
+      musicBar.classList.add('visible');
+    } else {
+      musicBar.classList.remove('visible');
+    }
+    // Delegate iframe management, but if muted skip iframe injection
+    if (musicMuted && active) {
+      // Just update center label state without touching the iframe
+      const cl = document.getElementById('centerLabel');
+      if (cl) cl.classList.add('deliberating-active');
+      const wrap = document.getElementById('soundtrackWrap');
+      if (wrap) wrap.classList.add('visible');
+      // Don't inject iframe — we're muted
+    } else if (musicMuted && !active) {
+      const cl = document.getElementById('centerLabel');
+      if (cl) cl.classList.remove('deliberating-active');
+      const wrap = document.getElementById('soundtrackWrap');
+      if (wrap) wrap.classList.remove('visible');
+      const old = document.getElementById('soundtrackFrame');
+      if (old) old.remove();
+    } else {
+      _origSetCenterDeliberating(active);
+    }
+  };
+
   init();
 })();
 </script>
+
+<!-- Bottom music bar: visible only while congress is deliberating -->
+<div id="musicBar">
+  <span id="musicBarLabel">♪ congress in session</span>
+  <button id="musicMuteBtn" type="button">mute</button>
+</div>
+
 </body>
 </html>
