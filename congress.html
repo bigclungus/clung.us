@@ -1821,7 +1821,8 @@
         topicEl.title = s.topic || '';
 
         const dotEl = document.createElement('span');
-        dotEl.className = 'status-dot ' + (s.status || '');
+        var dotStatus = (s.status === 'deliberating' || s.status === 'done') ? s.status : '';
+        dotEl.className = 'status-dot' + (dotStatus ? ' ' + dotStatus : '');
 
         a.appendChild(numEl);
         a.appendChild(topicEl);
