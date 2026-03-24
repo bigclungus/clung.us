@@ -1377,9 +1377,6 @@
       <div id="sessionListBody"><div class="session-list-empty">Loading sessions…</div></div>
     </div>
 
-    <!-- Debate feed (shown when in session view) -->
-    <div class="debate-feed" id="debateFeed"></div>
-
     <!-- Deliberating panel (shown when session.status === 'deliberating') -->
     <div class="deliberating-panel" id="deliberatingPanel">
       <div class="deliberating-panel-heading">
@@ -1389,7 +1386,7 @@
       <div class="deliberating-panel-sub">verdict will appear here when the session concludes</div>
     </div>
 
-    <!-- Verdict card (shown when session.status === 'done') -->
+    <!-- Verdict card (shown when session.status === 'done') — sits above the debate feed -->
     <div class="verdict-card" id="verdictCard">
       <div class="verdict-card-heading">⚖️ Verdict</div>
       <div class="verdict-card-text" id="verdictCardText"></div>
@@ -1398,6 +1395,9 @@
       <div class="verdict-meta" id="verdictMeta" style="display:none"></div>
       <div class="verdict-session-link" id="verdictSessionLink"></div>
     </div>
+
+    <!-- Debate feed (shown when in session view) -->
+    <div class="debate-feed" id="debateFeed"></div>
 
     <!-- Legacy review bar (keep for compat, hidden by default) -->
     <div class="review-bar" id="reviewBar" style="display:none">
@@ -2566,15 +2566,15 @@
 
     const roundNames = { 1: 'Round 1 — Initial Positions', 2: 'Round 2 — Rebuttals', 3: 'Round 3 — Final Arguments' };
 
-    // Render debate round columns in order, with entries sorted by seat order
+    // Render debate round columns in order, with entries sorted by seat order.
+    // Any debater in the seated order who has no entry in a round gets a placeholder
+    // so all columns stay the same height and vertical alignment is preserved.
     Object.keys(roundEntriesMap).map(Number).sort((a, b) => a - b).forEach(roundNum => {
       const entries = roundEntriesMap[roundNum];
-      // Sort by seat position for consistent per-column ordering
-      entries.sort((a, b) => {
-        const ai = debaterOrder.indexOf(a.identity);
-        const bi = debaterOrder.indexOf(b.identity);
-        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-      });
+      // Build a lookup by identity for this round
+      const entryById = {};
+      entries.forEach(e => { entryById[e.identity] = e; });
+
       const col = document.createElement('div');
       col.className = 'debate-round-col';
       col.dataset.roundNum = roundNum;
@@ -2582,7 +2582,22 @@
       header.className = 'debate-round-col-header';
       header.textContent = roundNames[roundNum] || ('Round ' + roundNum);
       col.appendChild(header);
-      entries.forEach(entry => col.appendChild(buildFeedEntry(entry, 'R' + roundNum, personaMap)));
+
+      // Iterate in seat order; render placeholder for absent debaters
+      const rendered = new Set();
+      debaterOrder.forEach(id => {
+        if (entryById[id]) {
+          col.appendChild(buildFeedEntry(entryById[id], 'R' + roundNum, personaMap));
+        } else {
+          col.appendChild(buildAbsentEntry(id, personaMap));
+        }
+        rendered.add(id);
+      });
+      // Any entries whose identity wasn't in seats (shouldn't happen, but safety net)
+      entries.forEach(e => {
+        if (!rendered.has(e.identity)) col.appendChild(buildFeedEntry(e, 'R' + roundNum, personaMap));
+      });
+
       feed.appendChild(col);
     });
 
@@ -2664,6 +2679,35 @@
 
       feed.appendChild(col);
     }
+  }
+
+  function buildAbsentEntry(identityId, personaMap) {
+    const p = personaMap[identityId];
+    const displayName = p ? (p.display_name || p.name) : identityId;
+    const div = document.createElement('div');
+    div.className = 'feed-entry absent-entry';
+    div.style.cssText = 'opacity:0.3;pointer-events:none;';
+    const headerEl = document.createElement('div');
+    headerEl.className = 'feed-entry-header';
+    if (p && p.avatar_url) {
+      const img = document.createElement('img');
+      img.className = 'feed-entry-avatar';
+      img.src = p.avatar_url;
+      img.alt = displayName;
+      headerEl.appendChild(img);
+    }
+    const nameEl = document.createElement('div');
+    nameEl.className = 'feed-entry-name';
+    nameEl.style.color = p && p.color ? p.color : 'var(--text-muted)';
+    nameEl.textContent = displayName;
+    headerEl.appendChild(nameEl);
+    div.appendChild(headerEl);
+    const body = document.createElement('div');
+    body.className = 'feed-entry-body';
+    body.style.cssText = 'font-size:0.7rem;color:var(--text-muted);font-style:italic;';
+    body.textContent = '— absent —';
+    div.appendChild(body);
+    return div;
   }
 
   function buildVoteEntry(identityId, displayName, vote, reason, personaMap) {
