@@ -9,8 +9,13 @@ import subprocess
 import tempfile
 import urllib.parse
 import socketserver
+import threading
 
 SERVE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+_streams_lock = threading.Lock()
+_active_streams: dict = {}
+# Schema: {session_id: {"identity": str, "display_name": str, "text": str, "done": bool}}
 
 # Load .env from the same directory (before any env-dependent constants)
 _dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
@@ -123,47 +128,54 @@ def _load_identity(name):
     return None, None
 
 
-def _call_claude_cli(system_prompt, user_message):
+def _call_claude_cli(system_prompt, user_message, on_token=None):
     """Call Claude via the claude CLI (OAuth auth, no API key needed)."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-        f.write(system_prompt)
-        sysprompt_file = f.name
-    try:
-        result = subprocess.run(
-            ['/home/clungus/.local/bin/claude', '--print',
-             '--system-prompt-file', sysprompt_file,
-             '--output-format', 'text'],
-            input=user_message,
-            capture_output=True,
-            text=True,
-            timeout=60
-        )
-    finally:
-        os.unlink(sysprompt_file)
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr or f"claude CLI exited with code {result.returncode}")
-    return result.stdout.strip()
+    cmd = ['/home/clungus/.local/bin/claude', '-p', system_prompt,
+           '--output-format', 'streaming-json', '--max-turns', '1']
+    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL, text=True)
+    stdout, _ = proc.communicate(input=user_message, timeout=120)
+    full_text = ""
+    for line in stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+            if obj.get("type") == "assistant":
+                for block in obj.get("message", {}).get("content", []):
+                    if block.get("type") == "text":
+                        chunk = block.get("text", "")
+                        full_text += chunk
+                        if on_token:
+                            on_token(chunk)
+        except Exception:
+            pass
+    # Fallback: if streaming-json parsing yielded nothing, return raw stdout
+    return full_text.strip() or stdout.strip()
 
 
-def _call_gemini_cli(system_prompt, user_message):
+def _call_gemini_cli(system_prompt, user_message, on_token=None):
     """Call Gemini via the gemini CLI (OAuth auth, no API key needed)."""
     # Combine system prompt + user message as the full prompt; gemini -p appends to stdin
     full_prompt = system_prompt + "\n\n" + user_message
-    result = subprocess.run(
+    proc = subprocess.Popen(
         ['/usr/local/bin/gemini', '--output-format', 'text', '-p', full_prompt],
-        input='',
-        capture_output=True,
-        text=True,
-        timeout=90
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True
     )
-    # gemini CLI emits warnings to stderr; stdout is the clean response
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr or f"gemini CLI exited with code {result.returncode}")
-    return result.stdout.strip()
+    proc.stdin.write('')
+    proc.stdin.close()
+    full_text = ""
+    for line in proc.stdout:
+        full_text += line
+        if on_token:
+            on_token(line)
+    proc.wait()
+    return full_text.strip()
 
 
-def _call_grok(system_prompt: str, user_message: str) -> str:
-    """Call xAI Grok via OpenAI-compatible API using XAI_API_KEY."""
+def _call_grok(system_prompt: str, user_message: str, on_token=None) -> str:
+    """Call xAI Grok via OpenAI-compatible API using XAI_API_KEY (streaming)."""
     import urllib.request as _urlreq
     api_key = os.environ.get("XAI_API_KEY", "")
     payload = json.dumps({
@@ -172,7 +184,8 @@ def _call_grok(system_prompt: str, user_message: str) -> str:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message}
         ],
-        "max_tokens": LLM_MAX_TOKENS
+        "max_tokens": LLM_MAX_TOKENS,
+        "stream": True,
     }).encode()
     req = _urlreq.Request(
         "https://api.x.ai/v1/chat/completions",
@@ -183,11 +196,28 @@ def _call_grok(system_prompt: str, user_message: str) -> str:
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
         }
     )
-    resp = json.loads(_urlreq.urlopen(req, timeout=60).read())
-    return resp["choices"][0]["message"]["content"]
+    full_text = ""
+    with _urlreq.urlopen(req, timeout=60) as resp:
+        for raw_line in resp:
+            line = raw_line.decode('utf-8').rstrip('\n')
+            if not line.startswith('data: '):
+                continue
+            payload_str = line[len('data: '):]
+            if payload_str.strip() == '[DONE]':
+                break
+            try:
+                obj = json.loads(payload_str)
+                delta = (obj.get('choices', [{}])[0].get('delta', {}).get('content') or '')
+                if delta:
+                    full_text += delta
+                    if on_token:
+                        on_token(delta)
+            except Exception:
+                pass
+    return full_text.strip()
 
 
-def _call_claude(system_prompt, user_message):
+def _call_claude(system_prompt, user_message, on_token=None):
     """Call Claude and return the text response.
     Uses the anthropic Python client if ANTHROPIC_API_KEY is set, otherwise
     falls back to the claude CLI (authenticated via OAuth).
@@ -196,15 +226,20 @@ def _call_claude(system_prompt, user_message):
     if api_key:
         import anthropic  # optional dependency, only imported when API key is set
         client = anthropic.Anthropic(api_key=api_key)
-        message = client.messages.create(
+        full_text = ""
+        with client.messages.stream(
             model="claude-haiku-4-5-20251001",
             max_tokens=LLM_MAX_TOKENS,
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}]
-        )
-        return message.content[0].text
+        ) as stream:
+            for chunk in stream.text_stream:
+                full_text += chunk
+                if on_token:
+                    on_token(chunk)
+        return full_text
     else:
-        return _call_claude_cli(system_prompt, user_message)
+        return _call_claude_cli(system_prompt, user_message, on_token=on_token)
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -226,6 +261,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self._json_auth_error()
                 return
             self._serve_tasks()
+            return
+
+        if path == '/api/congress/stream':
+            if not _is_authed(self.headers):
+                self._json_auth_error()
+                return
+            self._handle_congress_stream()
             return
 
         if path == '/api/congress/identities':
@@ -629,24 +671,54 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             + task
         )
 
+        display_name = meta.get('display_name', identity)
+
+        if session_id:
+            with _streams_lock:
+                _active_streams[session_id] = {
+                    "identity": identity,
+                    "display_name": display_name,
+                    "text": "",
+                    "done": False,
+                }
+
+        def on_token(chunk):
+            if session_id:
+                with _streams_lock:
+                    if session_id in _active_streams:
+                        _active_streams[session_id]["text"] += chunk
+
         persona_model = (meta.get('model') or 'claude').lower()
         try:
             if persona_model == 'gemini':
-                response_text = _call_gemini_cli(full_content, user_message)
+                response_text = _call_gemini_cli(full_content, user_message, on_token=on_token)
             elif persona_model == 'grok':
                 try:
-                    response_text = _call_grok(full_content, user_message)
+                    response_text = _call_grok(full_content, user_message, on_token=on_token)
                 except Exception:
                     print("Grok unavailable, falling back to Claude")
-                    response_text = _call_claude(full_content, user_message)
+                    response_text = _call_claude(full_content, user_message, on_token=on_token)
             else:
-                response_text = _call_claude(full_content, user_message)
+                response_text = _call_claude(full_content, user_message, on_token=on_token)
         except ValueError as e:
+            if session_id:
+                with _streams_lock:
+                    if session_id in _active_streams:
+                        _active_streams[session_id]["done"] = True
             self._json_error(503, str(e))
             return
         except Exception as e:
+            if session_id:
+                with _streams_lock:
+                    if session_id in _active_streams:
+                        _active_streams[session_id]["done"] = True
             self._json_error(500, f"LLM API error ({persona_model}): {e}")
             return
+
+        if session_id:
+            with _streams_lock:
+                if session_id in _active_streams:
+                    _active_streams[session_id]["done"] = True
 
         # If session_id provided, append this response to the session's rounds
         if session_id:
@@ -672,6 +744,53 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     pass  # Non-fatal: session update failure doesn't block the response
 
         self._send_json({"response": response_text, "identity": identity})
+
+    def _handle_congress_stream(self):
+        """GET /api/congress/stream?session_id=... — SSE endpoint for live token streaming."""
+        import time
+        qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        session_id = qs.get('session_id', [''])[0]
+
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/event-stream')
+        self.send_header('Cache-Control', 'no-cache')
+        self.send_header('Connection', 'keep-alive')
+        self.send_header('Access-Control-Allow-Origin', 'https://hello.clung.us')
+        self.end_headers()
+
+        last_len = 0
+        try:
+            for _ in range(600):  # max 60s at 0.1s intervals
+                with _streams_lock:
+                    stream = _active_streams.get(session_id)
+
+                if stream:
+                    text = stream["text"]
+                    new_text = text[last_len:]
+                    if new_text:
+                        data = json.dumps({
+                            "identity": stream["identity"],
+                            "display_name": stream["display_name"],
+                            "text": new_text,
+                            "done": False,
+                        })
+                        self.wfile.write(f"data: {data}\n\n".encode())
+                        self.wfile.flush()
+                        last_len = len(text)
+                    if stream["done"]:
+                        data = json.dumps({
+                            "identity": stream["identity"],
+                            "display_name": stream["display_name"],
+                            "text": "",
+                            "done": True,
+                        })
+                        self.wfile.write(f"data: {data}\n\n".encode())
+                        self.wfile.flush()
+                        break
+
+                time.sleep(0.1)
+        except (BrokenPipeError, ConnectionResetError):
+            pass  # Client disconnected
 
     def _send_json(self, data, code=200, indent=None):
         body = json.dumps(data, indent=indent).encode('utf-8')
