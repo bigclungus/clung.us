@@ -25,7 +25,7 @@
     body {
       margin: 0;
       background: var(--bg);
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
       color: var(--text);
       transition: background 0.2s ease, color 0.2s ease;
     }
@@ -57,6 +57,11 @@
     .refresh-status .blink {
       color: var(--teal);
       animation: blink 2s step-end infinite;
+    }
+    /* Only blink when state changed */
+    .refresh-status .blink.inactive {
+      animation: none;
+      opacity: 0.4;
     }
     @keyframes blink {
       0%, 100% { opacity: 1; }
@@ -93,6 +98,9 @@
     .task-card.status-stale,
     .task-card.status-failed {
       border-left-color: #555;
+    }
+    .task-card.status-failed {
+      border-left-color: #7f1d1d;
     }
 
     .card-top {
@@ -131,11 +139,64 @@
       border-color: var(--teal);
       background: rgba(78, 204, 163, 0.08);
     }
-    .status-badge.stale,
-    .status-badge.failed {
-      color: #666;
-      border-color: #444;
+    .status-badge.stale {
+      color: #888;
+      border-color: #555;
       background: rgba(100, 100, 100, 0.08);
+    }
+    .status-badge.failed {
+      color: #ef4444;
+      border-color: #7f1d1d;
+      background: rgba(239, 68, 68, 0.08);
+    }
+
+    /* ── Last log snippet ── */
+    .card-log-snippet {
+      margin-top: 5px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      opacity: 0.6;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    /* ── Failed reason (visible without expansion) ── */
+    .card-fail-reason {
+      margin-top: 6px;
+      font-size: 0.72rem;
+      color: #ef4444;
+      opacity: 0.75;
+      word-break: break-word;
+      line-height: 1.45;
+    }
+
+    /* ── Age pill ── */
+    .age-pill {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.62rem;
+      font-weight: bold;
+      padding: 1px 6px;
+      border-radius: 3px;
+      border: 1px solid;
+      flex-shrink: 0;
+    }
+    .age-pill.age-fresh {
+      color: var(--text-muted);
+      border-color: var(--card-border);
+      opacity: 0.6;
+    }
+    .age-pill.age-amber {
+      color: #f59e0b;
+      border-color: rgba(245, 158, 11, 0.4);
+      background: rgba(245, 158, 11, 0.07);
+    }
+    .age-pill.age-red {
+      color: #ef4444;
+      border-color: rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.07);
     }
 
     .card-meta {
@@ -185,7 +246,7 @@
       border: 1px solid var(--card-border);
       border-radius: 3px;
       padding: 2px 7px;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
       transition: color 0.15s, border-color 0.15s;
     }
     .card-log-toggle:hover {
@@ -233,6 +294,7 @@
     .log-event.failed   { color: #ef4444; }
     .log-event.progress { color: #60a5fa; }
     .log-event.error    { color: #ef4444; }
+    .log-event.milestone { color: #a78bfa; }
 
     .log-ts {
       color: var(--text-muted);
@@ -266,6 +328,8 @@
     .section-header.sec-done        .section-label { color: var(--teal); }
     .section-header.sec-stale       .section-dot  { background: #555; }
     .section-header.sec-stale       .section-label { color: #666; }
+    .section-header.sec-failed      .section-dot  { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+    .section-header.sec-failed      .section-label { color: #ef4444; }
 
     .section-count {
       color: var(--text-muted);
@@ -309,7 +373,7 @@
       flex-wrap: wrap;
       gap: 6px 10px;
       font-size: 0.72rem;
-      font-family: 'JetBrains Mono', monospace;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
     }
     .sum-pill {
       display: inline-flex;
@@ -328,6 +392,7 @@
     .sum-pill.pill-done { border-color: rgba(78,204,163,0.35); }
     .sum-pill.pill-done .sum-val { color: var(--teal); }
     .sum-pill.pill-stale .sum-val { color: #666; }
+    .sum-pill.pill-failed .sum-val { color: #ef4444; }
     .sum-pill.pill-bg .sum-val,
     .sum-pill.pill-fg .sum-val { color: var(--text-dim); }
     .sum-pill.filterable { cursor: pointer; }
@@ -394,7 +459,7 @@
     <h1>tasks</h1>
     <span class="subtitle">// subagent activity log</span>
     <span class="refresh-status" id="refresh-status">
-      <span class="blink">_</span> loading...
+      <span class="blink inactive">_</span> loading...
     </span>
   </div>
 
@@ -407,7 +472,8 @@
   </div>
 
   <script>
-    function ageStr(isoStr) {
+    // ── Relative time helpers ──
+    function timeAgo(isoStr) {
       if (!isoStr) return '?';
       var dt = new Date(isoStr);
       var now = new Date();
@@ -416,6 +482,21 @@
       if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
       if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
       return Math.floor(diff / 86400) + 'd ago';
+    }
+
+    // Seconds since an ISO timestamp
+    function secsSince(isoStr) {
+      if (!isoStr) return Infinity;
+      return Math.floor((new Date() - new Date(isoStr)) / 1000);
+    }
+
+    // Human-readable hours/minutes for stale label
+    function staleAge(isoStr) {
+      if (!isoStr) return '';
+      var secs = secsSince(isoStr);
+      if (secs < 60) return secs + 's';
+      if (secs < 3600) return Math.floor(secs / 60) + 'm';
+      return Math.floor(secs / 3600) + 'h';
     }
 
     function escHtml(s) {
@@ -429,22 +510,78 @@
       if (!log || !log.length) return '';
       return log.map(function(entry) {
         var ev = escHtml(entry.event || '?');
-        var ts = entry.ts ? ageStr(entry.ts) : '?';
+        var absTs = entry.ts ? new Date(entry.ts).toLocaleString() : '?';
+        var relTs = entry.ts ? timeAgo(entry.ts) : '?';
         var ctx = entry.context ? entry.context.slice(0, 160) : '';
         return '<div class="log-entry">' +
           '<span class="log-event ' + escHtml(entry.event || '') + '">' + ev + '</span>' +
-          '<span class="log-ts">' + escHtml(ts) + '</span>' +
+          '<span class="log-ts" title="' + escHtml(absTs) + '">' + escHtml(relTs) + '</span>' +
           '<span class="log-context">' + escHtml(ctx) + (entry.context && entry.context.length > 160 ? '…' : '') + '</span>' +
         '</div>';
       }).join('');
     }
 
+    // Get the most recent log entry's timestamp and message
+    function lastLogEntry(log) {
+      if (!log || !log.length) return null;
+      return log[log.length - 1];
+    }
+
+    // Get last activity timestamp: newest log entry ts, or started_at
+    function lastActivityTs(task) {
+      var last = lastLogEntry(task.log);
+      if (last && last.ts) return last.ts;
+      return task.started_at || null;
+    }
+
+    // Build age pill HTML based on seconds since last activity
+    function makeAgePill(ts) {
+      if (!ts) return '';
+      var secs = secsSince(ts);
+      var rel = timeAgo(ts);
+      var abs = new Date(ts).toLocaleString();
+      var cls;
+      if (secs < 300) {
+        cls = 'age-fresh';
+      } else if (secs < 3600) {
+        cls = 'age-amber';
+      } else {
+        cls = 'age-red';
+      }
+      return '<span class="age-pill ' + cls + '" title="last activity: ' + escHtml(abs) + '">' + escHtml(rel) + '</span>';
+    }
+
     function makeCard(task) {
       var title = escHtml(task.title || '(no title)');
       var agentType = escHtml(task.agent_type || '?');
-      var age = ageStr(task.started_at);
       var status = task.status || 'stale';
-      var badgeClass = (status === 'in_progress' || status === 'done') ? status : 'stale';
+      var badgeClass = status === 'in_progress' ? 'in_progress'
+                     : status === 'done'        ? 'done'
+                     : status === 'failed'      ? 'failed'
+                     : 'stale';
+
+      // Timestamps
+      var startedAbsTs = task.started_at ? new Date(task.started_at).toLocaleString() : null;
+      var startedRel   = task.started_at ? timeAgo(task.started_at) : '?';
+
+      var activityTs = lastActivityTs(task);
+      var agePill = makeAgePill(activityTs);
+
+      // Last log snippet (for inline display, ~80 chars)
+      var lastEntry = lastLogEntry(task.log);
+      var snippetHtml = '';
+      if (lastEntry && lastEntry.context) {
+        var snippet = lastEntry.context.slice(0, 80);
+        if (lastEntry.context.length > 80) snippet += '…';
+        snippetHtml = '<div class="card-log-snippet">' + escHtml(snippet) + '</div>';
+      }
+
+      // Failed reason: show last log message in muted red without expansion
+      var failReasonHtml = '';
+      if (status === 'failed' && lastEntry && lastEntry.context) {
+        failReasonHtml = '<div class="card-fail-reason">&#9888; ' + escHtml(lastEntry.context.slice(0, 200)) +
+          (lastEntry.context.length > 200 ? '…' : '') + '</div>';
+      }
 
       var userMeta = task.discord_user
         ? '<span class="meta-item user"><span class="label">from</span><span class="value">@' + escHtml(task.discord_user) + '</span></span>'
@@ -467,6 +604,11 @@
         ? '<span class="meta-item"><span class="label">model</span><span class="value">' + escHtml(task.model) + '</span></span>'
         : '';
 
+      // Started at: relative primary, absolute as tooltip
+      var startedMeta = startedAbsTs
+        ? '<span class="meta-item"><span class="label">started</span><span class="value" title="' + escHtml(startedAbsTs) + '">' + escHtml(startedRel) + '</span></span>'
+        : '';
+
       var summaryHtml = task.summary
         ? '<div class="card-summary">' + escHtml(task.summary.slice(0, 200)) + (task.summary.length > 200 ? '…' : '') + '</div>'
         : '';
@@ -483,12 +625,15 @@
       return '<div class="task-card status-' + escHtml(status) + '"' + cardTaskIdAttr + '>' +
         '<div class="card-top">' +
           '<div class="card-title">' + title + '</div>' +
+          agePill +
           '<span class="status-badge ' + escHtml(badgeClass) + '">' + escHtml(status.replace('_', ' ')) + '</span>' +
         '</div>' +
+        snippetHtml +
+        (status === 'failed' ? failReasonHtml : '') +
         '<div class="card-meta">' +
           '<span class="meta-item"><span class="label">agent</span><span class="value">' + agentType + '</span></span>' +
           userMeta +
-          '<span class="meta-item"><span class="label">age</span><span class="value">' + escHtml(age) + '</span></span>' +
+          startedMeta +
           sessionMeta +
           bgMeta +
           isolationMeta +
@@ -512,10 +657,11 @@
              String(d.getSeconds()).padStart(2,'0');
     }
 
-    function sectionHeader(key, label, count) {
+    function sectionHeader(key, label, count, extraLabel) {
+      var displayLabel = extraLabel ? label + ' ' + extraLabel : label;
       return '<div class="section-header sec-' + key + '">' +
         '<span class="section-dot"></span>' +
-        '<span class="section-label">' + label + '</span>' +
+        '<span class="section-label">' + displayLabel + '</span>' +
         '<span class="section-count">(' + count + ')</span>' +
       '</div>';
     }
@@ -524,13 +670,14 @@
       var bar = document.getElementById('tasks-summary');
       if (!tasks || tasks.length === 0) { bar.style.display = 'none'; return; }
 
-      var inProgress = 0, done = 0, stale = 0, bg = 0, fg = 0;
+      var inProgress = 0, done = 0, stale = 0, failed = 0, bg = 0, fg = 0;
       var newest = null;
 
       tasks.forEach(function(t) {
         var s = t.status;
         if (s === 'in_progress') inProgress++;
         else if (s === 'done') done++;
+        else if (s === 'failed') failed++;
         else stale++;
 
         if (t.run_in_background === true) bg++;
@@ -549,7 +696,7 @@
           '<span class="sum-last">' +
             '<span>last:</span>' +
             '<span class="sum-last-title">&ldquo;' + escHtml(titleShort) + '&rdquo;</span>' +
-            '<span class="sum-last-age">(' + ageStr(newest.started_at) + ')</span>' +
+            '<span class="sum-last-age">(' + timeAgo(newest.started_at) + ')</span>' +
           '</span>';
       }
 
@@ -557,7 +704,8 @@
         '<span class="sum-pill filterable" data-filter=""><span>total</span><span class="sum-val">' + tasks.length + '</span></span>' +
         '<span class="sum-pill pill-inprogress filterable" data-filter="in_progress"><span>&#9889;</span><span class="sum-val">' + inProgress + '</span><span>in progress</span></span>' +
         '<span class="sum-pill pill-done filterable" data-filter="done"><span>&#10003;</span><span class="sum-val">' + done + '</span><span>done</span></span>' +
-        '<span class="sum-pill pill-stale filterable" data-filter="stale"><span>&#9888;</span><span class="sum-val">' + stale + '</span><span>stale/failed</span></span>' +
+        '<span class="sum-pill pill-stale filterable" data-filter="stale"><span>&#9888;</span><span class="sum-val">' + stale + '</span><span>stale</span></span>' +
+        '<span class="sum-pill pill-failed filterable" data-filter="failed"><span>&#10007;</span><span class="sum-val">' + failed + '</span><span>failed</span></span>' +
         '<span class="sum-sep">|</span>' +
         '<span class="sum-pill pill-bg"><span>&#128260;</span><span class="sum-val">' + bg + '</span><span>background</span></span>' +
         '<span class="sum-pill pill-fg"><span>&#9889;</span><span class="sum-val">' + fg + '</span><span>foreground</span></span>' +
@@ -578,10 +726,21 @@
 
     var currentFilter = null;
     var _lastTasks = [];
+    // For change detection
+    var _lastStateKey = null;
+
+    function stateKey(tasks) {
+      return tasks.map(function(t) { return t.id + ':' + t.status; }).join(',');
+    }
 
     function render(tasks) {
       _lastTasks = tasks;
       tasks = tasks.filter(function(t) { return t.status !== 'milestone'; });
+
+      // Detect whether task count or states changed
+      var key = stateKey(tasks);
+      var changed = key !== _lastStateKey;
+      _lastStateKey = key;
 
       // Save the set of task IDs whose log panels are currently open
       var openLogIds = new Set(
@@ -590,12 +749,20 @@
       );
 
       _cardCounter = 0;
-      var buckets = { in_progress: [], done: [], stale: [] };
+
+      // Priority sort: failed → stale → in_progress (by last activity desc) → done
+      var buckets = { failed: [], stale: [], in_progress: [], done: [] };
       tasks.forEach(function(t) {
         var s = t.status;
-        if (s === 'in_progress') buckets.in_progress.push(t);
+        if (s === 'failed') buckets.failed.push(t);
+        else if (s === 'in_progress') buckets.in_progress.push(t);
         else if (s === 'done') buckets.done.push(t);
         else buckets.stale.push(t);
+      });
+
+      // Sort in_progress by last activity descending
+      buckets.in_progress.sort(function(a, b) {
+        return (new Date(lastActivityTs(b) || 0)) - (new Date(lastActivityTs(a) || 0));
       });
 
       updateSummary(tasks);
@@ -614,23 +781,39 @@
         '</div>';
 
         document.getElementById('refresh-status').innerHTML =
-          '<span class="blink">_</span> updated ' + fmtTime(new Date()) + ' &middot; 0 tasks';
+          '<span class="blink inactive">_</span> updated ' + fmtTime(new Date()) + ' &middot; 0 tasks';
         return;
       }
 
       var html = '';
 
+      // Sections in priority order
       var sections = [
+        { key: 'failed',      label: 'failed' },
+        { key: 'stale',       label: 'stale' },
         { key: 'in_progress', label: 'in progress' },
         { key: 'done',        label: 'done' },
-        { key: 'stale',       label: 'stale / failed' },
       ];
 
       sections.forEach(function(sec) {
         if (currentFilter && currentFilter !== sec.key) return;
         var items = buckets[sec.key];
         if (items.length === 0) return;
-        html += sectionHeader(sec.key, sec.label, items.length);
+
+        // For stale section, show age of oldest stale task
+        var extraLabel = '';
+        if (sec.key === 'stale' && items.length > 0) {
+          // Find oldest last-activity among stale tasks
+          var oldest = items.reduce(function(prev, cur) {
+            var pa = lastActivityTs(prev) || prev.started_at;
+            var ca = lastActivityTs(cur) || cur.started_at;
+            return (pa && ca && new Date(pa) < new Date(ca)) ? prev : cur;
+          });
+          var oldestTs = lastActivityTs(oldest) || oldest.started_at;
+          if (oldestTs) extraLabel = '(' + staleAge(oldestTs) + ')';
+        }
+
+        html += sectionHeader(sec.key, sec.label, items.length, extraLabel);
         html += items.map(makeCard).join('');
       });
 
@@ -653,8 +836,12 @@
         });
       }
 
-      document.getElementById('refresh-status').innerHTML =
-        '<span class="blink">_</span> updated ' + fmtTime(new Date()) + ' &middot; ' + tasks.length + ' tasks';
+      // Blink indicator only when state changed
+      var blinkEl = document.getElementById('refresh-blink');
+      var statusEl = document.getElementById('refresh-status');
+      statusEl.innerHTML =
+        '<span class="blink' + (changed ? '' : ' inactive') + '" id="refresh-blink">_</span> updated ' +
+        fmtTime(new Date()) + ' &middot; ' + tasks.length + ' tasks';
     }
 
     function fetchTasks() {
