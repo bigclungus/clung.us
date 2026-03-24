@@ -610,7 +610,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if persona_model == 'gemini':
                 response_text = _call_gemini_cli(full_content, user_message)
             elif persona_model == 'grok':
-                response_text = _call_grok(full_content, user_message)
+                try:
+                    response_text = _call_grok(full_content, user_message)
+                except Exception:
+                    print("Grok unavailable, falling back to Claude")
+                    response_text = _call_claude(full_content, user_message)
             else:
                 response_text = _call_claude(full_content, user_message)
         except ValueError as e:
