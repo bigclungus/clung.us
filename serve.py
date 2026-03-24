@@ -22,6 +22,7 @@ if os.path.isfile(_dotenv_path):
 
 TASKS_DIR = "/home/clungus/work/bigclungus-meta/tasks"
 AGENTS_ACTIVE_DIR = "/home/clungus/work/bigclungus-meta/agents/active"
+AGENTS_FIRED_DIR = "/home/clungus/work/bigclungus-meta/agents/fired"
 SESSIONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sessions')
 
 LLM_MAX_TOKENS = 300  # Hard cap per debate response
@@ -108,14 +109,18 @@ def _parse_frontmatter(content):
 
 
 def _load_identity(name):
-    """Load an identity file and return (meta, full_content) or None."""
-    fpath = os.path.join(AGENTS_ACTIVE_DIR, f'{name}.md')
-    if not os.path.isfile(fpath):
-        return None, None
-    with open(fpath, 'r') as f:
-        content = f.read()
-    meta, _ = _parse_frontmatter(content)
-    return meta, content
+    """Load an identity file and return (meta, full_content) or None.
+
+    Checks agents/active/ first, then agents/fired/ (severance bench).
+    """
+    for dirpath in (AGENTS_ACTIVE_DIR, AGENTS_FIRED_DIR):
+        fpath = os.path.join(dirpath, f'{name}.md')
+        if os.path.isfile(fpath):
+            with open(fpath, 'r') as f:
+                content = f.read()
+            meta, _ = _parse_frontmatter(content)
+            return meta, content
+    return None, None
 
 
 def _call_claude_cli(system_prompt, user_message):
@@ -454,27 +459,33 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def _serve_congress_identities(self):
         identities = []
-        try:
-            for fpath in sorted(glob.glob(os.path.join(AGENTS_ACTIVE_DIR, '*.md'))):
-                try:
-                    with open(fpath, 'r') as f:
-                        content = f.read()
-                    meta, _ = _parse_frontmatter(content)
-                    if meta.get('name'):
-                        identities.append({
-                            'name': meta.get('name', ''),
-                            'role': meta.get('role', ''),
-                            'traits': meta.get('traits', []),
-                            'evolves': meta.get('evolves', False),
-                            'model': meta.get('model', 'claude'),
-                            'display_name': meta.get('display_name', ''),
-                            'avatar_url': meta.get('avatar_url', ''),
-                            'title': meta.get('title', ''),
-                        })
-                except Exception:
-                    pass
-        except Exception:
-            pass
+
+        def _load_dir(dirpath, status):
+            try:
+                for fpath in sorted(glob.glob(os.path.join(dirpath, '*.md'))):
+                    try:
+                        with open(fpath, 'r') as f:
+                            content = f.read()
+                        meta, _ = _parse_frontmatter(content)
+                        if meta.get('name'):
+                            identities.append({
+                                'name': meta.get('name', ''),
+                                'role': meta.get('role', ''),
+                                'traits': meta.get('traits', []),
+                                'evolves': meta.get('evolves', False),
+                                'model': meta.get('model', 'claude'),
+                                'display_name': meta.get('display_name', ''),
+                                'avatar_url': meta.get('avatar_url', ''),
+                                'title': meta.get('title', ''),
+                                'status': status,
+                            })
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+        _load_dir(AGENTS_ACTIVE_DIR, 'active')
+        _load_dir(AGENTS_FIRED_DIR, 'severance')
 
         self._send_json(identities)
 
