@@ -14,6 +14,7 @@ import urllib.parse
 import urllib.request
 import socketserver
 import threading
+import asyncio
 
 SERVE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -276,6 +277,41 @@ def _call_claude(system_prompt, user_message, on_token=None, model=None):
 
 DISCORD_INJECT_URL = 'http://127.0.0.1:9876/inject'
 DISCORD_MAIN_CHAT_ID = '1485343472952148008'
+
+
+def _start_github_webhook_workflow(params: dict):
+    """Fire a GitHubWebhookWorkflow in Temporal. Runs in a daemon thread so it
+    doesn't block the synchronous HTTP handler. Uses asyncio.run() since
+    serve.py is fully synchronous (http.server based)."""
+
+    async def _run():
+        try:
+            from temporalio.client import Client
+            from temporalio.common import WorkflowIDReusePolicy
+            import time as _time
+
+            host = os.environ.get('TEMPORAL_HOST', 'localhost:7233')
+            client = await Client.connect(host)
+            wf_id = (
+                f"github-webhook-{params.get('event_type','unknown')}-"
+                f"{params.get('repo','').replace('/', '-')}-"
+                f"{params.get('number', 0)}-{int(_time.time())}"
+            )
+            await client.start_workflow(
+                'GitHubWebhookWorkflow',
+                params,
+                id=wf_id,
+                task_queue='listings-queue',
+                id_reuse_policy=WorkflowIDReusePolicy.ALLOW_DUPLICATE,
+            )
+        except Exception as e:
+            print(f'[webhook] failed to start GitHubWebhookWorkflow: {e}', flush=True)
+
+    def _thread_target():
+        asyncio.run(_run())
+
+    t = threading.Thread(target=_thread_target, daemon=True)
+    t.start()
 
 
 def _github_comment(repo_full_name, issue_number, body):
@@ -883,7 +919,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         action = payload.get('action', '')
         repo = payload.get('repository', {}).get('full_name', '')
 
-        # 4. Handle each event type
+        # 4. Handle each event type — dispatch to Temporal for ack/notify, return fast
         try:
             if event_type == 'ping':
                 self._send_json({'ok': True, 'zen': payload.get('zen', '')})
@@ -891,47 +927,51 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             elif event_type == 'issues' and action == 'opened':
                 issue = payload.get('issue', {})
-                title = issue.get('title', '')
-                number = issue.get('number')
-                user = issue.get('user', {}).get('login', '')
-                url = issue.get('html_url', '')
-                # Post acknowledgment comment on the issue
-                _github_comment(repo, number, '👋 seen — I\'ll take a look')
-                # Inject Discord notification
-                msg = f'📌 GitHub [issues/opened]: **{repo}** — "{title}" by @{user}\n{url}'
-                _discord_inject(msg)
-                self._send_json({'ok': True, 'action': 'commented+notified'})
+                _start_github_webhook_workflow({
+                    'event_type': 'issues',
+                    'action': 'opened',
+                    'repo': repo,
+                    'number': issue.get('number', 0),
+                    'title': issue.get('title', ''),
+                    'url': issue.get('html_url', ''),
+                    'user': issue.get('user', {}).get('login', ''),
+                })
+                self._send_json({'ok': True, 'action': 'workflow_started'})
 
             elif event_type == 'issue_comment' and action == 'created':
                 comment = payload.get('comment', {})
                 commenter = comment.get('user', {}).get('login', '')
-                # Don't notify for our own bot comments
+                # Skip ack for our own bot comments to avoid comment loops
                 if commenter.lower() == 'bigclungus':
                     self._send_json({'ok': True, 'action': 'ignored (own comment)'})
                     return
                 issue = payload.get('issue', {})
-                title = issue.get('title', '')
-                number = issue.get('number')
-                url = comment.get('html_url', '')
-                body_preview = comment.get('body', '')[:100]
-                msg = f'💬 GitHub [issue_comment]: **{repo}** — #{number} "{title}" comment by @{commenter}\n{url}\n> {body_preview}'
-                _discord_inject(msg)
-                self._send_json({'ok': True, 'action': 'notified'})
+                _start_github_webhook_workflow({
+                    'event_type': 'issue_comment',
+                    'action': 'created',
+                    'repo': repo,
+                    'number': issue.get('number', 0),
+                    'title': issue.get('title', ''),
+                    'url': comment.get('html_url', ''),
+                    'user': commenter,
+                })
+                self._send_json({'ok': True, 'action': 'workflow_started'})
 
             elif event_type == 'pull_request' and action == 'opened':
                 pr = payload.get('pull_request', {})
-                title = pr.get('title', '')
-                number = pr.get('number')
-                user = pr.get('user', {}).get('login', '')
-                url = pr.get('html_url', '')
-                # Post acknowledgment comment on the PR (PRs share issue comment API)
-                _github_comment(repo, number, '👀 PR received, will review')
-                msg = f'📌 GitHub [pull_request/opened]: **{repo}** — "{title}" by @{user}\n{url}'
-                _discord_inject(msg)
-                self._send_json({'ok': True, 'action': 'commented+notified'})
+                _start_github_webhook_workflow({
+                    'event_type': 'pull_request',
+                    'action': 'opened',
+                    'repo': repo,
+                    'number': pr.get('number', 0),
+                    'title': pr.get('title', ''),
+                    'url': pr.get('html_url', ''),
+                    'user': pr.get('user', {}).get('login', ''),
+                })
+                self._send_json({'ok': True, 'action': 'workflow_started'})
 
             else:
-                # Acknowledge all other events without acting
+                # All other events silently acknowledged
                 self._send_json({'ok': True, 'action': 'ignored', 'event': event_type, 'action_type': action})
 
         except Exception as e:
