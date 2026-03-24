@@ -204,8 +204,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
 
         if path == '/api/wallet/balance':
+            if not _is_authed(self.headers):
+                self._json_auth_error()
+                return
             self._serve_wallet_balance()
             return
+
+        if path in ('/wallet', '/wallet.html'):
+            if not _is_authed(self.headers):
+                self._json_auth_error()
+                return
+            # fall through to static serve
 
         if '.' not in path.split('/')[-1]:
             candidate = os.path.join(SERVE_DIR, path.lstrip('/') + '.html')
