@@ -689,6 +689,8 @@
       .sidebar-left { order: 2; border-right: none; border-bottom: 1px solid var(--panel-border); }
       .sidebar-right { order: 3; border-left: none; border-top: 1px solid var(--panel-border); }
       .arena-col { order: 1; }
+      .debate-feed { flex-direction: column; }
+      .debate-round-col { min-width: 0; }
     }
 
     /* Custom scrollbar */
@@ -858,29 +860,38 @@
     .debate-feed {
       display: none;
       width: 100%;
-      max-width: 560px;
-      flex-direction: column;
-      gap: 0;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 14px;
     }
     .debate-feed.visible { display: flex; }
-    .feed-round-sep {
+
+    /* ── Per-round columns ── */
+    .debate-round-col {
+      flex: 1 1 0;
+      min-width: 220px;
       display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 14px 0 10px;
-      font-size: 0.62rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
+      flex-direction: column;
+      gap: 0;
+      min-height: 0;
+    }
+    .debate-round-col-header {
+      font-size: 0.6rem;
       font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 6px;
+      margin-bottom: 10px;
     }
-    .feed-round-sep::before,
-    .feed-round-sep::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--card-border);
+    .debate-round-col.synthesis-col .debate-round-col-header {
+      color: var(--teal);
+      border-bottom-color: color-mix(in srgb, var(--teal) 40%, transparent);
     }
+
+    /* Keep sep class available but hidden — no longer rendered */
+    .feed-round-sep { display: none; }
     .feed-entry {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -2235,6 +2246,45 @@
   }
 
   // ── Streaming feed placeholder helpers ────────────────────────────────────
+  // Returns the column that a streaming placeholder should live in.
+  // For synthesis (hiring-manager) use the synthesis column; for debaters use
+  // the last debate column (creating a new one if there isn't one yet).
+  function getOrCreateStreamingCol(identity) {
+    const feed = document.getElementById('debateFeed');
+    if (!feed) return feed;
+    if (identity === 'hiring-manager') {
+      let col = feed.querySelector('.debate-round-col.synthesis-col');
+      if (!col) {
+        col = document.createElement('div');
+        col.className = 'debate-round-col synthesis-col';
+        col.dataset.roundNum = 'synthesis';
+        const header = document.createElement('div');
+        header.className = 'debate-round-col-header';
+        header.textContent = 'Synthesis';
+        col.appendChild(header);
+        feed.appendChild(col);
+      }
+      return col;
+    }
+    // For regular debaters: use the last non-synthesis column, or create Round 1
+    const cols = Array.from(feed.querySelectorAll('.debate-round-col:not(.synthesis-col)'));
+    if (cols.length > 0) return cols[cols.length - 1];
+    // No column yet — create Round 1
+    const roundNames = { 1: 'Round 1 — Initial Positions', 2: 'Round 2 — Rebuttals', 3: 'Round 3 — Final Arguments' };
+    const col = document.createElement('div');
+    col.className = 'debate-round-col';
+    col.dataset.roundNum = '1';
+    const header = document.createElement('div');
+    header.className = 'debate-round-col-header';
+    header.textContent = roundNames[1];
+    col.appendChild(header);
+    // Insert before synthesis col if one exists
+    const synthCol = feed.querySelector('.debate-round-col.synthesis-col');
+    if (synthCol) feed.insertBefore(col, synthCol);
+    else feed.appendChild(col);
+    return col;
+  }
+
   function updateStreamingFeedPlaceholder(identity, persona, chunk, done) {
     const feed = document.getElementById('debateFeed');
     if (!feed || !feed.classList.contains('visible')) return;
@@ -2248,11 +2298,13 @@
 
     streamingPlaceholderText += chunk;
 
-    // Find or create placeholder
+    // Find or create placeholder — look inside columns, not the feed root
     let placeholder = feed.querySelector('.streaming-placeholder');
     if (!placeholder) {
+      const col = getOrCreateStreamingCol(identity);
       placeholder = buildStreamingPlaceholder(identity, persona);
-      feed.appendChild(placeholder);
+      if (col) col.appendChild(placeholder);
+      else feed.appendChild(placeholder);
     }
 
     // Update body text (plain text, no markdown yet — it's streaming)
@@ -2265,8 +2317,9 @@
       bodyEl.appendChild(cursor);
     }
 
-    // Scroll feed to bottom
-    feed.scrollTop = feed.scrollHeight;
+    // Scroll the column (or feed) to show the latest content
+    const colEl = placeholder.closest('.debate-round-col') || feed;
+    colEl.scrollTop = colEl.scrollHeight;
   }
 
   function removeStreamingFeedPlaceholder() {
@@ -2392,30 +2445,39 @@
     const debateEntries = rounds.filter(r => r.identity !== 'hiring-manager');
     const synthesisEntries = rounds.filter(r => r.identity === 'hiring-manager');
 
-    // Group debate entries into rounds by debaterCount
-    let lastRoundNum = 0;
+    const roundNames = { 1: 'Round 1 — Initial Positions', 2: 'Round 2 — Rebuttals', 3: 'Round 3 — Final Arguments' };
+
+    // Group debate entries by round number and render as columns
+    const roundCols = {};
     debateEntries.forEach((entry, idx) => {
       const roundNum = Math.floor(idx / debaterCount) + 1;
-      if (roundNum !== lastRoundNum) {
-        const sep = document.createElement('div');
-        sep.className = 'feed-round-sep';
-        const roundNames = { 1: 'Round 1 — Initial Positions', 2: 'Round 2 — Rebuttals', 3: 'Round 3 — Final Arguments' };
-        sep.textContent = roundNames[roundNum] || ('Round ' + roundNum);
-        feed.appendChild(sep);
-        lastRoundNum = roundNum;
+      if (!roundCols[roundNum]) {
+        const col = document.createElement('div');
+        col.className = 'debate-round-col';
+        col.dataset.roundNum = roundNum;
+        const header = document.createElement('div');
+        header.className = 'debate-round-col-header';
+        header.textContent = roundNames[roundNum] || ('Round ' + roundNum);
+        col.appendChild(header);
+        feed.appendChild(col);
+        roundCols[roundNum] = col;
       }
-      feed.appendChild(buildFeedEntry(entry, 'R' + roundNum, personaMap));
+      roundCols[roundNum].appendChild(buildFeedEntry(entry, 'R' + roundNum, personaMap));
     });
 
-    // Synthesis entries
+    // Synthesis column
     if (synthesisEntries.length > 0) {
-      const sep = document.createElement('div');
-      sep.className = 'feed-round-sep';
-      sep.textContent = 'Synthesis';
-      feed.appendChild(sep);
+      const col = document.createElement('div');
+      col.className = 'debate-round-col synthesis-col';
+      col.dataset.roundNum = 'synthesis';
+      const header = document.createElement('div');
+      header.className = 'debate-round-col-header';
+      header.textContent = 'Synthesis';
+      col.appendChild(header);
       synthesisEntries.forEach(entry => {
-        feed.appendChild(buildFeedEntry(entry, 'synthesis', personaMap));
+        col.appendChild(buildFeedEntry(entry, 'synthesis', personaMap));
       });
+      feed.appendChild(col);
     }
   }
 
