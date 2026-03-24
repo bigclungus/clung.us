@@ -750,18 +750,8 @@
 
       _cardCounter = 0;
 
-      // Priority sort: failed → stale → in_progress (by last activity desc) → done
-      var buckets = { failed: [], stale: [], in_progress: [], done: [] };
-      tasks.forEach(function(t) {
-        var s = t.status;
-        if (s === 'failed') buckets.failed.push(t);
-        else if (s === 'in_progress') buckets.in_progress.push(t);
-        else if (s === 'done') buckets.done.push(t);
-        else buckets.stale.push(t);
-      });
-
-      // Sort in_progress by last activity descending
-      buckets.in_progress.sort(function(a, b) {
+      // Flat recency sort: most recent activity first, regardless of status
+      var sorted = tasks.slice().sort(function(a, b) {
         return (new Date(lastActivityTs(b) || 0)) - (new Date(lastActivityTs(a) || 0));
       });
 
@@ -785,37 +775,11 @@
         return;
       }
 
-      var html = '';
+      var visible = currentFilter
+        ? sorted.filter(function(t) { return (t.status || 'stale') === currentFilter; })
+        : sorted;
 
-      // Sections in priority order
-      var sections = [
-        { key: 'failed',      label: 'failed' },
-        { key: 'stale',       label: 'stale' },
-        { key: 'in_progress', label: 'in progress' },
-        { key: 'done',        label: 'done' },
-      ];
-
-      sections.forEach(function(sec) {
-        if (currentFilter && currentFilter !== sec.key) return;
-        var items = buckets[sec.key];
-        if (items.length === 0) return;
-
-        // For stale section, show age of oldest stale task
-        var extraLabel = '';
-        if (sec.key === 'stale' && items.length > 0) {
-          // Find oldest last-activity among stale tasks
-          var oldest = items.reduce(function(prev, cur) {
-            var pa = lastActivityTs(prev) || prev.started_at;
-            var ca = lastActivityTs(cur) || cur.started_at;
-            return (pa && ca && new Date(pa) < new Date(ca)) ? prev : cur;
-          });
-          var oldestTs = lastActivityTs(oldest) || oldest.started_at;
-          if (oldestTs) extraLabel = '(' + staleAge(oldestTs) + ')';
-        }
-
-        html += sectionHeader(sec.key, sec.label, items.length, extraLabel);
-        html += items.map(makeCard).join('');
-      });
+      var html = visible.map(makeCard).join('');
 
       if (!html) {
         html = '<div class="empty-state"><div class="empty-msg"><em>no tasks in this category.</em></div></div>';
