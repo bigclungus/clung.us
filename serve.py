@@ -129,6 +129,23 @@ def _call_claude_cli(system_prompt, user_message):
     return result.stdout.strip()
 
 
+def _call_gemini_cli(system_prompt, user_message):
+    """Call Gemini via the gemini CLI (OAuth auth, no API key needed)."""
+    # Combine system prompt + user message as the full prompt; gemini -p appends to stdin
+    full_prompt = system_prompt + "\n\n" + user_message
+    result = subprocess.run(
+        ['/usr/local/bin/gemini', '--output-format', 'text', '-p', full_prompt],
+        input='',
+        capture_output=True,
+        text=True,
+        timeout=90
+    )
+    # gemini CLI emits warnings to stderr; stdout is the clean response
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr or f"gemini CLI exited with code {result.returncode}")
+    return result.stdout.strip()
+
+
 def _call_claude(system_prompt, user_message):
     """Call Claude and return the text response.
     Uses the anthropic Python client if ANTHROPIC_API_KEY is set, otherwise
@@ -373,6 +390,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             'description': meta.get('role', ''),
                             'traits': meta.get('traits', []),
                             'is_moderator': meta.get('name') == 'hiring-manager',
+                            'model': meta.get('model', 'claude'),
                             'display_name': meta.get('display_name', ''),
                             'avatar_url': meta.get('avatar_url', ''),
                         })
@@ -403,6 +421,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             'role': meta.get('role', ''),
                             'traits': meta.get('traits', []),
                             'evolves': meta.get('evolves', False),
+                            'model': meta.get('model', 'claude'),
                             'display_name': meta.get('display_name', ''),
                             'avatar_url': meta.get('avatar_url', ''),
                         })
@@ -553,13 +572,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             + task
         )
 
+        persona_model = (meta.get('model') or 'claude').lower()
         try:
-            response_text = _call_claude(full_content, user_message)
+            if persona_model == 'gemini':
+                response_text = _call_gemini_cli(full_content, user_message)
+            else:
+                response_text = _call_claude(full_content, user_message)
         except ValueError as e:
             self._json_error(503, str(e))
             return
         except Exception as e:
-            self._json_error(500, f"Claude API error: {e}")
+            self._json_error(500, f"LLM API error ({persona_model}): {e}")
             return
 
         # If session_id provided, append this response to the session's rounds
