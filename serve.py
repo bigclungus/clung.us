@@ -179,7 +179,11 @@ def _call_claude_cli(system_prompt, user_message, on_token=None, model=None):
             pass
     # Never fall back to raw stdout — it contains stream-json protocol events
     # (including {"type":"system","subtype":"init",...}) that must not leak into responses.
-    return full_text.strip()
+    result = full_text.strip()
+    if not result:
+        import logging
+        logging.warning("_call_claude_cli: no assistant text extracted (exit=%s)", proc.returncode)
+    return result
 
 
 def _call_gemini_cli(system_prompt, user_message, on_token=None):
