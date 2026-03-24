@@ -268,38 +268,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
 
         if path == '/api/congress/stream':
-            if not _is_authed(self.headers):
-                self._json_auth_error()
-                return
             self._handle_congress_stream()
             return
 
         if path == '/api/congress/identities':
-            if not _is_authed(self.headers):
-                self._json_auth_error()
-                return
             self._serve_congress_identities()
             return
 
         if path == '/api/congress/sessions':
-            if not _is_authed(self.headers):
-                self._json_auth_error()
-                return
             self._serve_congress_sessions()
             return
 
         m = re.match(r'^/api/congress/sessions/(congress-\d+)$', path)
         if m:
-            if not _is_authed(self.headers):
-                self._json_auth_error()
-                return
             self._serve_congress_session(m.group(1))
             return
 
         if path == '/api/agents':
-            if not _is_authed(self.headers):
-                self._json_auth_error()
-                return
             self._serve_agents()
             return
 
@@ -321,12 +306,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             # fall through to static serve
 
         if path in ('/congress', '/congress.html', '/congress/'):
-            if not _is_authed(self.headers):
-                self.send_response(302)
-                self.send_header('Location', CONGRESS_LOGIN_URL)
-                self.end_headers()
-                return
-            # fall through to static serve
+            pass  # public page — fall through to static serve
 
         if '.' not in path.split('/')[-1]:
             candidate = os.path.join(SERVE_DIR, path.lstrip('/') + '.html')

@@ -1265,10 +1265,6 @@
     // Load identities for circle rendering
     try {
       const res = await fetch('/api/agents');
-      if (res.status === 401) {
-        window.location.href = 'https://terminal.clung.us/auth/github?next=' + encodeURIComponent(window.location.href);
-        return;
-      }
       if (!res.ok) throw new Error('status ' + res.status);
       const data = await res.json();
       // Use all active personas (up to SEAT_COUNT), filtering out hiring-manager (center)
