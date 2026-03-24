@@ -24,6 +24,8 @@ TASKS_DIR = "/home/clungus/work/bigclungus-meta/tasks"
 AGENTS_ACTIVE_DIR = "/home/clungus/work/bigclungus-meta/agents/active"
 SESSIONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sessions')
 
+LLM_MAX_TOKENS = 300  # Hard cap per debate response
+
 # ── GitHub auth ────────────────────────────────────────────────────────────────
 GITHUB_COOKIE = "tauth_github"
 GITHUB_ALLOWED_USERS = {u.lower() for u in os.environ.get('GITHUB_ALLOWED_USERS', '').split(',') if u.strip()}
@@ -143,7 +145,7 @@ def _call_gemini_cli(system_prompt, user_message):
     # Combine system prompt + user message as the full prompt; gemini -p appends to stdin
     full_prompt = system_prompt + "\n\n" + user_message
     result = subprocess.run(
-        ['/usr/local/bin/gemini', '--output-format', 'text', '--max-tokens', '300', '-p', full_prompt],
+        ['/usr/local/bin/gemini', '--output-format', 'text', '-p', full_prompt],
         input='',
         capture_output=True,
         text=True,
@@ -165,7 +167,7 @@ def _call_grok(system_prompt: str, user_message: str) -> str:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message}
         ],
-        "max_tokens": 300
+        "max_tokens": LLM_MAX_TOKENS
     }).encode()
     req = _urlreq.Request(
         "https://api.x.ai/v1/chat/completions",
@@ -191,7 +193,7 @@ def _call_claude(system_prompt, user_message):
         client = anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=300,
+            max_tokens=LLM_MAX_TOKENS,
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}]
         )
@@ -632,15 +634,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             fpath = os.path.join(SESSIONS_DIR, f"{session_id}.json")
             if os.path.isfile(fpath):
                 try:
-                    with open(fpath, 'r') as f:
-                        session = json.load(f)
-                    session.setdefault('rounds', []).append({
-                        "ts": datetime.datetime.utcnow().isoformat() + "Z",
-                        "identity": identity,
-                        "response": response_text,
-                    })
-                    with open(fpath, 'w') as f:
-                        json.dump(session, f, indent=2)
+                    import fcntl
+                    with open(fpath, 'r+') as f:
+                        fcntl.flock(f, fcntl.LOCK_EX)
+                        try:
+                            session = json.load(f)
+                            session.setdefault('rounds', []).append({
+                                "ts": datetime.datetime.utcnow().isoformat() + "Z",
+                                "identity": identity,
+                                "response": response_text,
+                            })
+                            f.seek(0)
+                            f.truncate()
+                            json.dump(session, f, indent=2)
+                        finally:
+                            fcntl.flock(f, fcntl.LOCK_UN)
                 except Exception:
                     pass  # Non-fatal: session update failure doesn't block the response
 
