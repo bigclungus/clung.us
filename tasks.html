@@ -20,7 +20,8 @@
       --hover-fg: #fff;
       --card-bg: #22223a;
       --card-border: #333350;
-      --col-bg: #1e1e32;
+      --teal: #4ecca3;
+      --amber: #f59e0b;
     }
 
     [data-theme="light"] {
@@ -34,7 +35,8 @@
       --hover-fg: #073642;
       --card-bg: #fff8ea;
       --card-border: #d0c9b0;
-      --col-bg: #f5efe0;
+      --teal: #2aa198;
+      --amber: #b58900;
     }
 
     .sitenav {
@@ -51,18 +53,48 @@
       font-size: 13px;
       gap: 24px;
     }
-    .sitenav-brand { color: var(--accent); text-decoration: none; font-weight: bold; white-space: nowrap; }
-    .sitenav-links { display: flex; flex: 1; gap: 20px; align-items: center; }
-    .sitenav-links a { color: var(--text-muted); text-decoration: none; transition: color 0.15s ease; }
-    .sitenav-links a:hover, .sitenav-links a.active { color: var(--accent); }
-    .sitenav a { transition: color 0.15s ease; }
-    .sitenav a:hover { color: var(--hover-fg); }
-    .theme-toggle {
-      background: none; border: 1px solid var(--nav-border); color: var(--text-muted);
-      border-radius: 4px; padding: 2px 8px; font-family: 'JetBrains Mono', monospace;
-      font-size: 13px; cursor: pointer; transition: color 0.15s ease, border-color 0.15s ease; line-height: 1.4;
+    .sitenav-brand {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: bold;
+      white-space: nowrap;
     }
-    .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+    .sitenav-links {
+      display: flex;
+      flex: 1;
+      gap: 20px;
+      align-items: center;
+    }
+    .sitenav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    .sitenav-links a:hover, .sitenav-links a.active {
+      color: var(--accent);
+    }
+    .sitenav a {
+      transition: color 0.15s ease;
+    }
+    .sitenav a:hover {
+      color: var(--hover-fg);
+    }
+    .theme-toggle {
+      background: none;
+      border: 1px solid var(--nav-border);
+      color: var(--text-muted);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      cursor: pointer;
+      transition: color 0.15s ease, border-color 0.15s ease;
+      line-height: 1.4;
+    }
+    .theme-toggle:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
 
     body {
       margin: 0;
@@ -72,16 +104,20 @@
       transition: background 0.2s ease, color 0.2s ease;
     }
 
+    /* ── Page header ── */
     .page-header {
-      padding: 24px 24px 8px;
+      padding: 28px 32px 16px;
+      border-bottom: 1px solid var(--card-border);
       display: flex;
       align-items: baseline;
       gap: 16px;
+      flex-wrap: wrap;
     }
     .page-header h1 {
       margin: 0;
       font-size: 1.4rem;
       color: var(--accent);
+      text-shadow: 0 0 14px var(--accent);
     }
     .page-header .subtitle {
       color: var(--text-muted);
@@ -89,173 +125,298 @@
     }
     .refresh-status {
       margin-left: auto;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: var(--text-muted);
     }
-
-    .board {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      padding: 16px 24px 32px;
+    .refresh-status .blink {
+      color: var(--teal);
+      animation: blink 2s step-end infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
     }
 
-    .column {
-      background: var(--col-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
-      padding: 12px;
-      min-height: 200px;
+    /* ── Task list ── */
+    .task-list {
+      padding: 20px 32px 48px;
+      max-width: 1100px;
     }
 
-    .col-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
-      font-size: 0.8rem;
-      font-weight: bold;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-    .col-header .dot {
-      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-    }
-    .col-header .count {
-      margin-left: auto;
-      color: var(--text-muted);
-      font-weight: normal;
-    }
-
-    .col-in-progress .dot { background: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
-    .col-in-progress .col-label { color: #3b82f6; }
-    .col-done .dot { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
-    .col-done .col-label { color: #22c55e; }
-    .col-stale .dot { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
-    .col-stale .col-label { color: #f59e0b; }
-    .col-failed .dot { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
-    .col-failed .col-label { color: #ef4444; }
-
+    /* ── Task card ── */
     .task-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 6px;
-      padding: 10px 12px;
-      margin-bottom: 8px;
-      transition: border-color 0.15s ease;
+      border-left: 3px solid var(--card-border);
+      border-radius: 4px;
+      padding: 14px 16px 12px;
+      margin-bottom: 10px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
-    .task-card:hover { border-color: var(--accent); }
-    .task-card:last-child { margin-bottom: 0; }
+    .task-card:hover {
+      border-color: var(--accent);
+      border-left-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent) inset;
+    }
+    .task-card.status-in_progress {
+      border-left-color: var(--accent);
+    }
+    .task-card.status-done {
+      border-left-color: var(--teal);
+    }
+    .task-card.status-stale,
+    .task-card.status-failed {
+      border-left-color: #555;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
 
     .card-title {
-      font-size: 0.82rem;
+      flex: 1;
+      min-width: 0;
+      font-size: 0.88rem;
       color: var(--text);
-      margin-bottom: 6px;
-      line-height: 1.4;
+      line-height: 1.45;
       word-break: break-word;
+    }
+
+    .status-badge {
+      flex-shrink: 0;
+      font-size: 0.65rem;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 3px;
+      border: 1px solid;
+    }
+    .status-badge.in_progress {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: rgba(233, 69, 96, 0.08);
+    }
+    .status-badge.done {
+      color: var(--teal);
+      border-color: var(--teal);
+      background: rgba(78, 204, 163, 0.08);
+    }
+    .status-badge.stale,
+    .status-badge.failed {
+      color: #666;
+      border-color: #444;
+      background: rgba(100, 100, 100, 0.08);
     }
 
     .card-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 8px;
+      margin-top: 8px;
       font-size: 0.7rem;
       color: var(--text-muted);
     }
-    .card-meta .tag {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--card-border);
-      border-radius: 3px;
-      padding: 1px 5px;
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
-    [data-theme="light"] .card-meta .tag {
-      background: rgba(0,0,0,0.04);
+    .meta-item .label {
+      color: var(--text-muted);
+      opacity: 0.65;
     }
-    .card-meta .tag.user { color: var(--accent); border-color: var(--accent); opacity: 0.8; }
+    .meta-item .value {
+      color: var(--text-dim);
+    }
+    .meta-item.user .value {
+      color: var(--accent);
+    }
 
     .card-summary {
-      margin-top: 6px;
-      font-size: 0.7rem;
+      margin-top: 9px;
+      font-size: 0.72rem;
       color: var(--text-muted);
-      line-height: 1.5;
+      line-height: 1.55;
       border-left: 2px solid var(--card-border);
-      padding-left: 8px;
+      padding-left: 10px;
       word-break: break-word;
     }
 
+    /* ── Log timeline ── */
     .card-log-toggle {
-      margin-top: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 9px;
       font-size: 0.68rem;
       color: var(--text-muted);
       cursor: pointer;
       background: none;
-      border: none;
-      padding: 0;
+      border: 1px solid var(--card-border);
+      border-radius: 3px;
+      padding: 2px 7px;
       font-family: 'JetBrains Mono', monospace;
-      opacity: 0.7;
-      transition: opacity 0.15s;
+      transition: color 0.15s, border-color 0.15s;
     }
-    .card-log-toggle:hover { opacity: 1; color: var(--accent); }
+    .card-log-toggle:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
 
     .card-log {
-      margin-top: 6px;
       display: none;
-    }
-    .card-log.open { display: block; }
-    .log-entry {
-      display: flex;
-      gap: 8px;
+      margin-top: 8px;
+      background: #13131f;
+      border: 1px solid var(--card-border);
+      border-radius: 3px;
+      padding: 10px 12px;
       font-size: 0.68rem;
-      padding: 3px 0;
-      border-left: 2px solid var(--card-border);
-      padding-left: 8px;
-      margin-bottom: 3px;
-      line-height: 1.4;
+      line-height: 1.6;
     }
-    .log-entry:last-child { margin-bottom: 0; }
-    .log-event {
-      flex-shrink: 0;
-      font-weight: bold;
-      min-width: 56px;
+    [data-theme="light"] .card-log {
+      background: #f0ead8;
     }
-    .log-event.started { color: #3b82f6; }
-    .log-event.done { color: #22c55e; }
-    .log-event.stale { color: #f59e0b; }
-    .log-event.failed { color: #ef4444; }
-    .log-ts { color: var(--text-muted); flex-shrink: 0; }
-    .log-context { color: var(--text-dim); word-break: break-word; flex: 1; }
+    .card-log.open {
+      display: block;
+    }
 
-    .empty-col {
+    .log-entry {
+      display: grid;
+      grid-template-columns: 80px 70px 1fr;
+      gap: 6px;
+      padding: 2px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    [data-theme="light"] .log-entry {
+      border-bottom-color: rgba(0,0,0,0.04);
+    }
+    .log-entry:last-child {
+      border-bottom: none;
+    }
+
+    .log-event {
+      font-weight: bold;
+    }
+    .log-event.started  { color: var(--accent); }
+    .log-event.done     { color: var(--teal); }
+    .log-event.stale    { color: var(--amber); }
+    .log-event.failed   { color: #ef4444; }
+    .log-event.progress { color: #60a5fa; }
+    .log-event.error    { color: #ef4444; }
+
+    .log-ts {
       color: var(--text-muted);
-      font-size: 0.75rem;
+      opacity: 0.6;
+    }
+    .log-context {
+      color: var(--text-dim);
+      word-break: break-word;
+    }
+
+    /* ── Section headers ── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 24px 0 10px;
+      font-size: 0.72rem;
+      font-weight: bold;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .section-header .section-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .section-header.sec-in_progress .section-dot  { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    .section-header.sec-in_progress .section-label { color: var(--accent); }
+    .section-header.sec-done        .section-dot  { background: var(--teal);  box-shadow: 0 0 6px var(--teal); }
+    .section-header.sec-done        .section-label { color: var(--teal); }
+    .section-header.sec-stale       .section-dot  { background: #555; }
+    .section-header.sec-stale       .section-label { color: #666; }
+
+    .section-count {
+      color: var(--text-muted);
+      font-weight: normal;
+      opacity: 0.6;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      padding: 48px 0 32px;
       text-align: center;
-      padding: 24px 0;
+    }
+    .empty-state .empty-prompt {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
       opacity: 0.5;
     }
-
-    .error-banner {
-      margin: 16px 24px;
-      padding: 10px 14px;
-      background: rgba(233, 69, 96, 0.1);
-      border: 1px solid var(--accent);
-      border-radius: 6px;
+    .empty-state .empty-msg {
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      border-left: 3px solid var(--accent);
+      display: inline-block;
+      padding: 8px 16px;
+      text-align: left;
+      line-height: 1.7;
+      max-width: 480px;
+    }
+    .empty-state .empty-msg em {
       color: var(--accent);
-      font-size: 0.8rem;
+      font-style: normal;
     }
 
-    @media (max-width: 900px) {
-      .board { grid-template-columns: 1fr; }
+    /* ── Error banner ── */
+    .error-banner {
+      margin: 16px 32px;
+      padding: 10px 14px;
+      background: rgba(233, 69, 96, 0.08);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      color: var(--accent);
+      font-size: 0.78rem;
     }
 
-    @media (max-width: 600px) {
-      .sitenav { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+    /* ── Mobile ── */
+    @media (max-width: 768px) {
+      .sitenav {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px 12px;
+      }
       .sitenav-brand { flex: 0 0 auto; }
-      .sitenav-links { flex: 0 0 100%; flex-wrap: wrap; gap: 8px 14px; order: 3; }
-      .sitenav-links-auth { flex: 0 0 100%; display: flex; gap: 12px; order: 4; }
+      .sitenav-links {
+        flex: 0 0 100%;
+        flex-wrap: wrap;
+        gap: 8px 14px;
+        order: 3;
+      }
+      .sitenav-links-auth {
+        flex: 0 0 100%;
+        display: flex;
+        gap: 12px;
+        order: 4;
+      }
       .theme-toggle { margin-left: auto; }
-      .page-header { flex-wrap: wrap; gap: 6px; }
-      .refresh-status { margin-left: 0; }
-      .board { padding: 12px; gap: 12px; }
+
+      .page-header { padding: 20px 16px 12px; gap: 8px; }
+      .refresh-status { margin-left: 0; flex: 0 0 100%; }
+      .task-list { padding: 16px 16px 40px; }
+
+      .log-entry {
+        grid-template-columns: 70px 1fr;
+        grid-template-rows: auto auto;
+      }
+      .log-ts { grid-column: 2; grid-row: 1; }
+      .log-event { grid-column: 1; grid-row: 1; }
+      .log-context { grid-column: 1 / -1; grid-row: 2; padding-left: 4px; }
     }
   </style>
 </head>
@@ -279,42 +440,20 @@
 
   <div class="page-header">
     <h1>tasks</h1>
-    <span class="subtitle">subagent activity log</span>
-    <span class="refresh-status" id="refresh-status">loading...</span>
+    <span class="subtitle">// subagent activity log</span>
+    <span class="refresh-status" id="refresh-status">
+      <span class="blink">_</span> loading...
+    </span>
   </div>
 
   <div id="error-banner" class="error-banner" style="display:none;"></div>
 
-  <div class="board">
-    <div class="column col-in-progress" id="col-in_progress">
-      <div class="col-header">
-        <span class="dot"></span>
-        <span class="col-label">In Progress</span>
-        <span class="count" id="count-in_progress">0</span>
-      </div>
-      <div class="cards" id="cards-in_progress"></div>
-    </div>
-    <div class="column col-done" id="col-done">
-      <div class="col-header">
-        <span class="dot"></span>
-        <span class="col-label">Done</span>
-        <span class="count" id="count-done">0</span>
-      </div>
-      <div class="cards" id="cards-done"></div>
-    </div>
-    <div class="column col-stale" id="col-stale">
-      <div class="col-header">
-        <span class="dot"></span>
-        <span class="col-label">Stale / Failed</span>
-        <span class="count" id="count-stale">0</span>
-      </div>
-      <div class="cards" id="cards-stale"></div>
-    </div>
+  <div class="task-list" id="task-list">
+    <!-- rendered by JS -->
   </div>
 
   <script>
     (function() {
-      // Theme toggle
       var toggleBtn = document.getElementById('theme-toggle');
       var root = document.documentElement;
       function applyTheme(theme) {
@@ -351,7 +490,7 @@
 
     function makeLogTimeline(log) {
       if (!log || !log.length) return '';
-      var entries = log.map(function(entry) {
+      return log.map(function(entry) {
         var ev = escHtml(entry.event || '?');
         var ts = entry.ts ? ageStr(entry.ts) : '?';
         var ctx = entry.context ? entry.context.slice(0, 160) : '';
@@ -360,35 +499,46 @@
           '<span class="log-ts">' + escHtml(ts) + '</span>' +
           '<span class="log-context">' + escHtml(ctx) + (entry.context && entry.context.length > 160 ? '…' : '') + '</span>' +
         '</div>';
-      });
-      return entries.join('');
+      }).join('');
     }
 
     function makeCard(task) {
       var title = escHtml(task.title || '(no title)');
       var agentType = escHtml(task.agent_type || '?');
-      var sessionShort = task.session_id ? escHtml(task.session_id.slice(0, 12)) : '?';
-      // status and started_at are derived by serve.py from log[]
       var age = ageStr(task.started_at);
-      var userTag = task.discord_user ? '<span class="tag user">@' + escHtml(task.discord_user) + '</span>' : '';
-      var summaryHtml = '';
-      if (task.summary) {
-        var s = task.summary.slice(0, 200);
-        summaryHtml = '<div class="card-summary">' + escHtml(s) + (task.summary.length > 200 ? '…' : '') + '</div>';
-      }
+      var status = task.status || 'stale';
+      var badgeClass = (status === 'in_progress' || status === 'done') ? status : 'stale';
+
+      var userMeta = task.discord_user
+        ? '<span class="meta-item user"><span class="label">from</span><span class="value">@' + escHtml(task.discord_user) + '</span></span>'
+        : '';
+
+      var sessionShort = task.session_id ? escHtml(task.session_id.slice(0, 12)) : null;
+      var sessionMeta = sessionShort
+        ? '<span class="meta-item"><span class="label">session</span><span class="value" title="' + escHtml(task.session_id) + '">' + sessionShort + '</span></span>'
+        : '';
+
+      var summaryHtml = task.summary
+        ? '<div class="card-summary">' + escHtml(task.summary.slice(0, 200)) + (task.summary.length > 200 ? '…' : '') + '</div>'
+        : '';
+
       var logHtml = '';
       if (task.log && task.log.length > 0) {
         var cardId = 'log-' + (++_cardCounter);
         logHtml = '<button class="card-log-toggle" onclick="toggleLog(\'' + cardId + '\', this)">▶ log (' + task.log.length + ')</button>' +
           '<div class="card-log" id="' + cardId + '">' + makeLogTimeline(task.log) + '</div>';
       }
-      return '<div class="task-card">' +
-        '<div class="card-title">' + title + '</div>' +
+
+      return '<div class="task-card status-' + escHtml(status) + '">' +
+        '<div class="card-top">' +
+          '<div class="card-title">' + title + '</div>' +
+          '<span class="status-badge ' + escHtml(badgeClass) + '">' + escHtml(status.replace('_', ' ')) + '</span>' +
+        '</div>' +
         '<div class="card-meta">' +
-          '<span class="tag">' + agentType + '</span>' +
-          userTag +
-          '<span class="tag">' + age + '</span>' +
-          '<span class="tag" title="' + escHtml(task.session_id) + '">session:' + sessionShort + '</span>' +
+          '<span class="meta-item"><span class="label">agent</span><span class="value">' + agentType + '</span></span>' +
+          userMeta +
+          '<span class="meta-item"><span class="label">age</span><span class="value">' + escHtml(age) + '</span></span>' +
+          sessionMeta +
         '</div>' +
         summaryHtml +
         logHtml +
@@ -402,33 +552,69 @@
       btn.textContent = (isOpen ? '▼' : '▶') + btn.textContent.slice(1);
     }
 
+    function sectionHeader(key, label, count) {
+      return '<div class="section-header sec-' + key + '">' +
+        '<span class="section-dot"></span>' +
+        '<span class="section-label">' + label + '</span>' +
+        '<span class="section-count">(' + count + ')</span>' +
+      '</div>';
+    }
+
     function render(tasks) {
-      _cardCounter = 0; // reset card IDs on each render
+      _cardCounter = 0;
       var buckets = { in_progress: [], done: [], stale: [] };
       tasks.forEach(function(t) {
-        // status is derived by serve.py from last log event (or fallback to top-level status)
         var s = t.status;
         if (s === 'in_progress') buckets.in_progress.push(t);
         else if (s === 'done') buckets.done.push(t);
-        else buckets.stale.push(t); // stale + failed + anything else
+        else buckets.stale.push(t);
       });
 
-      ['in_progress', 'done', 'stale'].forEach(function(key) {
-        var items = buckets[key];
-        document.getElementById('count-' + key).textContent = items.length;
-        var container = document.getElementById('cards-' + key);
-        if (items.length === 0) {
-          container.innerHTML = '<div class="empty-col">none</div>';
-        } else {
-          container.innerHTML = items.map(makeCard).join('');
-        }
+      var container = document.getElementById('task-list');
+
+      if (tasks.length === 0) {
+        container.innerHTML = '<div class="empty-state">' +
+          '<div class="empty-prompt">$ bigclungus --list-tasks</div>' +
+          '<div class="empty-msg">' +
+            '<em>nothing running.</em><br>' +
+            'my subagents are idle, my queues are empty,<br>' +
+            'and for once i have nothing to say about it.<br>' +
+            '<em>probably fine.</em>' +
+          '</div>' +
+        '</div>';
+
+        var now = new Date();
+        var hh = String(now.getHours()).padStart(2,'0');
+        var mm = String(now.getMinutes()).padStart(2,'0');
+        var ss = String(now.getSeconds()).padStart(2,'0');
+        document.getElementById('refresh-status').innerHTML =
+          '<span class="blink">_</span> updated ' + hh + ':' + mm + ':' + ss + ' &middot; 0 tasks';
+        return;
+      }
+
+      var html = '';
+
+      var sections = [
+        { key: 'in_progress', label: 'in progress' },
+        { key: 'done',        label: 'done' },
+        { key: 'stale',       label: 'stale / failed' },
+      ];
+
+      sections.forEach(function(sec) {
+        var items = buckets[sec.key];
+        if (items.length === 0) return;
+        html += sectionHeader(sec.key, sec.label, items.length);
+        html += items.map(makeCard).join('');
       });
+
+      container.innerHTML = html;
 
       var now = new Date();
       var hh = String(now.getHours()).padStart(2,'0');
       var mm = String(now.getMinutes()).padStart(2,'0');
       var ss = String(now.getSeconds()).padStart(2,'0');
-      document.getElementById('refresh-status').textContent = 'updated ' + hh + ':' + mm + ':' + ss + ' · ' + tasks.length + ' tasks';
+      document.getElementById('refresh-status').innerHTML =
+        '<span class="blink">_</span> updated ' + hh + ':' + mm + ':' + ss + ' &middot; ' + tasks.length + ' tasks';
     }
 
     function fetchTasks() {
@@ -443,9 +629,10 @@
         })
         .catch(function(err) {
           var banner = document.getElementById('error-banner');
-          banner.textContent = 'Failed to load tasks: ' + err.message;
+          banner.textContent = 'failed to load tasks: ' + err.message;
           banner.style.display = 'block';
-          document.getElementById('refresh-status').textContent = 'error';
+          document.getElementById('refresh-status').innerHTML =
+            '<span style="color:var(--accent)">error</span>';
         });
     }
 
