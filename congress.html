@@ -894,8 +894,13 @@
         body.innerHTML = '<div class="session-list-empty">No sessions yet. Use <code>[congress] &lt;topic&gt;</code> in Discord to start one.</div>';
         return;
       }
-      // Sort by session number descending
-      sessions = sessions.slice().sort((a, b) => (b.session_number || 0) - (a.session_number || 0));
+      // Sort: in-progress (deliberating) first, then by session number descending
+      sessions = sessions.slice().sort((a, b) => {
+        const aActive = a.status === 'deliberating' ? 0 : 1;
+        const bActive = b.status === 'deliberating' ? 0 : 1;
+        if (aActive !== bActive) return aActive - bActive;
+        return (b.session_number || 0) - (a.session_number || 0);
+      });
       sessions.forEach(s => {
         const a = document.createElement('a');
         a.className = 'session-item';
