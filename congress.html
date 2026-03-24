@@ -788,12 +788,15 @@
       color: var(--teal);
     }
 
-    /* ── Soundtrack ── */
+    /* ── Soundtrack (in left sidebar) ── */
     #soundtrackWrap {
       display: none;
       flex-direction: column;
-      align-items: center;
-      gap: 6px;
+      align-items: stretch;
+      gap: 4px;
+      padding: 8px 12px 10px;
+      border-top: 1px solid var(--panel-border);
+      margin-top: 4px;
     }
     #soundtrackWrap.visible { display: flex; }
     #soundtrackLabel {
@@ -807,10 +810,12 @@
       50%       { opacity: 1;   color: var(--teal); }
     }
     #soundtrackFrame {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
       border: none;
-      border-radius: 4px;
-      width: 320px;
-      height: 180px;
     }
     /* keep the old id as an alias so nothing else breaks */
     #soundtrackLink { display: none; }
@@ -1247,6 +1252,14 @@
     <div class="sidebar-body" id="sidebarSessionList" style="flex: 1 1 auto; min-height: 80px;">
       <div class="session-list-empty">Loading…</div>
     </div>
+    <!-- Soundtrack (shown only during deliberation) -->
+    <!-- legacy anchor kept for any external references -->
+    <a id="soundtrackLink" href="https://www.youtube.com/watch?v=h6N1_GJAyFw" target="_blank" rel="noopener"
+       style="display:none">🎵 Congressional Soundtrack</a>
+    <div id="soundtrackWrap">
+      <span id="soundtrackLabel">🎵 Congressional Soundtrack</span>
+      <!-- iframe injected/removed by setCenterDeliberating() -->
+    </div>
   </aside>
 
   <!-- CENTER: Arena -->
@@ -1267,15 +1280,6 @@
 
     <!-- Round/status banner -->
     <div class="round-banner" id="roundBanner"></div>
-
-    <!-- Soundtrack (shown only during deliberation) -->
-    <!-- legacy anchor kept for any external references -->
-    <a id="soundtrackLink" href="https://www.youtube.com/watch?v=h6N1_GJAyFw" target="_blank" rel="noopener"
-       style="display:none">🎵 Congressional Soundtrack</a>
-    <div id="soundtrackWrap">
-      <span id="soundtrackLabel">🎵 Congressional Soundtrack</span>
-      <!-- iframe injected/removed by setCenterDeliberating() -->
-    </div>
 
     <div class="arena" id="arena">
       <div class="center-label" id="centerLabel">
