@@ -420,6 +420,7 @@
       box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 20%, transparent);
       z-index: 3;
       gap: 2px;
+      overflow: hidden;
     }
     .center-label .mod-emoji { font-size: 1.5rem; display: block; line-height: 1; }
     .center-label .mod-name { font-size: 0.6rem; color: var(--accent); text-shadow: 0 0 6px var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
@@ -432,6 +433,15 @@
       display: none;
     }
     .center-label.deliberating-active .mod-deliberating { display: block; }
+    /* Done state: hide name/role, show brief adjourned status */
+    .center-label.done .mod-name { display: none; }
+    .center-label.done .mod-role { display: none; }
+    .center-label.done .mod-deliberating {
+      display: block;
+      color: var(--teal);
+      font-size: 0.45rem;
+      line-height: 1.3;
+    }
     /* Remove task-preview from center — topic shown in topic-display bar above */
     .center-label .task-preview { display: none; }
 
@@ -1632,6 +1642,14 @@
       if (deliberatingPanel) deliberatingPanel.classList.remove('visible');
       if (session.verdict) {
         renderVerdictCard(session);
+      }
+      // Mark center label as done: show brief status only, no overflow
+      const cl = document.getElementById('centerLabel');
+      if (cl) {
+        cl.classList.add('done');
+        cl.classList.remove('deliberating-active', 'thinking');
+        const delEl = document.getElementById('centerDeliberating');
+        if (delEl) delEl.textContent = 'adjourned';
       }
     }
   }
