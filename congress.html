@@ -1060,6 +1060,21 @@
     }
     .dot-pulse-inline span:nth-child(2) { animation-delay: 0.2s; }
     .dot-pulse-inline span:nth-child(3) { animation-delay: 0.4s; }
+
+    /* Streaming inference animation */
+    .node-bubble.streaming .bubble-text::after {
+      content: '▋';
+      animation: blink 0.8s step-end infinite;
+      color: var(--accent);
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .node-bubble.streaming {
+      border-color: var(--accent);
+      box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 30%, transparent);
+    }
   </style>
 </head>
 <body>
@@ -1188,6 +1203,8 @@
   let round = 0;
   let currentSessionId = null;       // active session id (from URL or newly started)
   let sessionPollTimer = null;
+  let streamingEventSource = null;
+  let streamingSessionId = null;
 
   // ── Boot ───────────────────────────────────────────────────────────────────
   async function init() {
@@ -1292,6 +1309,11 @@
 
       if (session.status === 'deliberating') {
         startSessionPolling(sessionId);
+        if (streamingSessionId !== sessionId) {
+          startStreaming(sessionId);
+        }
+      } else if (session.status === 'done' || session.status === 'complete') {
+        stopStreaming();
       }
     } catch (e) {
       setStatus('could not load session: ' + e.message);
@@ -1306,8 +1328,13 @@
         seats.forEach((p, i) => {
           if (p && lastRoundsByIdentity[p.id]) {
             setNodeState(i, 'done');
-            // Keep bubble for small circle labels but don't show — feed replaces them
-            setBubbleText(i, p.display_name || p.name, lastRoundsByIdentity[p.id]);
+            // If streaming is active for this session, let SSE drive bubble text;
+            // only overwrite via polling when streaming is inactive or finished.
+            const bubbleEl = document.getElementById('bubble-seat-' + i);
+            const isStreaming = bubbleEl && bubbleEl.classList.contains('streaming');
+            if (!isStreaming) {
+              setBubbleText(i, p.display_name || p.name, lastRoundsByIdentity[p.id]);
+            }
           }
         });
       };
@@ -1359,6 +1386,7 @@
           clearInterval(sessionPollTimer);
           sessionPollTimer = null;
           setCenterDeliberating(false);
+          stopStreaming();
         }
         applySessionData(session, false);
       } catch (e) {
@@ -1764,6 +1792,62 @@
     bubble.querySelector('.bubble-label').style.color = color;
     bubble.querySelector('.bubble-text').innerHTML = renderMarkdown(text);
     bubble.classList.add('visible');
+  }
+
+  function startStreaming(sessionId) {
+    if (streamingEventSource) {
+      streamingEventSource.close();
+    }
+    streamingSessionId = sessionId;
+    const es = new EventSource('/api/congress/stream?session_id=' + sessionId);
+    streamingEventSource = es;
+
+    es.onmessage = function(e) {
+      const data = JSON.parse(e.data);
+      const identity = data.identity;
+      const chunk = data.text;
+      const done = data.done;
+
+      // Find the seat for this identity
+      const seatIdx = seats.findIndex(s => s && (s.name === identity || s.id === identity || s.display_name === identity));
+      if (seatIdx === -1) return;
+
+      const bubbleEl = document.getElementById('bubble-seat-' + seatIdx);
+      if (!bubbleEl) return;
+      const textEl = bubbleEl.querySelector('.bubble-text');
+      const labelEl = bubbleEl.querySelector('.bubble-label');
+
+      if (!done && chunk) {
+        // Show streaming text
+        bubbleEl.classList.add('active', 'streaming', 'visible');
+        if (labelEl) {
+          const p = seats[seatIdx];
+          labelEl.textContent = (p && (p.display_name || p.name)) || identity;
+          if (p && p.color) labelEl.style.color = p.color;
+        }
+        if (textEl) {
+          textEl.textContent += chunk;
+          textEl.dataset.streaming = 'true';
+        }
+      } else if (done) {
+        // Streaming complete for this persona
+        if (textEl) delete textEl.dataset.streaming;
+        bubbleEl.classList.remove('streaming');
+      }
+    };
+
+    es.onerror = function() {
+      es.close();
+      streamingEventSource = null;
+    };
+  }
+
+  function stopStreaming() {
+    if (streamingEventSource) {
+      streamingEventSource.close();
+      streamingEventSource = null;
+    }
+    streamingSessionId = null;
   }
 
   function setStatus(msg) {
