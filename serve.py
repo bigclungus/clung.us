@@ -172,7 +172,8 @@ def _call_grok(system_prompt: str, user_message: str) -> str:
         data=payload,
         headers={
             "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
         }
     )
     resp = json.loads(_urlreq.urlopen(req, timeout=60).read())
