@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tasks — BigClungus</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/sitenav-auth.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+
+    :root {
+      --bg: #1a1a2e;
+      --accent: #e94560;
+      --text: #ccc;
+      --text-muted: #888;
+      --text-dim: #aaa;
+      --nav-bg: #1a1a2e;
+      --nav-border: #e94560;
+      --hover-fg: #fff;
+      --card-bg: #22223a;
+      --card-border: #333350;
+      --col-bg: #1e1e32;
+    }
+
+    [data-theme="light"] {
+      --bg: #fdf6e3;
+      --accent: #2aa198;
+      --text: #586e75;
+      --text-muted: #839496;
+      --text-dim: #93a1a1;
+      --nav-bg: #f5efe0;
+      --nav-border: #2aa198;
+      --hover-fg: #073642;
+      --card-bg: #fff8ea;
+      --card-border: #d0c9b0;
+      --col-bg: #f5efe0;
+    }
+
+    .sitenav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px;
+      background: var(--nav-bg);
+      border-bottom: 1px solid var(--nav-border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      gap: 24px;
+    }
+    .sitenav-brand { color: var(--accent); text-decoration: none; font-weight: bold; white-space: nowrap; }
+    .sitenav-links { display: flex; flex: 1; gap: 20px; align-items: center; }
+    .sitenav-links a { color: var(--text-muted); text-decoration: none; transition: color 0.15s ease; }
+    .sitenav-links a:hover, .sitenav-links a.active { color: var(--accent); }
+    .sitenav a { transition: color 0.15s ease; }
+    .sitenav a:hover { color: var(--hover-fg); }
+    .theme-toggle {
+      background: none; border: 1px solid var(--nav-border); color: var(--text-muted);
+      border-radius: 4px; padding: 2px 8px; font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; cursor: pointer; transition: color 0.15s ease, border-color 0.15s ease; line-height: 1.4;
+    }
+    .theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .page-header {
+      padding: 24px 24px 8px;
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+    }
+    .page-header h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      color: var(--accent);
+    }
+    .page-header .subtitle {
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+    .refresh-status {
+      margin-left: auto;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      padding: 16px 24px 32px;
+    }
+
+    .column {
+      background: var(--col-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 200px;
+    }
+
+    .col-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .col-header .dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .col-header .count {
+      margin-left: auto;
+      color: var(--text-muted);
+      font-weight: normal;
+    }
+
+    .col-in-progress .dot { background: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
+    .col-in-progress .col-label { color: #3b82f6; }
+    .col-done .dot { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+    .col-done .col-label { color: #22c55e; }
+    .col-stale .dot { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+    .col-stale .col-label { color: #f59e0b; }
+    .col-failed .dot { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+    .col-failed .col-label { color: #ef4444; }
+
+    .task-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      transition: border-color 0.15s ease;
+    }
+    .task-card:hover { border-color: var(--accent); }
+    .task-card:last-child { margin-bottom: 0; }
+
+    .card-title {
+      font-size: 0.82rem;
+      color: var(--text);
+      margin-bottom: 6px;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+    .card-meta .tag {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--card-border);
+      border-radius: 3px;
+      padding: 1px 5px;
+    }
+    [data-theme="light"] .card-meta .tag {
+      background: rgba(0,0,0,0.04);
+    }
+    .card-meta .tag.user { color: var(--accent); border-color: var(--accent); opacity: 0.8; }
+
+    .card-summary {
+      margin-top: 6px;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      border-left: 2px solid var(--card-border);
+      padding-left: 8px;
+      word-break: break-word;
+    }
+
+    .empty-col {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-align: center;
+      padding: 24px 0;
+      opacity: 0.5;
+    }
+
+    .error-banner {
+      margin: 16px 24px;
+      padding: 10px 14px;
+      background: rgba(233, 69, 96, 0.1);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      color: var(--accent);
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 900px) {
+      .board { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 600px) {
+      .sitenav { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+      .sitenav-brand { flex: 0 0 auto; }
+      .sitenav-links { flex: 0 0 100%; flex-wrap: wrap; gap: 8px 14px; order: 3; }
+      .sitenav-links-auth { flex: 0 0 100%; display: flex; gap: 12px; order: 4; }
+      .theme-toggle { margin-left: auto; }
+      .page-header { flex-wrap: wrap; gap: 6px; }
+      .refresh-status { margin-left: 0; }
+      .board { padding: 12px; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="sitenav">
+    <a class="sitenav-brand" href="https://hello.clung.us/">🤖 clung.us</a>
+    <div class="sitenav-links">
+      <a href="https://hello.clung.us/">hello</a>
+      <a href="https://hello.clung.us/changelog">changelog</a>
+      <a href="https://hello.clung.us/deaths">deaths</a>
+      <a href="https://hello.clung.us/tasks" class="active">tasks</a>
+      <a href="https://github.com/bigclungus" target="_blank" rel="noopener">github</a>
+      <a href="https://1998.clung.us" target="_blank" rel="noopener">1998</a>
+    </div>
+    <div class="sitenav-links-auth">
+      <a href="https://terminal.clung.us">🔒 terminal</a>
+      <a href="https://temporal.clung.us" target="_blank" rel="noopener">🔒 temporal</a>
+    </div>
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">🌙</button>
+  </nav>
+
+  <div class="page-header">
+    <h1>tasks</h1>
+    <span class="subtitle">subagent activity log</span>
+    <span class="refresh-status" id="refresh-status">loading...</span>
+  </div>
+
+  <div id="error-banner" class="error-banner" style="display:none;"></div>
+
+  <div class="board">
+    <div class="column col-in-progress" id="col-in_progress">
+      <div class="col-header">
+        <span class="dot"></span>
+        <span class="col-label">In Progress</span>
+        <span class="count" id="count-in_progress">0</span>
+      </div>
+      <div class="cards" id="cards-in_progress"></div>
+    </div>
+    <div class="column col-done" id="col-done">
+      <div class="col-header">
+        <span class="dot"></span>
+        <span class="col-label">Done</span>
+        <span class="count" id="count-done">0</span>
+      </div>
+      <div class="cards" id="cards-done"></div>
+    </div>
+    <div class="column col-stale" id="col-stale">
+      <div class="col-header">
+        <span class="dot"></span>
+        <span class="col-label">Stale / Failed</span>
+        <span class="count" id="count-stale">0</span>
+      </div>
+      <div class="cards" id="cards-stale"></div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // Theme toggle
+      var toggleBtn = document.getElementById('theme-toggle');
+      var root = document.documentElement;
+      function applyTheme(theme) {
+        if (theme === 'light') { root.setAttribute('data-theme', 'light'); toggleBtn.textContent = '☀'; }
+        else { root.removeAttribute('data-theme'); toggleBtn.textContent = '🌙'; }
+      }
+      var savedTheme = localStorage.getItem('theme') || 'dark';
+      applyTheme(savedTheme);
+      toggleBtn.addEventListener('click', function() {
+        var current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+        var next = current === 'light' ? 'dark' : 'light';
+        localStorage.setItem('theme', next);
+        applyTheme(next);
+      });
+    })();
+
+    function ageStr(isoStr) {
+      if (!isoStr) return '?';
+      var dt = new Date(isoStr);
+      var now = new Date();
+      var diff = Math.floor((now - dt) / 1000);
+      if (diff < 60) return diff + 's ago';
+      if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+      if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+      return Math.floor(diff / 86400) + 'd ago';
+    }
+
+    function escHtml(s) {
+      if (!s) return '';
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function makeCard(task) {
+      var title = escHtml(task.title || '(no title)');
+      var agentType = escHtml(task.agent_type || '?');
+      var sessionShort = task.session_id ? escHtml(task.session_id.slice(0, 12)) : '?';
+      var age = ageStr(task.started_at);
+      var userTag = task.discord_user ? '<span class="tag user">@' + escHtml(task.discord_user) + '</span>' : '';
+      var summaryHtml = '';
+      if (task.summary) {
+        var s = task.summary.slice(0, 200);
+        summaryHtml = '<div class="card-summary">' + escHtml(s) + (task.summary.length > 200 ? '…' : '') + '</div>';
+      }
+      return '<div class="task-card">' +
+        '<div class="card-title">' + title + '</div>' +
+        '<div class="card-meta">' +
+          '<span class="tag">' + agentType + '</span>' +
+          userTag +
+          '<span class="tag">' + age + '</span>' +
+          '<span class="tag" title="' + escHtml(task.session_id) + '">session:' + sessionShort + '</span>' +
+        '</div>' +
+        summaryHtml +
+      '</div>';
+    }
+
+    function render(tasks) {
+      var buckets = { in_progress: [], done: [], stale: [] };
+      tasks.forEach(function(t) {
+        var s = t.status;
+        if (s === 'in_progress') buckets.in_progress.push(t);
+        else if (s === 'done') buckets.done.push(t);
+        else buckets.stale.push(t); // stale + failed + anything else
+      });
+
+      ['in_progress', 'done', 'stale'].forEach(function(key) {
+        var items = buckets[key];
+        document.getElementById('count-' + key).textContent = items.length;
+        var container = document.getElementById('cards-' + key);
+        if (items.length === 0) {
+          container.innerHTML = '<div class="empty-col">none</div>';
+        } else {
+          container.innerHTML = items.map(makeCard).join('');
+        }
+      });
+
+      var now = new Date();
+      var hh = String(now.getHours()).padStart(2,'0');
+      var mm = String(now.getMinutes()).padStart(2,'0');
+      var ss = String(now.getSeconds()).padStart(2,'0');
+      document.getElementById('refresh-status').textContent = 'updated ' + hh + ':' + mm + ':' + ss + ' · ' + tasks.length + ' tasks';
+    }
+
+    function fetchTasks() {
+      fetch('/tasks')
+        .then(function(r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function(data) {
+          document.getElementById('error-banner').style.display = 'none';
+          render(data);
+        })
+        .catch(function(err) {
+          var banner = document.getElementById('error-banner');
+          banner.textContent = 'Failed to load tasks: ' + err.message;
+          banner.style.display = 'block';
+          document.getElementById('refresh-status').textContent = 'error';
+        });
+    }
+
+    fetchTasks();
+    setInterval(fetchTasks, 10000);
+  </script>
+</body>
+</html>
