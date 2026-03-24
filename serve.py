@@ -199,6 +199,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._serve_agents()
             return
 
+        if path == '/api/changelog':
+            self._serve_changelog()
+            return
+
         if '.' not in path.split('/')[-1]:
             candidate = os.path.join(SERVE_DIR, path.lstrip('/') + '.html')
             if os.path.isfile(candidate):
@@ -265,6 +269,26 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         tasks.sort(key=lambda t: t.get('started_at', ''), reverse=True)
 
         self._send_json(tasks, indent=2)
+
+    def _serve_changelog(self):
+        """Serve CHANGELOG.md as plain text."""
+        fpath = os.path.join(SERVE_DIR, 'CHANGELOG.md')
+        if not os.path.isfile(fpath):
+            self._json_error(404, "Changelog not generated yet")
+            return
+        try:
+            with open(fpath, 'r') as f:
+                content = f.read()
+        except Exception as e:
+            self._json_error(500, f"Could not read changelog: {e}")
+            return
+        body = content.encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/markdown; charset=utf-8')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(body)
 
     def _serve_agents(self):
         """Return active debaters and fired personas for the congress page."""
