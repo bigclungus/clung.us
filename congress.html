@@ -642,11 +642,19 @@
     }
     .speech-feed-item .feed-text {
       color: var(--text-muted);
-      display: -webkit-box;
-      -webkit-line-clamp: 4;
-      -webkit-box-orient: vertical;
+      max-height: 6.5em;
       overflow: hidden;
     }
+    .speech-feed-item .feed-text p { margin: 0 0 0.35em; }
+    .speech-feed-item .feed-text p:last-child { margin-bottom: 0; }
+    .speech-feed-item .feed-text strong { font-weight: 700; }
+    .speech-feed-item .feed-text em { font-style: italic; }
+    .speech-feed-item .feed-text code { font-size: 0.85em; background: var(--panel-bg); padding: 0 3px; border-radius: 2px; }
+    .review-synthesis p { margin: 0 0 0.5em; }
+    .review-synthesis p:last-child { margin-bottom: 0; }
+    .review-synthesis strong { font-weight: 700; }
+    .review-synthesis em { font-style: italic; }
+    .review-synthesis code { font-size: 0.85em; background: var(--panel-bg); padding: 0 3px; border-radius: 2px; }
     .dot-pulse-inline {
       display: inline-flex;
       gap: 3px;
@@ -865,7 +873,7 @@
 
       // Show hiring manager synthesis if present
       if (session.synthesis) {
-        document.getElementById('reviewSynthesis').textContent = session.synthesis;
+        document.getElementById('reviewSynthesis').innerHTML = renderMarkdown(session.synthesis);
         document.getElementById('reviewBar').classList.add('visible');
       }
 
@@ -912,7 +920,7 @@
           });
         }
         if (session.synthesis) {
-          document.getElementById('reviewSynthesis').textContent = session.synthesis;
+          document.getElementById('reviewSynthesis').innerHTML = renderMarkdown(session.synthesis);
           document.getElementById('reviewBar').classList.add('visible');
         }
       } catch (e) {
@@ -1225,13 +1233,33 @@
       '<div class="dot-pulse-inline"><span></span><span></span><span></span></div>';
   }
 
+  function renderMarkdown(text) {
+    if (!text) return '';
+    // Escape HTML first to prevent injection
+    let html = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    // Headers → bold
+    html = html.replace(/^#{1,3}\s+(.+)$/gm, '<strong>$1</strong>');
+    // Bold
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // Inline code
+    html = html.replace(/`(.+?)`/g, '<code>$1</code>');
+    // Paragraphs: split on double newline
+    const parts = html.split(/\n\n+/);
+    return parts.map(p => '<p>' + p.replace(/\n/g, '<br>') + '</p>').join('');
+  }
+
   function setBubbleText(seatIndex, label, text) {
     const item = getFeedItem(seatIndex);
     const p = seats[seatIndex];
     const color = (p && p.color) ? p.color : 'var(--accent)';
     item.querySelector('.feed-label').textContent = label || '';
     item.querySelector('.feed-label').style.color = color;
-    item.querySelector('.feed-text').textContent = text;
+    item.querySelector('.feed-text').innerHTML = renderMarkdown(text);
   }
 
   function setStatus(msg) {
