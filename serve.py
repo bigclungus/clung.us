@@ -424,6 +424,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=SERVE_DIR, **kwargs)
 
+    def end_headers(self):
+        # Inject Cache-Control: no-cache for JS and CSS so browsers always
+        # revalidate rather than serving stale files from disk cache.
+        path = urllib.parse.urlparse(self.path).path
+        if path.endswith('.js') or path.endswith('.css'):
+            self.send_header('Cache-Control', 'no-cache, must-revalidate')
+        super().end_headers()
+
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', 'https://clung.us')
