@@ -163,6 +163,11 @@ def _call_claude_cli(system_prompt, user_message, on_token=None, model=None):
             continue
         try:
             obj = json.loads(line)
+            # Skip system/init events and any non-assistant events — only extract
+            # text from assistant message blocks. This prevents the Claude CLI's
+            # {"type":"system","subtype":"init",...} blob from leaking into output.
+            if obj.get("type") in ("system", "result"):
+                continue
             if obj.get("type") == "assistant":
                 for block in obj.get("message", {}).get("content", []):
                     if block.get("type") == "text":
@@ -172,8 +177,9 @@ def _call_claude_cli(system_prompt, user_message, on_token=None, model=None):
                             on_token(chunk)
         except Exception:
             pass
-    # Fallback: if streaming-json parsing yielded nothing, return raw stdout
-    return full_text.strip() or stdout.strip()
+    # Never fall back to raw stdout — it contains stream-json protocol events
+    # (including {"type":"system","subtype":"init",...}) that must not leak into responses.
+    return full_text.strip()
 
 
 def _call_gemini_cli(system_prompt, user_message, on_token=None):
