@@ -229,11 +229,90 @@
       font-size: 1.4rem;
       color: var(--accent);
       text-shadow: 0 0 14px var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .session-badge {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      border-radius: 4px;
+      padding: 2px 8px;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
     }
     .page-header .subtitle {
       color: var(--text-muted);
       font-size: 0.72rem;
     }
+
+    /* ── Session list ── */
+    .session-list-panel {
+      width: 100%;
+      max-width: 520px;
+    }
+    .session-list-panel h2 {
+      font-size: 0.72rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin: 0 0 10px;
+    }
+    .session-list-empty {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      padding: 12px 0;
+    }
+    .session-item {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 4px;
+      padding: 10px 13px;
+      margin-bottom: 7px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      text-decoration: none;
+      color: inherit;
+    }
+    .session-item:hover { border-color: var(--accent); }
+    .session-item-num {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent);
+      min-width: 38px;
+      flex-shrink: 0;
+    }
+    .session-item-body { flex: 1; min-width: 0; }
+    .session-item-topic {
+      font-size: 0.75rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .session-item-meta {
+      font-size: 0.58rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .session-item-status {
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      border: 1px solid var(--card-border);
+      border-radius: 3px;
+      padding: 2px 6px;
+      flex-shrink: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .session-item-status.deliberating { color: var(--accent); border-color: var(--accent); }
+    .session-item-status.complete { color: var(--teal); border-color: var(--teal); }
 
     /* ── Circle visual ── */
     .arena {
@@ -567,7 +646,7 @@
   <!-- CENTER: Arena -->
   <div class="arena-col">
     <div class="page-header">
-      <h1>congress</h1>
+      <h1>congress<span class="session-badge" id="sessionBadge" style="display:none"></span></h1>
       <div class="subtitle">AI parliament — personas deliberate, vote, decide</div>
     </div>
 
@@ -594,6 +673,12 @@
       <div class="task-form-row">
         <button class="btn" id="conveneBtn" onclick="convene()" disabled>Convene Congress</button>
       </div>
+    </div>
+
+    <!-- Session list (shown when no session in URL) -->
+    <div class="session-list-panel" id="sessionListPanel" style="display:none">
+      <h2>Sessions</h2>
+      <div id="sessionListBody"><div class="session-list-empty">Loading sessions…</div></div>
     </div>
 
     <div class="review-bar" id="reviewBar">
@@ -636,9 +721,29 @@
   let firedPool = [];                // personas in severance
   let pendingReinstate = null;       // persona waiting for seat selection
   let round = 0;
+  let currentSessionId = null;       // active session id (from URL or newly started)
+  let sessionPollTimer = null;
 
   // ── Boot ───────────────────────────────────────────────────────────────────
   async function init() {
+    // Check URL for session param
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionParam = urlParams.get('session');
+
+    if (sessionParam && /^congress-\d+$/.test(sessionParam)) {
+      currentSessionId = sessionParam;
+      applySessionBadge(sessionParam);
+      await loadSessionIntoPage(sessionParam);
+    } else {
+      // No session in URL — show session list
+      document.getElementById('sessionListPanel').style.display = '';
+      await loadSessionList();
+      // Hide the convene button and task form in "no-session" mode
+      document.getElementById('conveneBtn').style.display = 'none';
+      document.querySelector('.task-form label').style.display = 'none';
+      document.getElementById('taskInput').style.display = 'none';
+    }
+
     try {
       const res = await fetch('/api/agents');
       if (!res.ok) throw new Error('status ' + res.status);
@@ -676,6 +781,126 @@
     render();
     const filled = seats.filter(Boolean).length;
     setStatus(filled + ' debater' + (filled !== 1 ? 's' : '') + ' seated');
+  }
+
+  function applySessionBadge(sessionId) {
+    const badge = document.getElementById('sessionBadge');
+    const m = sessionId.match(/^congress-(\d+)$/);
+    if (m) {
+      badge.textContent = '#' + parseInt(m[1], 10);
+      badge.style.display = '';
+    }
+  }
+
+  async function loadSessionIntoPage(sessionId) {
+    try {
+      const res = await fetch('/api/congress/sessions/' + sessionId);
+      if (!res.ok) {
+        setStatus('session not found: ' + sessionId);
+        return;
+      }
+      const session = await res.json();
+      // Pre-fill topic if available
+      if (session.topic) {
+        document.getElementById('taskInput').value = session.topic;
+        document.getElementById('centerTask').textContent =
+          session.topic.length > 70 ? session.topic.slice(0, 67) + '…' : session.topic;
+      }
+      setStatus('session ' + sessionId + ' — status: ' + (session.status || 'unknown'));
+
+      // Show rounds if any
+      if (session.rounds && session.rounds.length > 0) {
+        const lastRoundsByIdentity = {};
+        session.rounds.forEach(r => { lastRoundsByIdentity[r.identity] = r.response; });
+        // Populate bubbles when circle is rendered (deferred slightly)
+        setTimeout(() => {
+          seats.forEach((p, i) => {
+            if (p && lastRoundsByIdentity[p.id]) {
+              setNodeState(i, 'done');
+              setBubbleText(i, p.display_name || p.name, lastRoundsByIdentity[p.id]);
+              document.getElementById('bubble-seat-' + i)?.classList.add('visible');
+            }
+          });
+        }, 300);
+      }
+
+      // If deliberating, start polling for updates
+      if (session.status === 'deliberating') {
+        startSessionPolling(sessionId);
+      }
+    } catch (e) {
+      setStatus('could not load session: ' + e.message);
+    }
+  }
+
+  function startSessionPolling(sessionId) {
+    if (sessionPollTimer) clearInterval(sessionPollTimer);
+    sessionPollTimer = setInterval(async () => {
+      try {
+        const res = await fetch('/api/congress/sessions/' + sessionId);
+        if (!res.ok) return;
+        const session = await res.json();
+        if (session.status !== 'deliberating') {
+          clearInterval(sessionPollTimer);
+          sessionPollTimer = null;
+          setStatus('session ' + sessionId + ' — status: ' + session.status);
+        }
+        if (session.rounds && session.rounds.length > 0) {
+          const lastRoundsByIdentity = {};
+          session.rounds.forEach(r => { lastRoundsByIdentity[r.identity] = r.response; });
+          seats.forEach((p, i) => {
+            if (p && lastRoundsByIdentity[p.id]) {
+              setNodeState(i, 'done');
+              setBubbleText(i, p.display_name || p.name, lastRoundsByIdentity[p.id]);
+              document.getElementById('bubble-seat-' + i)?.classList.add('visible');
+            }
+          });
+        }
+      } catch (e) {
+        // Ignore polling errors
+      }
+    }, 4000);
+  }
+
+  async function loadSessionList() {
+    const body = document.getElementById('sessionListBody');
+    try {
+      const res = await fetch('/api/congress/sessions');
+      if (!res.ok) throw new Error('status ' + res.status);
+      const sessions = await res.json();
+      body.innerHTML = '';
+      if (sessions.length === 0) {
+        body.innerHTML = '<div class="session-list-empty">No sessions yet. Start one externally via <code>POST /api/congress/start</code>.</div>';
+        return;
+      }
+      sessions.forEach(s => {
+        const a = document.createElement('a');
+        a.className = 'session-item';
+        a.href = '/congress?session=' + s.session_id;
+        const numEl = document.createElement('div');
+        numEl.className = 'session-item-num';
+        numEl.textContent = '#' + s.session_number;
+        const bodyEl = document.createElement('div');
+        bodyEl.className = 'session-item-body';
+        const topic = document.createElement('div');
+        topic.className = 'session-item-topic';
+        topic.textContent = s.topic || '(no topic)';
+        const meta = document.createElement('div');
+        meta.className = 'session-item-meta';
+        meta.textContent = s.started_at ? new Date(s.started_at).toLocaleString() : '';
+        bodyEl.appendChild(topic);
+        bodyEl.appendChild(meta);
+        const statusEl = document.createElement('div');
+        statusEl.className = 'session-item-status ' + (s.status || '');
+        statusEl.textContent = s.status || '';
+        a.appendChild(numEl);
+        a.appendChild(bodyEl);
+        a.appendChild(statusEl);
+        body.appendChild(a);
+      });
+    } catch (e) {
+      body.innerHTML = '<div class="session-list-empty">Could not load sessions.</div>';
+    }
   }
 
   // ── Rendering ──────────────────────────────────────────────────────────────
@@ -975,10 +1200,12 @@
       setStatus(speakerLabel + ' is speaking…');
 
       try {
+        const payload = { task, identity: p.id };
+        if (currentSessionId) payload.session_id = currentSessionId;
         const res = await fetch('/api/congress', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ task, identity: p.id }),
+          body: JSON.stringify(payload),
         });
         if (res.status === 401) {
           const authData = await res.json().catch(() => ({}));
@@ -1012,10 +1239,12 @@
     document.getElementById('reviewBar').classList.add('visible');
 
     try {
+      const synthPayload = { task: summaryTask, identity: 'hiring-manager' };
+      if (currentSessionId) synthPayload.session_id = currentSessionId;
       const res = await fetch('/api/congress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task: summaryTask, identity: 'hiring-manager' }),
+        body: JSON.stringify(synthPayload),
       });
       if (res.status === 401) {
         const authData = await res.json().catch(() => ({}));

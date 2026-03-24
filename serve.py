@@ -9,6 +9,7 @@ import re
 SERVE_DIR = os.path.dirname(os.path.abspath(__file__))
 TASKS_DIR = "/home/clungus/work/bigclungus-meta/tasks"
 AGENTS_ACTIVE_DIR = "/home/clungus/work/bigclungus-meta/agents/active"
+SESSIONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sessions')
 
 # ── GitHub auth ────────────────────────────────────────────────────────────────
 GITHUB_COOKIE = "tauth_github"
@@ -183,6 +184,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._serve_congress_identities()
             return
 
+        if path == '/api/congress/sessions':
+            self._serve_congress_sessions()
+            return
+
+        m = re.match(r'^/api/congress/sessions/(congress-\d+)$', path)
+        if m:
+            self._serve_congress_session(m.group(1))
+            return
+
         if path == '/api/agents':
             self._serve_agents()
             return
@@ -196,6 +206,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         import urllib.parse
         path = urllib.parse.urlparse(self.path).path
+
+        if path == '/api/congress/start':
+            if not _is_authed(self.headers):
+                self._json_auth_error()
+                return
+            self._handle_congress_start()
+            return
 
         if path == '/api/congress':
             if not _is_authed(self.headers):
@@ -318,7 +335,99 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _next_session_number(self):
+        """Return the next session number by scanning existing session files."""
+        os.makedirs(SESSIONS_DIR, exist_ok=True)
+        highest = 0
+        for fpath in glob.glob(os.path.join(SESSIONS_DIR, 'congress-*.json')):
+            fname = os.path.basename(fpath)
+            m = re.match(r'^congress-(\d+)\.json$', fname)
+            if m:
+                n = int(m.group(1))
+                if n > highest:
+                    highest = n
+        return highest + 1
+
+    def _handle_congress_start(self):
+        import datetime
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+            raw = self.rfile.read(length)
+            data = json.loads(raw) if raw else {}
+        except Exception as e:
+            self._json_error(400, f"Invalid JSON: {e}")
+            return
+
+        topic = data.get('topic', '').strip()
+        if not topic:
+            self._json_error(400, "Missing 'topic' field")
+            return
+
+        num = self._next_session_number()
+        session_id = f"congress-{num:04d}"
+        session = {
+            "session_id": session_id,
+            "session_number": num,
+            "topic": topic,
+            "started_at": datetime.datetime.utcnow().isoformat() + "Z",
+            "status": "deliberating",
+            "rounds": [],
+            "verdict": None,
+        }
+
+        os.makedirs(SESSIONS_DIR, exist_ok=True)
+        fpath = os.path.join(SESSIONS_DIR, f"{session_id}.json")
+        with open(fpath, 'w') as f:
+            json.dump(session, f, indent=2)
+
+        body = json.dumps({"session_id": session_id, "session_number": num}).encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _serve_congress_sessions(self):
+        sessions = []
+        os.makedirs(SESSIONS_DIR, exist_ok=True)
+        for fpath in glob.glob(os.path.join(SESSIONS_DIR, 'congress-*.json')):
+            try:
+                with open(fpath, 'r') as f:
+                    s = json.load(f)
+                    sessions.append(s)
+            except Exception:
+                pass
+        sessions.sort(key=lambda s: s.get('session_number', 0), reverse=True)
+        body = json.dumps(sessions, indent=2).encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _serve_congress_session(self, session_id):
+        fpath = os.path.join(SESSIONS_DIR, f"{session_id}.json")
+        if not os.path.isfile(fpath):
+            self._json_error(404, f"Session '{session_id}' not found")
+            return
+        try:
+            with open(fpath, 'r') as f:
+                s = json.load(f)
+        except Exception as e:
+            self._json_error(500, f"Could not read session: {e}")
+            return
+        body = json.dumps(s, indent=2).encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(body)
+
     def _handle_congress_post(self):
+        import datetime
         try:
             length = int(self.headers.get('Content-Length', 0))
             raw = self.rfile.read(length)
@@ -329,6 +438,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         task = data.get('task', '').strip()
         identity = data.get('identity', '').strip()
+        session_id = data.get('session_id', '').strip()
 
         if not task:
             self._json_error(400, "Missing 'task' field")
@@ -340,6 +450,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         # Sanitize identity name — only allow alphanumeric, dash, underscore
         if not re.match(r'^[\w-]+$', identity):
             self._json_error(400, "Invalid identity name")
+            return
+
+        # Validate session_id if provided
+        if session_id and not re.match(r'^congress-\d+$', session_id):
+            self._json_error(400, "Invalid session_id format")
             return
 
         meta, full_content = _load_identity(identity)
@@ -361,6 +476,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             self._json_error(500, f"Claude API error: {e}")
             return
+
+        # If session_id provided, append this response to the session's rounds
+        if session_id:
+            fpath = os.path.join(SESSIONS_DIR, f"{session_id}.json")
+            if os.path.isfile(fpath):
+                try:
+                    with open(fpath, 'r') as f:
+                        session = json.load(f)
+                    session.setdefault('rounds', []).append({
+                        "ts": datetime.datetime.utcnow().isoformat() + "Z",
+                        "identity": identity,
+                        "response": response_text,
+                    })
+                    with open(fpath, 'w') as f:
+                        json.dump(session, f, indent=2)
+                except Exception:
+                    pass  # Non-fatal: session update failure doesn't block the response
 
         body = json.dumps({"response": response_text, "identity": identity}).encode('utf-8')
         self.send_response(200)
