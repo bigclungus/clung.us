@@ -266,6 +266,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             'description': meta.get('role', ''),
                             'traits': meta.get('traits', []),
                             'is_moderator': meta.get('name') == 'hiring-manager',
+                            'display_name': meta.get('display_name', ''),
+                            'avatar_url': meta.get('avatar_url', ''),
                         })
                     except Exception:
                         pass
@@ -300,6 +302,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             'role': meta.get('role', ''),
                             'traits': meta.get('traits', []),
                             'evolves': meta.get('evolves', False),
+                            'display_name': meta.get('display_name', ''),
+                            'avatar_url': meta.get('avatar_url', ''),
                         })
                 except Exception:
                     pass
