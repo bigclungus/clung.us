@@ -411,41 +411,6 @@
     .persona-node.done .node-display-name { color: var(--teal); }
     .persona-node.done .node-name { color: var(--teal); }
 
-    /* Speech bubbles */
-    .speech-bubble {
-      position: absolute;
-      background: var(--bubble-bg);
-      border: 1px solid var(--bubble-border);
-      border-radius: 6px;
-      padding: 9px 11px;
-      font-size: 0.68rem;
-      line-height: 1.6;
-      color: var(--text);
-      max-width: 190px;
-      width: 190px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s;
-      z-index: 10;
-    }
-    .speech-bubble.visible { opacity: 1; pointer-events: auto; }
-    .speech-bubble .bubble-label {
-      color: var(--accent);
-      font-size: 0.6rem;
-      font-weight: 700;
-      margin-bottom: 4px;
-      letter-spacing: 0.06em;
-    }
-    .dot-pulse span {
-      display: inline-block;
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--text-muted);
-      animation: dotpulse 1.2s infinite;
-    }
-    .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
-    .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
     @keyframes dotpulse {
       0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
       30% { opacity: 1; transform: scale(1.1); }
@@ -629,6 +594,74 @@
       .arena-col { order: 1; }
       .sidebar-right { order: 3; border-left: none; border-top: 1px solid var(--panel-border); }
     }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0a0a0f; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #555; }
+    * { scrollbar-width: thin; scrollbar-color: #333 #0a0a0f; }
+
+    /* ── Speech feed panel ── */
+    #speech-feed {
+      width: 100%;
+      max-width: 520px;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+    }
+    #speech-feed.has-items { display: flex; }
+    .speech-feed-header {
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      border-bottom: 1px solid var(--panel-border);
+      padding-bottom: 4px;
+      margin-bottom: 2px;
+    }
+    .speech-feed-item {
+      background: var(--bubble-bg);
+      border: 1px solid var(--bubble-border);
+      border-radius: 5px;
+      padding: 8px 11px;
+      font-size: 0.68rem;
+      line-height: 1.55;
+      color: var(--text);
+      animation: feedSlideIn 0.25s ease;
+    }
+    @keyframes feedSlideIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .speech-feed-item .feed-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      margin-bottom: 3px;
+    }
+    .speech-feed-item .feed-text {
+      color: var(--text-muted);
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .dot-pulse-inline {
+      display: inline-flex;
+      gap: 3px;
+      align-items: center;
+    }
+    .dot-pulse-inline span {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      animation: dotpulse 1.2s infinite;
+    }
+    .dot-pulse-inline span:nth-child(2) { animation-delay: 0.2s; }
+    .dot-pulse-inline span:nth-child(3) { animation-delay: 0.4s; }
   </style>
 </head>
 <body>
@@ -674,6 +707,11 @@
     </div>
 
     <div class="status-line" id="statusLine">loading roster…</div>
+
+    <!-- Live speech feed (shown during/after session view) -->
+    <div id="speech-feed">
+      <div class="speech-feed-header">live feed</div>
+    </div>
 
     <!-- Session list (shown when no session in URL) -->
     <div class="session-list-panel" id="sessionListPanel" style="display:none">
@@ -819,7 +857,7 @@
             if (p && lastRoundsByIdentity[p.id]) {
               setNodeState(i, 'done');
               setBubbleText(i, p.display_name || p.name, lastRoundsByIdentity[p.id]);
-              document.getElementById('bubble-seat-' + i)?.classList.add('visible');
+              // feed item is shown automatically by setBubbleText
             }
           });
         }, 300);
@@ -869,7 +907,7 @@
             if (p && lastRoundsByIdentity[p.id]) {
               setNodeState(i, 'done');
               setBubbleText(i, p.display_name || p.name, lastRoundsByIdentity[p.id]);
-              document.getElementById('bubble-seat-' + i)?.classList.add('visible');
+              // feed item is shown automatically by setBubbleText
             }
           });
         }
@@ -1008,7 +1046,7 @@
 
   function renderCircle() {
     const arena = document.getElementById('arena');
-    arena.querySelectorAll('.persona-node, .speech-bubble').forEach(el => el.remove());
+    arena.querySelectorAll('.persona-node').forEach(el => el.remove());
 
     const W = arena.offsetWidth || 440;
     const H = arena.offsetHeight || 440;
@@ -1036,24 +1074,6 @@
         : '';
       node.innerHTML = `<div class="node-circle">${avatarHtml}${displayNameHtml}</div>`;
       arena.appendChild(node);
-
-      // Speech bubble pushed further out
-      const bubble = document.createElement('div');
-      bubble.className = 'speech-bubble';
-      bubble.id = 'bubble-seat-' + i;
-
-      const bOff = 105;
-      const bx = cx + (r + bOff) * Math.cos(rad);
-      const by = cy + (r + bOff) * Math.sin(rad);
-      const bw = 190;
-      let bleft = Math.max(4, Math.min(W - bw - 4, bx - bw / 2));
-      let btop = Math.max(4, Math.min(H - 120, by - 50));
-
-      bubble.style.left = bleft + 'px';
-      bubble.style.top = btop + 'px';
-      const bubbleLabel = p ? (p.display_name || p.name) : '';
-      bubble.innerHTML = `<div class="bubble-label">${bubbleLabel}</div><div class="bubble-text"></div>`;
-      arena.appendChild(bubble);
     }
   }
 
@@ -1180,20 +1200,38 @@
     }
   }
 
+  // ── Speech feed helpers ─────────────────────────────────────────────────────
+  function getFeedItem(seatIndex) {
+    const feed = document.getElementById('speech-feed');
+    let item = feed.querySelector('[data-seat="' + seatIndex + '"]');
+    if (!item) {
+      item = document.createElement('div');
+      item.className = 'speech-feed-item';
+      item.dataset.seat = seatIndex;
+      item.innerHTML = '<div class="feed-label"></div><div class="feed-text"></div>';
+      feed.appendChild(item);
+      feed.classList.add('has-items');
+    }
+    return item;
+  }
+
   function showBubbleLoading(seatIndex, label) {
-    const bubble = document.getElementById('bubble-seat-' + seatIndex);
-    if (!bubble) return;
-    bubble.querySelector('.bubble-label').textContent = label || '';
-    bubble.querySelector('.bubble-text').innerHTML =
-      '<div style="display:flex;gap:4px;align-items:center;color:var(--text-muted)"><div class="dot-pulse"><span></span><span></span><span></span></div></div>';
-    bubble.classList.add('visible');
+    const item = getFeedItem(seatIndex);
+    const p = seats[seatIndex];
+    const color = (p && p.color) ? p.color : 'var(--accent)';
+    item.querySelector('.feed-label').textContent = label || '';
+    item.querySelector('.feed-label').style.color = color;
+    item.querySelector('.feed-text').innerHTML =
+      '<div class="dot-pulse-inline"><span></span><span></span><span></span></div>';
   }
 
   function setBubbleText(seatIndex, label, text) {
-    const bubble = document.getElementById('bubble-seat-' + seatIndex);
-    if (!bubble) return;
-    bubble.querySelector('.bubble-label').textContent = label || '';
-    bubble.querySelector('.bubble-text').textContent = text;
+    const item = getFeedItem(seatIndex);
+    const p = seats[seatIndex];
+    const color = (p && p.color) ? p.color : 'var(--accent)';
+    item.querySelector('.feed-label').textContent = label || '';
+    item.querySelector('.feed-label').style.color = color;
+    item.querySelector('.feed-text').textContent = text;
   }
 
   function setStatus(msg) {
