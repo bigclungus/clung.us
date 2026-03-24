@@ -1022,6 +1022,51 @@
     .evo-badge.EVOLVE { background: color-mix(in srgb, var(--teal) 20%, transparent); color: var(--teal); border: 1px solid var(--teal); }
     .evo-badge.FIRE { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); border: 1px solid var(--accent); }
     .evo-badge.RETAIN { background: var(--card-bg); color: var(--text-muted); border: 1px solid var(--card-border); }
+    .evo-badge.CREATE { background: color-mix(in srgb, #f59e0b 20%, transparent); color: #f59e0b; border: 1px solid #f59e0b; }
+    .verdict-evolution-item.retain-item { opacity: 0.55; }
+    .verdict-evolution-item .evo-reason {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    .verdict-meta {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid color-mix(in srgb, var(--teal) 25%, transparent);
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .verdict-meta span { opacity: 0.7; }
+    /* ── Deliberating state panel ── */
+    .deliberating-panel {
+      display: none;
+      width: 100%;
+      max-width: 560px;
+      background: color-mix(in srgb, #f59e0b 5%, var(--card-bg));
+      border: 2px solid color-mix(in srgb, #f59e0b 60%, transparent);
+      border-radius: 6px;
+      padding: 18px 20px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .deliberating-panel.visible { display: block; }
+    .deliberating-panel-heading {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #f59e0b;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .deliberating-panel-sub {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      opacity: 0.7;
+    }
     .verdict-session-link {
       margin-top: 10px;
       font-size: 0.65rem;
@@ -1253,11 +1298,21 @@
     <!-- Debate feed (shown when in session view) -->
     <div class="debate-feed" id="debateFeed"></div>
 
+    <!-- Deliberating panel (shown when session.status === 'deliberating') -->
+    <div class="deliberating-panel" id="deliberatingPanel">
+      <div class="deliberating-panel-heading">
+        <div class="dot-pulse-inline"><span></span><span></span><span></span></div>
+        deliberating…
+      </div>
+      <div class="deliberating-panel-sub">verdict will appear here when the session concludes</div>
+    </div>
+
     <!-- Verdict card (shown when session.status === 'done') -->
     <div class="verdict-card" id="verdictCard">
       <div class="verdict-card-heading">⚖️ Verdict</div>
       <div class="verdict-card-text" id="verdictCardText"></div>
       <div class="verdict-evolution" id="verdictEvolution" style="display:none"></div>
+      <div class="verdict-meta" id="verdictMeta" style="display:none"></div>
       <div class="verdict-session-link" id="verdictSessionLink"></div>
     </div>
 
@@ -1543,9 +1598,17 @@
       document.getElementById('reviewSynthesis').innerHTML = renderMarkdown(session.synthesis);
       document.getElementById('reviewBar').classList.add('visible');
     }
-    // Render verdict card
-    if (session.status === 'done' && session.verdict) {
-      renderVerdictCard(session);
+    // Deliberating panel / verdict card
+    const deliberatingPanel = document.getElementById('deliberatingPanel');
+    const verdictCard = document.getElementById('verdictCard');
+    if (session.status === 'deliberating') {
+      if (deliberatingPanel) deliberatingPanel.classList.add('visible');
+      if (verdictCard) verdictCard.classList.remove('visible');
+    } else if (session.status === 'done' || session.status === 'complete') {
+      if (deliberatingPanel) deliberatingPanel.classList.remove('visible');
+      if (session.verdict) {
+        renderVerdictCard(session);
+      }
     }
   }
 
@@ -2388,44 +2451,100 @@
     if (!card) return;
     const textEl = document.getElementById('verdictCardText');
     const evoEl = document.getElementById('verdictEvolution');
+    const metaEl = document.getElementById('verdictMeta');
     const linkEl = document.getElementById('verdictSessionLink');
 
     textEl.innerHTML = renderMarkdown(session.verdict);
     card.classList.add('visible');
 
-    // Evolution results
-    if (session.evolution && typeof session.evolution === 'object') {
-      const items = Object.entries(session.evolution);
-      if (items.length > 0) {
-        evoEl.style.display = '';
-        evoEl.innerHTML = '';
-        const label = document.createElement('div');
-        label.className = 'verdict-evolution-label';
-        label.textContent = 'Persona evolution';
-        evoEl.appendChild(label);
-        items.forEach(([name, info]) => {
-          const item = document.createElement('div');
-          item.className = 'verdict-evolution-item';
-          const verdict = (info && info.verdict) || info || 'RETAIN';
-          const badge = document.createElement('span');
-          badge.className = 'evo-badge ' + verdict;
-          badge.textContent = verdict;
-          item.appendChild(badge);
-          const nameSpan = document.createElement('span');
-          nameSpan.textContent = name + (info && info.reason ? ' — ' + info.reason : '');
-          item.appendChild(nameSpan);
-          evoEl.appendChild(item);
-        });
+    // Evolution results — data shape: {created:[], evolved:[{display_name,learned}], fired:[{display_name,reason}], retained:["Name"]}
+    const evo = session.evolution;
+    const hasEvo = evo && typeof evo === 'object' && (
+      (evo.evolved && evo.evolved.length > 0) ||
+      (evo.fired && evo.fired.length > 0) ||
+      (evo.created && evo.created.length > 0) ||
+      (evo.retained && evo.retained.length > 0)
+    );
+
+    if (hasEvo) {
+      evoEl.style.display = '';
+      evoEl.innerHTML = '';
+
+      const label = document.createElement('div');
+      label.className = 'verdict-evolution-label';
+      label.textContent = 'Persona evolution';
+      evoEl.appendChild(label);
+
+      function addItem(emoji, badgeClass, nameText, reasonText, isRetain) {
+        const item = document.createElement('div');
+        item.className = 'verdict-evolution-item' + (isRetain ? ' retain-item' : '');
+        const badge = document.createElement('span');
+        badge.className = 'evo-badge ' + badgeClass;
+        badge.textContent = badgeClass;
+        item.appendChild(badge);
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = emoji + ' ' + nameText;
+        item.appendChild(nameSpan);
+        if (reasonText) {
+          const reason = document.createElement('span');
+          reason.className = 'evo-reason';
+          reason.textContent = '— ' + reasonText;
+          item.appendChild(reason);
+        }
+        evoEl.appendChild(item);
+      }
+
+      // EVOLVE entries
+      (evo.evolved || []).forEach(e => {
+        addItem('🧬', 'EVOLVE', e.display_name || e.name || '?', e.learned || '', false);
+      });
+      // FIRE entries
+      (evo.fired || []).forEach(e => {
+        const name = typeof e === 'string' ? e : (e.display_name || e.name || '?');
+        const reason = typeof e === 'object' ? (e.reason || '') : '';
+        addItem('🔥', 'FIRE', name, reason, false);
+      });
+      // CREATE entries
+      (evo.created || []).forEach(e => {
+        const name = typeof e === 'string' ? e : (e.new_slug || e.name || '?');
+        const reason = typeof e === 'object' ? (e.reason || '') : '';
+        addItem('⭐', 'CREATE', name, reason, false);
+      });
+      // RETAIN entries (greyed out)
+      (evo.retained || []).forEach(e => {
+        const name = typeof e === 'string' ? e : (e.display_name || e.name || '?');
+        addItem('✓', 'RETAIN', name, '', true);
+      });
+    } else {
+      evoEl.style.display = 'none';
+    }
+
+    // Session metadata
+    if (metaEl) {
+      metaEl.style.display = '';
+      metaEl.innerHTML = '';
+      const addMeta = (text) => {
+        const s = document.createElement('span');
+        s.textContent = text;
+        metaEl.appendChild(s);
+      };
+      if (session.session_number != null) addMeta('Session #' + session.session_number);
+      if (session.finished_at) {
+        const d = new Date(session.finished_at);
+        addMeta(d.toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'}));
+      } else if (session.started_at) {
+        const d = new Date(session.started_at);
+        addMeta(d.toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'}));
+      }
+      if (session.thread_id) {
+        const s = document.createElement('span');
+        s.innerHTML = '<a href="https://discord.com/channels/1485343472952148007/' + session.thread_id + '" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none;">Discord thread ↗</a>';
+        metaEl.appendChild(s);
       }
     }
 
-    // Session link
-    if (currentSessionId) {
-      const m = currentSessionId.match(/^congress-(\d+)$/);
-      if (m) {
-        linkEl.innerHTML = 'Session <a href="/congress?session=' + currentSessionId + '">#' + parseInt(m[1]) + '</a>';
-      }
-    }
+    // Session link (legacy — hide if meta is shown)
+    linkEl.style.display = 'none';
   }
 
   // ── Topic modal ─────────────────────────────────────────────────────────────
