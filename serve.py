@@ -298,7 +298,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         """Fetch ETH balance on Base for the public wallet address."""
         import urllib.request as _urlreq
         ADDRESS = '0x425bC492E43b2a5Eb7E02c9F5dd9c1D2F378f02f'
-        BASE_RPC = 'https://mainnet.base.org'
+        BASE_RPC = 'https://base-mainnet.public.blastapi.io'
         payload = json.dumps({
             'jsonrpc': '2.0',
             'method': 'eth_getBalance',
@@ -309,7 +309,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             req = _urlreq.Request(
                 BASE_RPC,
                 data=payload,
-                headers={'Content-Type': 'application/json'},
+                headers={
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'bigclungus-wallet/1.0',
+                },
                 method='POST',
             )
             with _urlreq.urlopen(req, timeout=8) as resp:
