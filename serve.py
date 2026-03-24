@@ -427,6 +427,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             'model': meta.get('model', 'claude'),
                             'display_name': meta.get('display_name', ''),
                             'avatar_url': meta.get('avatar_url', ''),
+                            'title': meta.get('title', ''),
                         })
                     except Exception:
                         pass
@@ -458,6 +459,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             'model': meta.get('model', 'claude'),
                             'display_name': meta.get('display_name', ''),
                             'avatar_url': meta.get('avatar_url', ''),
+                            'title': meta.get('title', ''),
                         })
                 except Exception:
                     pass

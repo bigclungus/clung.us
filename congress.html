@@ -450,6 +450,18 @@
       text-overflow: ellipsis;
       transition: color 0.3s;
     }
+    .persona-node .node-title {
+      font-size: 0.40rem;
+      color: var(--text-muted);
+      text-align: center;
+      max-width: 86px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 0px;
+    }
     .persona-node.active .node-circle {
       background: #2a1520;
       border-color: var(--node-border-active);
@@ -1512,7 +1524,7 @@
       if (p) {
         const desc = document.createElement('div');
         desc.className = 'seat-desc';
-        desc.textContent = p.description || p.role || '';
+        desc.textContent = p.title || p.description || p.role || '';
         info.appendChild(desc);
       }
       card.appendChild(info);
@@ -1557,8 +1569,9 @@
         : `<div class="node-emoji">${p ? (p.emoji || '🤖') : '○'}</div>`;
       const modelLabel = p ? (p.model ? p.model.charAt(0).toUpperCase() + p.model.slice(1) : 'Claude') : '';
       const modelBadge = p ? `<div class="node-model-badge">${modelLabel}</div>` : '';
+      const titleHtml = p && p.title ? `<div class="node-title">${p.title}</div>` : '';
       const displayNameHtml = p
-        ? `<div class="node-display-name">${p.display_name || p.name}</div>${modelBadge}`
+        ? `<div class="node-display-name">${p.display_name || p.name}</div>${titleHtml}${modelBadge}`
         : '';
       const side = BUBBLE_SIDE[i] || 'right';
       node.classList.add('bubble-' + side);
@@ -1863,6 +1876,12 @@
     nameEl.className = 'feed-entry-name';
     nameEl.style.color = headerColor;
     nameEl.textContent = p ? (p.display_name || p.name) : (isSynthesis ? 'Ibrahim the Immovable' : entry.identity);
+    if (p && p.title) {
+      const titleBadge = document.createElement('span');
+      titleBadge.style.cssText = 'font-size:0.5rem;color:var(--text-muted);margin-left:4px;text-transform:uppercase;letter-spacing:0.05em;';
+      titleBadge.textContent = p.title;
+      nameEl.appendChild(titleBadge);
+    }
     header.appendChild(nameEl);
 
     // Model badge in feed header
