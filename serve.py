@@ -32,6 +32,15 @@ SESSIONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'session
 
 LLM_MAX_TOKENS = 300  # Hard cap per debate response
 
+EMOJI_MAP = {
+    'architect': '🏗️', 'critic': '🔍', 'ux': '🎨',
+    'otto': '🌪️', 'spengler': '🕰️', 'hiring-manager': '⚖️',
+}
+COLOR_MAP = {
+    'architect': '#f59e0b', 'critic': '#f87171', 'ux': '#60a5fa',
+    'otto': '#a78bfa', 'spengler': '#94a3b8',
+}
+
 # ── GitHub auth ────────────────────────────────────────────────────────────────
 GITHUB_COOKIE = "tauth_github"
 GITHUB_ALLOWED_USERS = {u.lower() for u in os.environ.get('GITHUB_ALLOWED_USERS', '').split(',') if u.strip()}
@@ -434,14 +443,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def _serve_agents(self):
         """Return active debaters and fired personas for the congress page."""
-        EMOJI_MAP = {
-            'architect': '🏗️', 'critic': '🔍', 'ux': '🎨',
-            'otto': '🌪️', 'spengler': '🕰️', 'hiring-manager': '⚖️',
-        }
-        COLOR_MAP = {
-            'architect': '#f59e0b', 'critic': '#f87171', 'ux': '#60a5fa',
-            'otto': '#a78bfa', 'spengler': '#94a3b8',
-        }
         AGENTS_DIR_BASE = os.path.dirname(AGENTS_ACTIVE_DIR)
         active = []
         fired = []
@@ -543,14 +544,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         session_id = f"congress-{num:04d}"
 
         # Snapshot the current persona roster so historical sessions show who existed then
-        EMOJI_MAP_LOCAL = {
-            'architect': '🏗️', 'critic': '🔍', 'ux': '🎨',
-            'otto': '🌪️', 'spengler': '🕰️', 'hiring-manager': '⚖️',
-        }
-        COLOR_MAP_LOCAL = {
-            'architect': '#f59e0b', 'critic': '#f87171', 'ux': '#60a5fa',
-            'otto': '#a78bfa', 'spengler': '#94a3b8',
-        }
         roster = []
         for dirpath, status in ((AGENTS_ACTIVE_DIR, 'active'), (AGENTS_FIRED_DIR, 'severance')):
             try:
@@ -569,8 +562,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             'title': meta.get('title', ''),
                             'avatar_url': meta.get('avatar_url', ''),
                             'status': status,
-                            'emoji': EMOJI_MAP_LOCAL.get(name, '🤖'),
-                            'color': COLOR_MAP_LOCAL.get(name, '#888888'),
+                            'emoji': EMOJI_MAP.get(name, '🤖'),
+                            'color': COLOR_MAP.get(name, '#888888'),
                             'description': meta.get('role', ''),
                             'role': meta.get('role', ''),
                         })
@@ -723,19 +716,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     response_text = _call_claude(full_content, user_message, on_token=on_token)
             else:
                 response_text = _call_claude(full_content, user_message, on_token=on_token)
-        except ValueError as e:
+        except (ValueError, Exception) as e:
             if session_id:
                 with _streams_lock:
                     if session_id in _active_streams:
                         _active_streams[session_id]["done"] = True
-            self._json_error(503, str(e))
-            return
-        except Exception as e:
-            if session_id:
-                with _streams_lock:
-                    if session_id in _active_streams:
-                        _active_streams[session_id]["done"] = True
-            self._json_error(500, f"LLM API error ({persona_model}): {e}")
+            if isinstance(e, ValueError):
+                self._json_error(503, str(e))
+            else:
+                self._json_error(500, f"LLM API error ({persona_model}): {e}")
             return
 
         if session_id:

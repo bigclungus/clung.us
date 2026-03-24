@@ -64,34 +64,6 @@
   color: var(--accent);
 }
 
-.sitenav a {
-  transition: color 0.15s ease;
-}
-
-.sitenav a:hover {
-  color: var(--hover-fg);
-}
-
-/* ── Auth links (kept for legacy compat, now unused in main nav) ── */
-.sitenav-links-auth {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  margin-left: auto;
-}
-
-.sitenav-links-auth a {
-  color: var(--text-muted);
-  text-decoration: none;
-  opacity: 0.6;
-  transition: color 0.15s ease, opacity 0.15s ease;
-}
-
-.sitenav-links-auth a:hover {
-  color: var(--accent);
-  opacity: 1;
-}
-
 /* ── Theme toggle ── */
 .theme-toggle {
   background: none;
@@ -144,13 +116,6 @@
     flex-wrap: wrap;
     gap: 8px 14px;
     order: 3;
-  }
-
-  .sitenav-links-auth {
-    flex: 0 0 100%;
-    display: flex;
-    gap: 12px;
-    order: 4;
   }
 
   .theme-toggle {

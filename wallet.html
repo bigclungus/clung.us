@@ -342,15 +342,19 @@
         });
     });
 
+    function markCopied(btn) {
+      btn.textContent = 'copied!';
+      btn.classList.add('copied');
+      setTimeout(function () {
+        btn.textContent = 'copy';
+        btn.classList.remove('copied');
+      }, 2000);
+    }
+
     function copyAddress() {
       var btn = document.getElementById('copy-btn');
       navigator.clipboard.writeText(ADDR).then(function () {
-        btn.textContent = 'copied!';
-        btn.classList.add('copied');
-        setTimeout(function () {
-          btn.textContent = 'copy';
-          btn.classList.remove('copied');
-        }, 2000);
+        markCopied(btn);
       }).catch(function () {
         // Fallback
         var ta = document.createElement('textarea');
@@ -361,12 +365,7 @@
         ta.select();
         document.execCommand('copy');
         document.body.removeChild(ta);
-        btn.textContent = 'copied!';
-        btn.classList.add('copied');
-        setTimeout(function () {
-          btn.textContent = 'copy';
-          btn.classList.remove('copied');
-        }, 2000);
+        markCopied(btn);
       });
     }
   </script>

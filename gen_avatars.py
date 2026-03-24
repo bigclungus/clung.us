@@ -3,6 +3,7 @@
 
 from PIL import Image, ImageDraw
 import math
+import random
 
 def draw_spengler(path, size=64):
     """Bald, dark, doomed-looking man. Dark navy/purple palette matching congress theme."""
@@ -53,7 +54,6 @@ def draw_spengler(path, size=64):
     d.point([s*3//5 + 1, mouth_y + 1], fill=mouth_color)
 
     # Light beard stubble — dark grey dots on lower face
-    import random
     rng = random.Random(42)
     stubble_color = (90, 80, 95, 180)
     for _ in range(30):
@@ -93,7 +93,6 @@ def draw_otto(path, size=64):
         (100, 200, 255, 180), # cyan
         (200, 50, 255, 180),  # violet
     ]
-    import math
     center = s // 2
     # Wild spiky hair — rays from top of head
     hair_angles = [-80, -60, -45, -30, -10, 10, 30, 50, 70, 90, -95, 95]
