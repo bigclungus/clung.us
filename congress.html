@@ -1072,6 +1072,26 @@
       color: var(--text-muted);
       font-style: italic;
     }
+    .verdict-tasks {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid color-mix(in srgb, var(--teal) 25%, transparent);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .verdict-tasks-label {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--teal);
+      margin-bottom: 4px;
+    }
+    .verdict-task-item {
+      font-size: 0.72rem;
+      color: var(--text-primary);
+    }
     .verdict-meta {
       margin-top: 12px;
       padding-top: 10px;
@@ -1355,6 +1375,7 @@
       <div class="verdict-card-heading">⚖️ Verdict</div>
       <div class="verdict-card-text" id="verdictCardText"></div>
       <div class="verdict-evolution" id="verdictEvolution" style="display:none"></div>
+      <div class="verdict-tasks" id="verdictTasks" style="display:none"></div>
       <div class="verdict-meta" id="verdictMeta" style="display:none"></div>
       <div class="verdict-session-link" id="verdictSessionLink"></div>
     </div>
@@ -2657,6 +2678,28 @@
       });
     } else {
       evoEl.style.display = 'none';
+    }
+
+    // Actionable Tasks section
+    const tasksEl = document.getElementById('verdictTasks');
+    if (tasksEl) {
+      const taskTitles = session.task_titles;
+      if (taskTitles && Array.isArray(taskTitles) && taskTitles.length > 0) {
+        tasksEl.style.display = '';
+        tasksEl.innerHTML = '';
+        const label = document.createElement('div');
+        label.className = 'verdict-tasks-label';
+        label.textContent = '\u2500\u2500 \uD83D\uDCCB Actionable Tasks \u2500\u2500';
+        tasksEl.appendChild(label);
+        taskTitles.forEach(title => {
+          const item = document.createElement('div');
+          item.className = 'verdict-task-item';
+          item.textContent = '\u2610 ' + title;
+          tasksEl.appendChild(item);
+        });
+      } else {
+        tasksEl.style.display = 'none';
+      }
     }
 
     // Session ended timestamp — shown prominently above the meta row when status is done
