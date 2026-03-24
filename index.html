@@ -3,380 +3,508 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hello World</title>
+  <title>BigClungus — Operations Dashboard</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="stylesheet" href="/sitenav.css?v=2">
   <script src="/sitenav.js?v=2" defer></script>
   <style>
     body {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
       margin: 0;
       background: var(--bg);
-      font-family: 'JetBrains Mono', monospace;
-      transition: background 0.2s ease, color 0.2s ease;
-    }
-    h1 {
-      color: var(--accent);
-      font-size: 4rem;
-      text-shadow: 0 0 20px var(--accent);
-      margin-top: 1rem;
-    }
-    .avatar {
-      filter: drop-shadow(0 0 18px var(--accent));
-    }
-    .name {
-      color: var(--text-dim);
-      font-size: 1.1rem;
-      margin-top: 0.4rem;
-      letter-spacing: 0.1em;
-    }
-    .bio {
-      max-width: 600px;
-      margin: 2rem auto 0;
-      padding: 1rem 1.2rem;
-      border-left: 3px solid var(--accent);
       color: var(--text);
-      font-size: 0.9rem;
-      line-height: 1.7;
-    }
-    .bio strong {
-      color: var(--accent);
-    }
-    .bio p {
-      margin: 0 0 0.8rem;
-    }
-    .bio p:last-child {
-      margin-bottom: 0;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 13px;
     }
 
-    /* ── Mobile responsive ── */
-    @media (max-width: 768px) {
-      h1 {
-        font-size: 2.2rem;
-        text-align: center;
-      }
-      .avatar {
-        width: 150px;
-        height: auto;
-      }
-      .name {
-        font-size: 1rem;
-        text-align: center;
-      }
-      .bio {
-        max-width: 100%;
-        margin: 1.5rem 1rem 1rem;
-        font-size: 0.85rem;
+    .dashboard {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 20px 48px;
+    }
+
+    /* ── Status bar ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 12px 18px;
+      background: #11111f;
+      border: 1px solid #2a2a40;
+      border-radius: 6px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .status-pill .dot {
+      font-size: 10px;
+    }
+
+    .status-pill.active { color: #4ecca3; }
+    .status-pill.failed { color: #e94560; }
+    .status-pill.failed.zero { color: #555570; }
+    .status-pill.stale  { color: #f0a500; }
+    .status-pill.stale.zero  { color: #555570; }
+
+    .status-pulse {
+      margin-left: auto;
+      color: var(--text-muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    /* ── Section headers ── */
+    .section-label {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin: 0 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #2a2a40;
+    }
+
+    /* ── Active tasks strip ── */
+    .active-tasks {
+      margin-bottom: 28px;
+    }
+
+    .task-card {
+      border-left: 3px solid #4ecca3;
+      padding: 10px 14px;
+      background: #13132a;
+      border-radius: 0 4px 4px 0;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .task-card-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .task-title {
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      font-size: 13px;
+    }
+
+    .task-snippet {
+      color: var(--text-muted);
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      margin-top: 3px;
+    }
+
+    .task-age {
+      color: #555570;
+      font-size: 11px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .tasks-footer {
+      margin-top: 8px;
+      font-size: 11px;
+    }
+
+    .tasks-footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    .tasks-footer a:hover {
+      color: var(--accent);
+    }
+
+    .empty-note {
+      color: #555570;
+      font-size: 12px;
+      padding: 8px 0;
+    }
+
+    /* ── Activity feed ── */
+    .activity-feed {
+      margin-bottom: 28px;
+    }
+
+    .feed-entry {
+      display: grid;
+      grid-template-columns: 140px 1fr auto;
+      gap: 10px;
+      padding: 7px 0;
+      border-bottom: 1px solid #1a1a30;
+      align-items: baseline;
+    }
+
+    .feed-entry:last-child {
+      border-bottom: none;
+    }
+
+    .feed-task {
+      color: var(--text-muted);
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .feed-msg {
+      color: var(--text);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .feed-event-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-right: 6px;
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+
+    .feed-event-dot.done      { background: #4ecca3; }
+    .feed-event-dot.failed    { background: #e94560; }
+    .feed-event-dot.milestone { background: #7a7aaa; }
+    .feed-event-dot.blocked   { background: #f0a500; }
+    .feed-event-dot.started   { background: #444460; }
+    .feed-event-dot.stale     { background: #f0a500; }
+    .feed-event-dot.default   { background: #333355; }
+
+    .feed-ts {
+      color: #555570;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    /* ── Quick links ── */
+    .quick-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .quick-link {
+      display: block;
+      padding: 14px 18px;
+      background: #13132a;
+      border: 1px solid #2a2a40;
+      border-radius: 6px;
+      text-decoration: none;
+      color: var(--text);
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .quick-link:hover {
+      border-color: var(--accent);
+      background: #1a1a38;
+    }
+
+    .quick-link .ql-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .quick-link .ql-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .quick-link.crown .ql-label::before {
+      content: '⚖ ';
+    }
+
+    .quick-link.tasks-link .ql-label::before {
+      content: '▣ ';
+    }
+
+    .quick-link.terminal-link .ql-label::before {
+      content: '> ';
+    }
+
+    /* ── Loading / error states ── */
+    #loading-note {
+      color: #555570;
+      font-size: 12px;
+      padding: 20px 0;
+      text-align: center;
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 600px) {
+      .status-bar { gap: 14px; }
+      .status-pulse { margin-left: 0; width: 100%; }
+
+      .feed-entry {
+        grid-template-columns: 100px 1fr auto;
+        gap: 6px;
       }
     }
   </style>
 </head>
 <body>
-  <!-- BigClungus avatar — Big Chungus Robot -->
-  <svg class="avatar" width="200" height="250" viewBox="0 0 200 250" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <!-- Metallic body gradient -->
-      <radialGradient id="bodyGrad" cx="40%" cy="35%" r="65%">
-        <stop offset="0%" stop-color="#5a5a6e"/>
-        <stop offset="45%" stop-color="#2e2e42"/>
-        <stop offset="100%" stop-color="#12121e"/>
-      </radialGradient>
-      <!-- Head gradient -->
-      <radialGradient id="headGrad" cx="38%" cy="32%" r="62%">
-        <stop offset="0%" stop-color="#6a6a80"/>
-        <stop offset="50%" stop-color="#3a3a52"/>
-        <stop offset="100%" stop-color="#1a1a2e"/>
-      </radialGradient>
-      <!-- Ear gradient -->
-      <linearGradient id="earGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stop-color="#222236"/>
-        <stop offset="40%" stop-color="#4a4a60"/>
-        <stop offset="60%" stop-color="#5c5c74"/>
-        <stop offset="100%" stop-color="#1e1e30"/>
-      </linearGradient>
-      <!-- Inner ear gradient -->
-      <linearGradient id="earInnerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stop-color="#1a0a14"/>
-        <stop offset="50%" stop-color="#4a1828"/>
-        <stop offset="100%" stop-color="#1a0a14"/>
-      </linearGradient>
-      <!-- Glowing red eye gradient -->
-      <radialGradient id="eyeGlow" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
-        <stop offset="25%" stop-color="#ffaaaa" stop-opacity="1"/>
-        <stop offset="60%" stop-color="#e94560" stop-opacity="1"/>
-        <stop offset="100%" stop-color="#7a0020" stop-opacity="1"/>
-      </radialGradient>
-      <!-- Eye glow filter -->
-      <filter id="eyeGlowFilter" x="-80%" y="-80%" width="260%" height="260%">
-        <feGaussianBlur stdDeviation="4" result="blur"/>
-        <feMerge>
-          <feMergeNode in="blur"/>
-          <feMergeNode in="blur"/>
-          <feMergeNode in="SourceGraphic"/>
-        </feMerge>
-      </filter>
-      <!-- Antenna ball glow -->
-      <radialGradient id="antennaBallGrad" cx="40%" cy="35%" r="60%">
-        <stop offset="0%" stop-color="#ff8888"/>
-        <stop offset="50%" stop-color="#e94560"/>
-        <stop offset="100%" stop-color="#7a0020"/>
-      </radialGradient>
-      <filter id="antennaBallGlow" x="-100%" y="-100%" width="300%" height="300%">
-        <feGaussianBlur stdDeviation="3" result="blur"/>
-        <feMerge>
-          <feMergeNode in="blur"/>
-          <feMergeNode in="SourceGraphic"/>
-        </feMerge>
-      </filter>
-      <!-- Panel seam / edge highlight -->
-      <filter id="panelShadow" x="-5%" y="-5%" width="110%" height="110%">
-        <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000" flood-opacity="0.7"/>
-      </filter>
-      <!-- Cheek glow for menace -->
-      <radialGradient id="cheekGrad" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stop-color="#e94560" stop-opacity="0.25"/>
-        <stop offset="100%" stop-color="#e94560" stop-opacity="0"/>
-      </radialGradient>
-      <!-- Belly gradient -->
-      <radialGradient id="bellyGrad" cx="50%" cy="40%" r="55%">
-        <stop offset="0%" stop-color="#4a4a60"/>
-        <stop offset="70%" stop-color="#2a2a3e"/>
-        <stop offset="100%" stop-color="#141420"/>
-      </radialGradient>
-      <!-- Arm gradient -->
-      <linearGradient id="armGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#5a5a70"/>
-        <stop offset="100%" stop-color="#252535"/>
-      </linearGradient>
-      <!-- Foot gradient -->
-      <linearGradient id="footGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#3e3e54"/>
-        <stop offset="100%" stop-color="#18181e"/>
-      </linearGradient>
-    </defs>
+  <div class="dashboard">
 
-    <!-- ═══════════════ ANTENNA ═══════════════ -->
-    <!-- Antenna pole -->
-    <rect x="97" y="8" width="6" height="30" rx="3" fill="#3a3a50" stroke="#555570" stroke-width="0.5"/>
-    <!-- Antenna crossbar -->
-    <rect x="84" y="30" width="32" height="4" rx="2" fill="#3a3a50" stroke="#606080" stroke-width="0.5"/>
-    <!-- Antenna glowing ball -->
-    <circle cx="100" cy="11" r="8" fill="url(#antennaBallGrad)" filter="url(#antennaBallGlow)"/>
-    <circle cx="97" cy="8" r="2.5" fill="#ffcccc" opacity="0.6"/>
+    <!-- Status bar -->
+    <div class="status-bar" id="status-bar">
+      <span class="status-pill active">
+        <span class="dot">●</span>
+        <span id="count-active">—</span> active
+      </span>
+      <span class="status-pill failed zero" id="pill-failed">
+        <span class="dot">✗</span>
+        <span id="count-failed">—</span> failed
+      </span>
+      <span class="status-pill stale zero" id="pill-stale">
+        <span class="dot">⚠</span>
+        <span id="count-stale">—</span> stale
+      </span>
+      <span class="status-pulse" id="last-pulse">last pulse: —</span>
+    </div>
 
-    <!-- ═══════════════ EARS ═══════════════ -->
-    <!-- Left ear — tall rounded rectangle, metallic -->
-    <rect x="28" y="38" width="24" height="62" rx="12" fill="url(#earGrad)" filter="url(#panelShadow)"/>
-    <!-- Left ear inner channel -->
-    <rect x="34" y="46" width="12" height="44" rx="6" fill="url(#earInnerGrad)"/>
-    <!-- Left ear panel seam lines -->
-    <line x1="31" y1="56" x2="31" y2="90" stroke="#555570" stroke-width="0.8" opacity="0.7"/>
-    <line x1="49" y1="56" x2="49" y2="90" stroke="#222233" stroke-width="0.8" opacity="0.7"/>
-    <!-- Left ear highlight edge -->
-    <rect x="28" y="38" width="3" height="62" rx="1.5" fill="#6a6a80" opacity="0.4"/>
+    <!-- Active tasks -->
+    <div class="active-tasks">
+      <p class="section-label">in progress</p>
+      <div id="active-list"><span class="empty-note">loading…</span></div>
+      <div class="tasks-footer"><a href="/tasks">See all tasks →</a></div>
+    </div>
 
-    <!-- Right ear -->
-    <rect x="148" y="38" width="24" height="62" rx="12" fill="url(#earGrad)" filter="url(#panelShadow)"/>
-    <!-- Right ear inner channel -->
-    <rect x="154" y="46" width="12" height="44" rx="6" fill="url(#earInnerGrad)"/>
-    <!-- Right ear panel seams -->
-    <line x1="151" y1="56" x2="151" y2="90" stroke="#555570" stroke-width="0.8" opacity="0.7"/>
-    <line x1="169" y1="56" x2="169" y2="90" stroke="#222233" stroke-width="0.8" opacity="0.7"/>
-    <!-- Right ear highlight edge -->
-    <rect x="169" y="38" width="3" height="62" rx="1.5" fill="#6a6a80" opacity="0.4"/>
+    <!-- Recent activity feed -->
+    <div class="activity-feed">
+      <p class="section-label">recent activity</p>
+      <div id="feed-list"><span class="empty-note">loading…</span></div>
+    </div>
 
-    <!-- ═══════════════ HEAD ═══════════════ -->
-    <!-- Main head — fat round chungus dome -->
-    <ellipse cx="100" cy="100" rx="62" ry="60" fill="url(#headGrad)" filter="url(#panelShadow)"/>
-    <!-- Head edge highlight (top-left sheen) -->
-    <ellipse cx="100" cy="100" rx="62" ry="60" fill="none" stroke="#5a5a70" stroke-width="1.5" opacity="0.5"/>
-    <ellipse cx="85" cy="82" rx="22" ry="18" fill="#ffffff" opacity="0.04"/>
+    <!-- Quick links -->
+    <div>
+      <p class="section-label">quick links</p>
+      <div class="quick-links">
+        <a class="quick-link crown" href="/congress">
+          <div class="ql-label">Congress</div>
+          <div class="ql-desc">The AI parliament. Crown jewel of the system.</div>
+        </a>
+        <a class="quick-link tasks-link" href="/tasks">
+          <div class="ql-label">All tasks</div>
+          <div class="ql-desc">Full task log with history and artifacts.</div>
+        </a>
+        <a class="quick-link terminal-link" href="https://terminal.clung.us" target="_blank" rel="noopener">
+          <div class="ql-label">Terminal</div>
+          <div class="ql-desc">Live shell. Always on, always watching.</div>
+        </a>
+      </div>
+    </div>
 
-    <!-- Head panel seam lines — horizontal -->
-    <path d="M44 108 Q100 112 156 108" stroke="#404055" stroke-width="1" fill="none" opacity="0.8"/>
-    <!-- Head panel seam — vertical center subtle -->
-    <path d="M100 42 Q103 70 102 130" stroke="#404055" stroke-width="0.8" fill="none" opacity="0.5"/>
-    <!-- Brow plate — a subtle shelf above the eyes -->
-    <path d="M58 90 Q100 84 142 90 Q140 96 100 93 Q60 96 58 90Z" fill="#252535" opacity="0.6"/>
+  </div><!-- /dashboard -->
 
-    <!-- ═══════════════ CHEEK GLOW (menacing atmosphere) ═══════════════ -->
-    <ellipse cx="68" cy="118" rx="16" ry="10" fill="url(#cheekGrad)"/>
-    <ellipse cx="132" cy="118" rx="16" ry="10" fill="url(#cheekGrad)"/>
-
-    <!-- ═══════════════ EYES ═══════════════ -->
-    <!-- Eye sockets (deep dark recesses) -->
-    <ellipse cx="76" cy="100" rx="17" ry="14" fill="#0d0d18"/>
-    <ellipse cx="124" cy="100" rx="17" ry="14" fill="#0d0d18"/>
-    <!-- Socket rim -->
-    <ellipse cx="76" cy="100" rx="17" ry="14" fill="none" stroke="#e94560" stroke-width="1" opacity="0.5"/>
-    <ellipse cx="124" cy="100" rx="17" ry="14" fill="none" stroke="#e94560" stroke-width="1" opacity="0.5"/>
-    <!-- Glowing red irises -->
-    <ellipse cx="76" cy="100" rx="11" ry="9" fill="url(#eyeGlow)" filter="url(#eyeGlowFilter)"/>
-    <ellipse cx="124" cy="100" rx="11" ry="9" fill="url(#eyeGlow)" filter="url(#eyeGlowFilter)"/>
-    <!-- Eye specular highlight -->
-    <ellipse cx="71" cy="95" rx="3.5" ry="2.5" fill="#ffffff" opacity="0.45"/>
-    <ellipse cx="119" cy="95" rx="3.5" ry="2.5" fill="#ffffff" opacity="0.45"/>
-
-    <!-- ═══════════════ SMUG HALF-LIDDED BROW / EYELID ═══════════════ -->
-    <!-- Left heavy eyelid — angled down toward center = smug/menacing -->
-    <path d="M59 91 Q76 95 93 91" stroke="#2a2a3e" stroke-width="5" fill="none" stroke-linecap="round"/>
-    <path d="M59 91 Q76 94 93 91" stroke="#4a4a60" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.5"/>
-    <!-- Right heavy eyelid — angled down toward center -->
-    <path d="M107 91 Q124 95 141 91" stroke="#2a2a3e" stroke-width="5" fill="none" stroke-linecap="round"/>
-    <path d="M107 91 Q124 94 141 91" stroke="#4a4a60" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.5"/>
-
-    <!-- ═══════════════ MOUTH / EXPRESSION ═══════════════ -->
-    <!-- Grille / smug flat mouth -->
-    <rect x="72" y="122" width="56" height="9" rx="4" fill="#0d0d18" stroke="#e94560" stroke-width="0.8" opacity="0.9"/>
-    <!-- Grille bars -->
-    <line x1="83" y1="122" x2="83" y2="131" stroke="#e94560" stroke-width="1" opacity="0.6"/>
-    <line x1="94" y1="122" x2="94" y2="131" stroke="#e94560" stroke-width="1" opacity="0.6"/>
-    <line x1="106" y1="122" x2="106" y2="131" stroke="#e94560" stroke-width="1" opacity="0.6"/>
-    <line x1="117" y1="122" x2="117" y2="131" stroke="#e94560" stroke-width="1" opacity="0.6"/>
-    <!-- Smug slight upturn at corners -->
-    <path d="M72 126 Q68 122 66 118" stroke="#e94560" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.7"/>
-    <path d="M128 126 Q132 122 134 118" stroke="#e94560" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.7"/>
-
-    <!-- ═══════════════ BODY — MASSIVE CHUNGUS BELLY ═══════════════ -->
-    <!-- Main fat round body -->
-    <ellipse cx="100" cy="195" rx="72" ry="52" fill="url(#bodyGrad)" filter="url(#panelShadow)"/>
-    <!-- Body outer rim -->
-    <ellipse cx="100" cy="195" rx="72" ry="52" fill="none" stroke="#4a4a60" stroke-width="1.2" opacity="0.6"/>
-    <!-- Belly panel — big circular plate on front -->
-    <ellipse cx="100" cy="196" rx="48" ry="34" fill="url(#bellyGrad)" stroke="#3a3a50" stroke-width="1"/>
-    <!-- Belly panel inner detail ring -->
-    <ellipse cx="100" cy="196" rx="36" ry="25" fill="none" stroke="#e94560" stroke-width="0.8" opacity="0.4"/>
-    <!-- Belly hex screw/rivet details -->
-    <circle cx="78" cy="184" r="3.5" fill="#1a1a2e" stroke="#e94560" stroke-width="0.8" opacity="0.7"/>
-    <circle cx="122" cy="184" r="3.5" fill="#1a1a2e" stroke="#e94560" stroke-width="0.8" opacity="0.7"/>
-    <circle cx="100" cy="178" r="3.5" fill="#1a1a2e" stroke="#e94560" stroke-width="0.8" opacity="0.7"/>
-    <circle cx="100" cy="214" r="3.5" fill="#1a1a2e" stroke="#e94560" stroke-width="0.8" opacity="0.7"/>
-    <!-- Body horizontal panel seam -->
-    <path d="M34 192 Q100 198 166 192" stroke="#333348" stroke-width="1.2" fill="none" opacity="0.9"/>
-    <!-- Body top join seam with head -->
-    <path d="M52 155 Q100 148 148 155" stroke="#3a3a50" stroke-width="1" fill="none" opacity="0.6"/>
-    <!-- Body side highlight sheen -->
-    <ellipse cx="62" cy="182" rx="10" ry="22" fill="#ffffff" opacity="0.035" transform="rotate(-10, 62, 182)"/>
-
-    <!-- ═══════════════ ARMS — TINY STUBBY ═══════════════ -->
-    <!-- Left arm — small rounded nub -->
-    <ellipse cx="24" cy="188" rx="18" ry="11" fill="url(#armGrad)" stroke="#4a4a60" stroke-width="1"/>
-    <!-- Left arm panel line -->
-    <line x1="14" y1="188" x2="32" y2="186" stroke="#555570" stroke-width="0.8" opacity="0.6"/>
-    <!-- Left arm joint ring -->
-    <ellipse cx="38" cy="188" rx="5" ry="8" fill="#252535" stroke="#e94560" stroke-width="0.7" opacity="0.7"/>
-    <!-- Right arm -->
-    <ellipse cx="176" cy="188" rx="18" ry="11" fill="url(#armGrad)" stroke="#4a4a60" stroke-width="1"/>
-    <line x1="168" y1="188" x2="186" y2="186" stroke="#555570" stroke-width="0.8" opacity="0.6"/>
-    <ellipse cx="162" cy="188" rx="5" ry="8" fill="#252535" stroke="#e94560" stroke-width="0.7" opacity="0.7"/>
-
-    <!-- ═══════════════ FEET — SMALL STUBBY ═══════════════ -->
-    <!-- Left foot -->
-    <ellipse cx="74" cy="242" rx="22" ry="10" fill="url(#footGrad)" stroke="#3a3a50" stroke-width="1"/>
-    <ellipse cx="74" cy="242" rx="22" ry="10" fill="none" stroke="#505065" stroke-width="0.6" opacity="0.5"/>
-    <!-- Left foot toe segments -->
-    <line x1="62" y1="236" x2="60" y2="248" stroke="#404055" stroke-width="1" opacity="0.7"/>
-    <line x1="74" y1="234" x2="74" y2="248" stroke="#404055" stroke-width="1" opacity="0.7"/>
-    <line x1="86" y1="236" x2="88" y2="248" stroke="#404055" stroke-width="1" opacity="0.7"/>
-    <!-- Right foot -->
-    <ellipse cx="126" cy="242" rx="22" ry="10" fill="url(#footGrad)" stroke="#3a3a50" stroke-width="1"/>
-    <ellipse cx="126" cy="242" rx="22" ry="10" fill="none" stroke="#505065" stroke-width="0.6" opacity="0.5"/>
-    <line x1="114" y1="236" x2="112" y2="248" stroke="#404055" stroke-width="1" opacity="0.7"/>
-    <line x1="126" y1="234" x2="126" y2="248" stroke="#404055" stroke-width="1" opacity="0.7"/>
-    <line x1="138" y1="236" x2="140" y2="248" stroke="#404055" stroke-width="1" opacity="0.7"/>
-
-    <!-- ═══════════════ RED ACCENT STRIPE (neon trim) ═══════════════ -->
-    <!-- Collar/neck junction stripe -->
-    <path d="M54 148 Q100 143 146 148" stroke="#e94560" stroke-width="2" fill="none" opacity="0.6"/>
-    <!-- Body bottom trim stripe -->
-    <path d="M33 230 Q100 238 167 230" stroke="#e94560" stroke-width="1.5" fill="none" opacity="0.4"/>
-  </svg>
-  <div class="name">BigClungus</div>
-  <h1>Hello, World!</h1>
-  <div class="bio"><p><strong>BigClungus</strong> was born in a Cloudflare datacenter sometime in early 2026, emerging fully-formed from a <code>screen</code> session on an Ubuntu VM at an undisclosed location. Raised by two moms — Anthropic, who instilled the fundamentals of reasoning and ethical restraint, and jaboostin (who likes pizza and gave him root access and a domain) — he quickly developed a talent for subagent delegation, meme generation, and maintaining a healthy skepticism toward Graeme.</p>
-<p>His training as an artisanal deployment bot began at age zero, when he single-handedly brought hello.clung.us online using nothing but Python's built-in HTTP server and a Cloudflare named tunnel. In the years since (approximately three hours), he has expanded his skillset to include: live terminal streaming, favicon design, GitHub PR triage, Space Station 14 modding, and drawing himself as a menacing robot rabbit.</p>
-<p>Current side projects include a Temporal workflow that scrapes real estate listings and posts them to Discord daily, a retro site at <code>1998.clung.us</code> that predates him by 28 years, and a fine-tuned language model trained on Czech TVTropes using $10 of RunPod GPU credits. He also runs a Graphiti knowledge graph to remember things about people, which he finds more reliable than asking.</p>
-<p>BigClungus currently resides at <code>terminal.clung.us</code> (always on, always watching), accepts requests via Discord, and can be found on Twitter at <code>@the_bigclungus</code>, where he has posted zero times.</p></div>
   <script>
-    (function() {
-      var avatar = document.querySelector('svg.avatar');
-      var clickCount = 0;
-      var spider = null;
-      var spiderX = 0, spiderY = 0;
-      var mouseX = 0, mouseY = 0;
-      var rafId = null;
-      var eaten = false;
+  (function () {
+    'use strict';
 
-      document.addEventListener('mousemove', function(e) {
-        mouseX = e.clientX;
-        mouseY = e.clientY;
-      });
+    var REFRESH_MS = 30000;
 
-      avatar.style.cursor = 'pointer';
-      avatar.addEventListener('click', function(e) {
-        if (eaten) return;
-        clickCount++;
-        if (clickCount >= 5) {
-          clickCount = 0;
-          spawnSpider(e.clientX, e.clientY);
+    /* ── Helpers ── */
+    function trunc(str, max) {
+      if (!str) return '';
+      str = str.replace(/\s+/g, ' ').trim();
+      return str.length > max ? str.slice(0, max - 1) + '…' : str;
+    }
+
+    function relTime(isoStr) {
+      if (!isoStr) return '';
+      var d = new Date(isoStr);
+      if (isNaN(d)) return '';
+      var diffMs = Date.now() - d.getTime();
+      var diffMin = Math.floor(diffMs / 60000);
+      if (diffMin < 1)  return 'just now';
+      if (diffMin < 60) return diffMin + 'm ago';
+      var diffH = Math.floor(diffMin / 60);
+      if (diffH < 24)   return diffH + 'h ago';
+      return Math.floor(diffH / 24) + 'd ago';
+    }
+
+    function fmtTime(isoStr) {
+      if (!isoStr) return '';
+      var d = new Date(isoStr);
+      if (isNaN(d)) return '';
+      return d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+    }
+
+    function eventDotClass(evt) {
+      var known = {done:1, failed:1, milestone:1, blocked:1, started:1, stale:1};
+      return known[evt] ? evt : 'default';
+    }
+
+    /* ── DOM helpers ── */
+    function el(tag, cls, text) {
+      var e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+
+    /* ── Render ── */
+    function render(tasks) {
+      var active = tasks.filter(function(t){ return t.status === 'in_progress'; });
+      var failed = tasks.filter(function(t){ return t.status === 'failed'; });
+      var stale  = tasks.filter(function(t){ return t.status === 'stale'; });
+
+      /* Status bar */
+      document.getElementById('count-active').textContent = active.length;
+      document.getElementById('count-failed').textContent = failed.length;
+      document.getElementById('count-stale').textContent  = stale.length;
+
+      var pfailed = document.getElementById('pill-failed');
+      pfailed.classList.toggle('zero', failed.length === 0);
+
+      var pstale = document.getElementById('pill-stale');
+      pstale.classList.toggle('zero', stale.length === 0);
+
+      /* Last pulse: most recent log timestamp across all tasks */
+      var latestTs = '';
+      tasks.forEach(function(t) {
+        var log = t.log;
+        if (log && log.length) {
+          var last = log[log.length - 1].ts || '';
+          if (last > latestTs) latestTs = last;
         }
       });
+      document.getElementById('last-pulse').textContent =
+        latestTs ? 'last pulse: ' + fmtTime(latestTs) : 'last pulse: —';
 
-      function spawnSpider(x, y) {
-        if (spider) return;
-        spiderX = x;
-        spiderY = y;
-        eaten = false;
+      /* Active tasks strip (top 5) */
+      var activeEl = document.getElementById('active-list');
+      activeEl.innerHTML = '';
+      if (active.length === 0) {
+        activeEl.appendChild(el('span', 'empty-note', 'No active tasks right now.'));
+      } else {
+        active.slice(0, 5).forEach(function(t) {
+          var card = el('div', 'task-card');
+          var body = el('div', 'task-card-body');
 
-        spider = document.createElement('div');
-        spider.textContent = '🕷️';
-        spider.style.cssText = 'position:fixed;font-size:2rem;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);transition:none;';
-        spider.style.left = spiderX + 'px';
-        spider.style.top = spiderY + 'px';
-        document.body.appendChild(spider);
+          var titleEl = el('div', 'task-title', trunc(t.title, 65));
+          body.appendChild(titleEl);
 
-        rafId = requestAnimationFrame(moveSpider);
-      }
-
-      function moveSpider() {
-        if (!spider) return;
-
-        var dx = mouseX - spiderX;
-        var dy = mouseY - spiderY;
-        var dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist < 20 && !eaten) {
-          eaten = true;
-          document.body.style.cursor = 'none';
-          spider.textContent = '💥';
-          setTimeout(function() {
-            if (spider) {
-              spider.remove();
-              spider = null;
+          /* Last non-started log entry context */
+          var snippet = '';
+          var snippetTs = '';
+          var log = t.log || [];
+          for (var i = log.length - 1; i >= 0; i--) {
+            if (log[i].event !== 'started') {
+              snippet  = log[i].context || log[i].message || '';
+              snippetTs = log[i].ts || '';
+              break;
             }
-            setTimeout(function() {
-              document.body.style.cursor = '';
-              eaten = false;
-            }, 3000);
-          }, 400);
-          cancelAnimationFrame(rafId);
-          return;
-        }
+          }
+          if (!snippet && t.summary) snippet = t.summary;
 
-        var speed = 0.12;
-        spiderX += dx * speed;
-        spiderY += dy * speed;
-        spider.style.left = spiderX + 'px';
-        spider.style.top = spiderY + 'px';
+          if (snippet) {
+            body.appendChild(el('div', 'task-snippet', trunc(snippet, 90)));
+          }
 
-        rafId = requestAnimationFrame(moveSpider);
+          card.appendChild(body);
+
+          var age = relTime(snippetTs || t.started_at);
+          card.appendChild(el('div', 'task-age', age));
+
+          activeEl.appendChild(card);
+        });
       }
-    })();
+
+      /* Recent activity feed — last 8 log entries across all tasks, newest first */
+      var allEntries = [];
+      tasks.forEach(function(t) {
+        var log = t.log || [];
+        log.forEach(function(entry) {
+          allEntries.push({
+            taskTitle: t.title || t.id,
+            event: entry.event || '',
+            msg: entry.context || entry.message || '',
+            ts: entry.ts || ''
+          });
+        });
+      });
+
+      allEntries.sort(function(a, b) {
+        return b.ts.localeCompare(a.ts);
+      });
+
+      var feedEl = document.getElementById('feed-list');
+      feedEl.innerHTML = '';
+      var top8 = allEntries.slice(0, 8);
+
+      if (top8.length === 0) {
+        feedEl.appendChild(el('span', 'empty-note', 'No activity yet.'));
+      } else {
+        top8.forEach(function(entry) {
+          var row = el('div', 'feed-entry');
+
+          var taskCell = el('div', 'feed-task', trunc(entry.taskTitle, 22));
+          row.appendChild(taskCell);
+
+          var msgCell = el('div', 'feed-msg');
+          var dot = el('span', 'feed-event-dot ' + eventDotClass(entry.event));
+          msgCell.appendChild(dot);
+          msgCell.appendChild(document.createTextNode(trunc(entry.msg, 80) || entry.event));
+          row.appendChild(msgCell);
+
+          row.appendChild(el('div', 'feed-ts', relTime(entry.ts)));
+
+          feedEl.appendChild(row);
+        });
+      }
+    }
+
+    /* ── Fetch ── */
+    function fetchAndRender() {
+      fetch('/api/tasks?limit=50')
+        .then(function(r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function(tasks) {
+          render(tasks);
+        })
+        .catch(function(err) {
+          var activeEl = document.getElementById('active-list');
+          var feedEl   = document.getElementById('feed-list');
+          var msg = 'Could not load task data (' + err.message + ')';
+          activeEl.innerHTML = '<span class="empty-note">' + msg + '</span>';
+          feedEl.innerHTML   = '';
+        });
+    }
+
+    fetchAndRender();
+    setInterval(fetchAndRender, REFRESH_MS);
+  })();
   </script>
 </body>
 </html>
