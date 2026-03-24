@@ -913,6 +913,25 @@
       color: var(--teal);
       border-bottom-color: color-mix(in srgb, var(--teal) 40%, transparent);
     }
+    .debate-round-col.votes-col .debate-round-col-header {
+      color: #a78bfa;
+      border-bottom-color: color-mix(in srgb, #a78bfa 40%, transparent);
+    }
+    .feed-entry-round-tag.votes { color: #a78bfa; border-color: #a78bfa; }
+    .feed-entry.votes-entry {
+      border-color: color-mix(in srgb, #a78bfa 40%, transparent);
+      background: color-mix(in srgb, #a78bfa 4%, var(--card-bg));
+    }
+    .vote-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.04em;
+    }
+    .vote-badge.agree { color: #34d399; background: color-mix(in srgb, #34d399 12%, transparent); border: 1px solid color-mix(in srgb, #34d399 40%, transparent); }
+    .vote-badge.disagree { color: #f87171; background: color-mix(in srgb, #f87171 12%, transparent); border: 1px solid color-mix(in srgb, #f87171 40%, transparent); }
 
     /* Keep sep class available but hidden — no longer rendered */
     .feed-round-sep { display: none; }
@@ -2498,29 +2517,73 @@
     const personaMap = {};
     seats.forEach(p => { if (p) personaMap[p.id] = p; });
 
-    // Separate debaters from hiring-manager (synthesis)
-    const debaterCount = seats.filter(Boolean).length || 3;
-    const debateEntries = rounds.filter(r => r.identity !== 'hiring-manager');
-    const synthesisEntries = rounds.filter(r => r.identity === 'hiring-manager');
+    // Seat order for consistent per-column ordering (hiring-manager excluded from seats)
+    const debaterOrder = seats.filter(Boolean).map(s => s.id || s.name);
+
+    // Helper: detect vote entries (response starts with AGREE or DISAGREE)
+    function isVoteEntry(entry) {
+      if (!entry.response) return false;
+      const first = entry.response.trim().toUpperCase().split(/[\s\n]/)[0];
+      return first === 'AGREE' || first === 'DISAGREE';
+    }
+
+    // Assign round numbers by detecting when identities repeat.
+    // First occurrence of each non-hiring-manager identity = round 1, second = round 2, etc.
+    // Vote entries (AGREE/DISAGREE responses) are separated out, not assigned to debate rounds.
+    const identityRoundCount = {};
+    const roundEntriesMap = {}; // roundNum -> [{entry}]
+    const voteEntries = [];
+    const synthesisEntries = [];
+    let debateStarted = false; // tracks whether any debater entry has been seen yet
+
+    rounds.forEach(entry => {
+      if (entry.identity === 'hiring-manager') {
+        // Only include as synthesis if debate has already started, entry doesn't start with
+        // PERSONA: (evolution) or TASK: (task extraction), and has sentence-like prose.
+        // The seat selector appears before any debate and is just newline-separated names.
+        const resp = (entry.response || '').trim();
+        const isEvolution = resp.startsWith('PERSONA:');
+        const isTasks = resp.startsWith('TASK:');
+        // Seat selector: all lines are short names with no punctuation; typically no period chars
+        const isSeatSelector = !debateStarted;
+        if (!isEvolution && !isTasks && !isSeatSelector) {
+          synthesisEntries.push(entry);
+        }
+        return;
+      }
+      if (isVoteEntry(entry)) {
+        voteEntries.push(entry);
+        return;
+      }
+      // Regular debater entry
+      debateStarted = true;
+      const id = entry.identity;
+      identityRoundCount[id] = (identityRoundCount[id] || 0) + 1;
+      const roundNum = identityRoundCount[id];
+      if (!roundEntriesMap[roundNum]) roundEntriesMap[roundNum] = [];
+      roundEntriesMap[roundNum].push(entry);
+    });
 
     const roundNames = { 1: 'Round 1 — Initial Positions', 2: 'Round 2 — Rebuttals', 3: 'Round 3 — Final Arguments' };
 
-    // Group debate entries by round number and render as columns
-    const roundCols = {};
-    debateEntries.forEach((entry, idx) => {
-      const roundNum = Math.floor(idx / debaterCount) + 1;
-      if (!roundCols[roundNum]) {
-        const col = document.createElement('div');
-        col.className = 'debate-round-col';
-        col.dataset.roundNum = roundNum;
-        const header = document.createElement('div');
-        header.className = 'debate-round-col-header';
-        header.textContent = roundNames[roundNum] || ('Round ' + roundNum);
-        col.appendChild(header);
-        feed.appendChild(col);
-        roundCols[roundNum] = col;
-      }
-      roundCols[roundNum].appendChild(buildFeedEntry(entry, 'R' + roundNum, personaMap));
+    // Render debate round columns in order, with entries sorted by seat order
+    Object.keys(roundEntriesMap).map(Number).sort((a, b) => a - b).forEach(roundNum => {
+      const entries = roundEntriesMap[roundNum];
+      // Sort by seat position for consistent per-column ordering
+      entries.sort((a, b) => {
+        const ai = debaterOrder.indexOf(a.identity);
+        const bi = debaterOrder.indexOf(b.identity);
+        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+      });
+      const col = document.createElement('div');
+      col.className = 'debate-round-col';
+      col.dataset.roundNum = roundNum;
+      const header = document.createElement('div');
+      header.className = 'debate-round-col-header';
+      header.textContent = roundNames[roundNum] || ('Round ' + roundNum);
+      col.appendChild(header);
+      entries.forEach(entry => col.appendChild(buildFeedEntry(entry, 'R' + roundNum, personaMap)));
+      feed.appendChild(col);
     });
 
     // Synthesis column
@@ -2537,6 +2600,122 @@
       });
       feed.appendChild(col);
     }
+
+    // Votes column — from session.vote_summary (structured data) or parsed vote entries
+    const voteSummary = session.vote_summary;
+    const hasVoteSummary = voteSummary && (
+      (voteSummary.agree && voteSummary.agree.length > 0) ||
+      (voteSummary.disagree && voteSummary.disagree.length > 0)
+    );
+    const hasVoteEntries = voteEntries.length > 0;
+
+    if (hasVoteSummary || hasVoteEntries) {
+      const col = document.createElement('div');
+      col.className = 'debate-round-col votes-col';
+      col.dataset.roundNum = 'votes';
+      const header = document.createElement('div');
+      header.className = 'debate-round-col-header';
+      const tally = voteSummary && voteSummary.tally ? voteSummary.tally : '';
+      header.textContent = tally ? ('Votes — ' + tally) : 'Votes';
+      col.appendChild(header);
+
+      if (hasVoteSummary) {
+        // Build per-debater vote map from structured vote_summary
+        const voteMap = {};
+        (voteSummary.agree || []).forEach(name => { voteMap[name] = 'AGREE'; });
+        (voteSummary.disagree || []).forEach(name => { voteMap[name] = 'DISAGREE'; });
+
+        // Render in seat order
+        const orderedDebaters = debaterOrder.length > 0
+          ? debaterOrder
+          : Object.keys(voteMap);
+
+        orderedDebaters.forEach(id => {
+          const p = personaMap[id];
+          const displayName = p ? (p.display_name || p.name) : id;
+          // Match by id or display_name in voteMap
+          const vote = voteMap[id] || voteMap[displayName];
+          if (!vote) return;
+          col.appendChild(buildVoteEntry(id, displayName, vote, null, personaMap));
+        });
+        // Also show any votes for names not in seat order (shouldn't happen, but safety net)
+        Object.entries(voteMap).forEach(([name, vote]) => {
+          if (!orderedDebaters.includes(name)) {
+            col.appendChild(buildVoteEntry(name, name, vote, null, personaMap));
+          }
+        });
+      } else {
+        // Parse vote entries: response starts with AGREE/DISAGREE, rest is reason
+        // Sort by seat order
+        const sortedVoteEntries = [...voteEntries].sort((a, b) => {
+          const ai = debaterOrder.indexOf(a.identity);
+          const bi = debaterOrder.indexOf(b.identity);
+          return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+        });
+        sortedVoteEntries.forEach(entry => {
+          const lines = (entry.response || '').trim().split('\n');
+          const voteWord = lines[0].trim().toUpperCase().startsWith('AGREE') ? 'AGREE' : 'DISAGREE';
+          const reason = lines.slice(1).join(' ').trim() || null;
+          const p = personaMap[entry.identity];
+          const displayName = p ? (p.display_name || p.name) : entry.identity;
+          col.appendChild(buildVoteEntry(entry.identity, displayName, voteWord, reason, personaMap));
+        });
+      }
+
+      feed.appendChild(col);
+    }
+  }
+
+  function buildVoteEntry(identityId, displayName, vote, reason, personaMap) {
+    const p = personaMap[identityId] || personaMap[displayName];
+    const div = document.createElement('div');
+    div.className = 'feed-entry votes-entry';
+    if (p && p.color) div.style.setProperty('--fe-color', p.color);
+
+    const headerEl = document.createElement('div');
+    headerEl.className = 'feed-entry-header';
+
+    if (p && p.avatar_url) {
+      const img = document.createElement('img');
+      img.className = 'feed-entry-avatar';
+      img.src = p.avatar_url;
+      img.alt = displayName;
+      headerEl.appendChild(img);
+    } else {
+      const emoji = document.createElement('div');
+      emoji.className = 'feed-entry-emoji';
+      emoji.textContent = p ? (p.emoji || '🤖') : '🤖';
+      headerEl.appendChild(emoji);
+    }
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'feed-entry-name';
+    nameEl.style.color = p && p.color ? p.color : 'var(--text-muted)';
+    nameEl.textContent = displayName;
+    headerEl.appendChild(nameEl);
+
+    const tag = document.createElement('div');
+    tag.className = 'feed-entry-round-tag votes';
+    tag.textContent = 'vote';
+    headerEl.appendChild(tag);
+
+    div.appendChild(headerEl);
+
+    const body = document.createElement('div');
+    body.className = 'feed-entry-body';
+    const badge = document.createElement('span');
+    badge.className = 'vote-badge ' + (vote === 'AGREE' ? 'agree' : 'disagree');
+    badge.textContent = vote === 'AGREE' ? '✅ AGREE' : '❌ DISAGREE';
+    body.appendChild(badge);
+    if (reason) {
+      const reasonEl = document.createElement('p');
+      reasonEl.style.cssText = 'margin-top:6px;font-size:0.72rem;color:var(--text-muted);';
+      reasonEl.textContent = reason;
+      body.appendChild(reasonEl);
+    }
+    div.appendChild(body);
+
+    return div;
   }
 
   function buildFeedEntry(entry, roundTag, personaMap) {
