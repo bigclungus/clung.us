@@ -937,7 +937,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Content-Type', 'text/event-stream')
         self.send_header('Cache-Control', 'no-cache')
         self.send_header('Connection', 'keep-alive')
-        self.send_header('Access-Control-Allow-Origin', 'https://hello.clung.us')
+        self.send_header('Access-Control-Allow-Origin', 'https://clung.us')
         self.end_headers()
 
         last_len = 0
