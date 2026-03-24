@@ -156,6 +156,31 @@
       text-overflow: ellipsis;
       margin-top: 1px;
     }
+    /* ── Session roster status badges ── */
+    .roster-badge {
+      font-size: 0.5rem;
+      padding: 1px 5px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      font-weight: 700;
+      flex-shrink: 0;
+      align-self: flex-start;
+      margin-top: 1px;
+    }
+    .roster-badge.seated {
+      background: color-mix(in srgb, var(--sc, var(--accent)) 20%, transparent);
+      color: var(--sc, var(--accent));
+      border: 1px solid color-mix(in srgb, var(--sc, var(--accent)) 60%, transparent);
+    }
+    .seat-card.bench {
+      opacity: 0.38;
+      border-style: dashed;
+      border-color: var(--seat-border);
+      box-shadow: none;
+    }
+    .seat-card.bench .seat-name { color: var(--text-muted); }
+
     .btn-remove {
       background: none;
       border: 1px solid transparent;
@@ -1167,7 +1192,7 @@
       <div class="session-list-empty">Loading…</div>
     </div>
     <div class="sidebar-section-divider">
-      Roster <span class="count-badge" id="rosterCount" style="font-size:0.55rem; color: var(--text-muted); margin-left:4px;">0 / 5</span>
+      Full Panel <span class="count-badge" id="rosterCount" style="font-size:0.55rem; color: var(--text-muted); margin-left:4px;"></span>
     </div>
     <div class="sidebar-body" id="rosterList" style="flex: 1;"></div>
   </aside>
@@ -1264,7 +1289,9 @@
   const COLOR_MAP = { architect: '#f59e0b', critic: '#f87171', ux: '#60a5fa', otto: '#a78bfa', spengler: '#94a3b8' };
 
   // ── State ──────────────────────────────────────────────────────────────────
-  let seats = [null, null, null, null, null];   // persona | null for each seat
+  let seats = [null, null, null, null, null];   // persona | null for each seat (session participants only when session loaded)
+  let allActivePersonas = [];        // full roster of active non-moderator personas (never mutated by session loading)
+  let sessionParticipantIds = null;  // Set of identity ids that participated in the current session (null = no session loaded)
   let firedPool = [];                // personas in severance
   let pendingReinstate = null;       // persona waiting for seat selection
   let round = 0;
@@ -1287,9 +1314,10 @@
       const res = await fetch('/api/agents');
       if (!res.ok) throw new Error('status ' + res.status);
       const data = await res.json();
-      // Use all active personas (up to SEAT_COUNT), filtering out hiring-manager (center)
-      const active = (data.active || []).filter(p => !p.is_moderator).slice(0, SEAT_COUNT);
-      for (let i = 0; i < SEAT_COUNT; i++) seats[i] = active[i] || null;
+      // Full roster: all active non-moderator personas (no slice — we want them all for the panel)
+      allActivePersonas = (data.active || []).filter(p => !p.is_moderator);
+      // Use first SEAT_COUNT for the default circle seats
+      for (let i = 0; i < SEAT_COUNT; i++) seats[i] = allActivePersonas[i] || null;
       firedPool = data.fired || [];
     } catch (e) {
       console.warn('[congress] /api/agents failed, trying fallback:', e);
@@ -1298,18 +1326,16 @@
         const res = await fetch('/api/congress/identities');
         if (res.ok) {
           const ids = await res.json();
-          const debaters = ids.filter(i => i.name !== 'hiring-manager').slice(0, SEAT_COUNT);
-          for (let i = 0; i < SEAT_COUNT; i++) {
-            const d = debaters[i];
-            if (d) seats[i] = {
-              id: d.name, name: d.name,
-              display_name: d.display_name || '',
-              avatar_url: d.avatar_url || '',
-              emoji: EMOJI_MAP[d.name] || '🤖',
-              color: COLOR_MAP[d.name] || '#888',
-              description: d.role || '',
-            };
-          }
+          const debaters = ids.filter(i => i.name !== 'hiring-manager');
+          allActivePersonas = debaters.map(d => ({
+            id: d.name, name: d.name,
+            display_name: d.display_name || '',
+            avatar_url: d.avatar_url || '',
+            emoji: EMOJI_MAP[d.name] || '🤖',
+            color: COLOR_MAP[d.name] || '#888',
+            description: d.role || '',
+          }));
+          for (let i = 0; i < SEAT_COUNT; i++) seats[i] = allActivePersonas[i] || null;
           firedPool = [];
         }
       } catch (e2) { /* ignore */ }
@@ -1379,6 +1405,9 @@
             .map(r => r.identity)
         );
         if (participantIds.size > 0) {
+          // Track session participants for the Full Panel roster display
+          sessionParticipantIds = participantIds;
+
           // Remap seats: keep seat if it was a participant, otherwise null it out
           for (let i = 0; i < seats.length; i++) {
             if (seats[i] && !participantIds.has(seats[i].id)) {
@@ -1389,15 +1418,17 @@
           const seatedIds = new Set(seats.filter(Boolean).map(s => s.id));
           const unseated = [...participantIds].filter(id => !seatedIds.has(id));
           if (unseated.length > 0) {
-            // Try to get their info from firedPool or create a minimal entry
+            // Try to get their info from allActivePersonas, firedPool, or create a minimal entry
             unseated.forEach(id => {
+              const fromActive = allActivePersonas.find(p => p.id === id || p.name === id);
               const fromFired = firedPool.find(p => p.id === id || p.name === id);
-              const entry = fromFired || { id, name: id, display_name: id, emoji: '🤖', color: '#888' };
+              const entry = fromActive || fromFired || { id, name: id, display_name: id, emoji: '🤖', color: '#888' };
               const emptySlot = seats.indexOf(null);
               if (emptySlot !== -1) seats[emptySlot] = entry;
             });
           }
           renderCircle();
+          renderRoster(); // re-render roster with session SEATED/bench indicators
         }
       }
 
@@ -1651,21 +1682,41 @@
   function renderRoster() {
     const list = document.getElementById('rosterList');
     list.innerHTML = '';
-    const count = seats.filter(Boolean).length;
-    document.getElementById('rosterCount').textContent = count + ' / ' + SEAT_COUNT;
 
-    for (let i = 0; i < SEAT_COUNT; i++) {
-      const p = seats[i];
+    // Determine the source for the panel:
+    // If we have a full roster loaded, use it; otherwise fall back to seats
+    const panelPersonas = allActivePersonas.length > 0 ? allActivePersonas : seats.filter(Boolean);
+    const sessionMode = sessionParticipantIds !== null;
+
+    const seatedCount = sessionMode
+      ? panelPersonas.filter(p => sessionParticipantIds.has(p.id)).length
+      : panelPersonas.length;
+
+    // Update count badge: "X seated / Y total" when in session mode, else just count
+    const countBadge = document.getElementById('rosterCount');
+    if (sessionMode) {
+      countBadge.textContent = seatedCount + ' seated / ' + panelPersonas.length + ' total';
+    } else {
+      countBadge.textContent = panelPersonas.length + ' active';
+    }
+
+    if (panelPersonas.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'sidebar-empty';
+      empty.textContent = 'No active personas.';
+      list.appendChild(empty);
+      return;
+    }
+
+    panelPersonas.forEach(p => {
+      const isSeated = sessionMode ? sessionParticipantIds.has(p.id) : true;
       const card = document.createElement('div');
-      card.className = 'seat-card ' + (p ? 'occupied' : 'empty');
-      if (p && p.color) card.style.setProperty('--sc', p.color);
+      // In session mode: seated = highlighted occupied, bench = dimmed
+      // Outside session mode: all show as occupied (no session context)
+      card.className = 'seat-card ' + (isSeated ? 'occupied' : 'bench');
+      if (p.color) card.style.setProperty('--sc', p.color);
 
-      const num = document.createElement('span');
-      num.className = 'seat-num';
-      num.textContent = 'seat ' + (i + 1);
-      card.appendChild(num);
-
-      if (p && p.avatar_url) {
+      if (p.avatar_url) {
         const avatar = document.createElement('img');
         avatar.className = 'seat-avatar';
         avatar.src = p.avatar_url;
@@ -1674,7 +1725,7 @@
       } else {
         const emoji = document.createElement('span');
         emoji.className = 'seat-emoji';
-        emoji.textContent = p ? (p.emoji || '🤖') : '○';
+        emoji.textContent = p.emoji || '🤖';
         card.appendChild(emoji);
       }
 
@@ -1682,15 +1733,9 @@
       info.className = 'seat-info';
       const name = document.createElement('div');
       name.className = 'seat-name';
-      if (p) {
-        name.textContent = p.display_name || p.name;
-      } else {
-        name.textContent = 'empty seat';
-        name.style.color = 'var(--text-muted)';
-        name.style.fontStyle = 'italic';
-      }
+      name.textContent = p.display_name || p.name;
       info.appendChild(name);
-      if (p) {
+      if (p.title || p.description || p.role) {
         const desc = document.createElement('div');
         desc.className = 'seat-desc';
         desc.textContent = p.title || p.description || p.role || '';
@@ -1698,17 +1743,16 @@
       }
       card.appendChild(info);
 
-      if (p) {
-        const btn = document.createElement('button');
-        btn.className = 'btn-remove';
-        btn.textContent = '✕';
-        btn.title = 'Move to severance';
-        btn.addEventListener('click', () => removeToSeverance(i));
-        card.appendChild(btn);
+      // Seated badge (only shown in session mode)
+      if (sessionMode && isSeated) {
+        const badge = document.createElement('span');
+        badge.className = 'roster-badge seated';
+        badge.textContent = 'seated';
+        card.appendChild(badge);
       }
 
       list.appendChild(card);
-    }
+    });
   }
 
   function renderCircle() {
