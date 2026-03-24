@@ -163,6 +163,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         path = urllib.parse.urlparse(self.path).path
 
         if path == '/api/tasks':
+            if not _is_authed(self.headers):
+                self._json_auth_error()
+                return
             self._serve_tasks()
             return
 
@@ -174,15 +177,24 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
 
         if path == '/api/congress/sessions':
+            if not _is_authed(self.headers):
+                self._json_auth_error()
+                return
             self._serve_congress_sessions()
             return
 
         m = re.match(r'^/api/congress/sessions/(congress-\d+)$', path)
         if m:
+            if not _is_authed(self.headers):
+                self._json_auth_error()
+                return
             self._serve_congress_session(m.group(1))
             return
 
         if path == '/api/agents':
+            if not _is_authed(self.headers):
+                self._json_auth_error()
+                return
             self._serve_agents()
             return
 
@@ -426,13 +438,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._json_error(500, f"Could not update session: {e}")
             return
 
-        body = json.dumps({"ok": True, "session_id": session_id}).encode('utf-8')
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(body)))
-        self.send_header('Access-Control-Allow-Origin', 'https://hello.clung.us')
-        self.end_headers()
-        self.wfile.write(body)
+        self._send_json({"ok": True, "session_id": session_id})
 
     def _handle_congress_post(self):
         try:
@@ -501,13 +507,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 except Exception:
                     pass  # Non-fatal: session update failure doesn't block the response
 
-        body = json.dumps({"response": response_text, "identity": identity}).encode('utf-8')
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/json')
-        self.send_header('Content-Length', str(len(body)))
-        self.send_header('Access-Control-Allow-Origin', 'https://hello.clung.us')
-        self.end_headers()
-        self.wfile.write(body)
+        self._send_json({"response": response_text, "identity": identity})
 
     def _send_json(self, data, code=200, indent=None):
         body = json.dumps(data, indent=indent).encode('utf-8')
