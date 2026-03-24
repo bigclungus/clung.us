@@ -4,9 +4,11 @@ import http.server
 import json
 import os
 import glob
+import re
 
 SERVE_DIR = os.path.dirname(os.path.abspath(__file__))
 TASKS_DIR = "/home/clungus/work/bigclungus-meta/tasks"
+AGENTS_ACTIVE_DIR = "/home/clungus/work/bigclungus-meta/agents/active"
 
 _EVENT_TO_STATUS = {
     'started': 'in_progress',
@@ -55,9 +57,68 @@ def _enrich_task(task):
     return task
 
 
+def _parse_frontmatter(content):
+    """Parse YAML-style frontmatter from markdown content."""
+    meta = {}
+    body = content
+    m = re.match(r'^---\s*\n(.*?)\n---\s*\n(.*)', content, re.DOTALL)
+    if m:
+        fm_text = m.group(1)
+        body = m.group(2)
+        for line in fm_text.splitlines():
+            kv = re.match(r'^(\w[\w-]*):\s*(.*)$', line.strip())
+            if kv:
+                key = kv.group(1)
+                val = kv.group(2).strip()
+                # Parse list values like [a, b, c]
+                list_m = re.match(r'^\[(.*)\]$', val)
+                if list_m:
+                    val = [v.strip() for v in list_m.group(1).split(',') if v.strip()]
+                elif val.lower() == 'true':
+                    val = True
+                elif val.lower() == 'false':
+                    val = False
+                meta[key] = val
+    return meta, body.strip()
+
+
+def _load_identity(name):
+    """Load an identity file and return (meta, full_content) or None."""
+    fpath = os.path.join(AGENTS_ACTIVE_DIR, f'{name}.md')
+    if not os.path.isfile(fpath):
+        return None, None
+    with open(fpath, 'r') as f:
+        content = f.read()
+    meta, _ = _parse_frontmatter(content)
+    return meta, content
+
+
+def _call_claude(system_prompt, user_message):
+    """Call Claude claude-haiku-4-5-20251001 and return the text response."""
+    import anthropic
+    api_key = os.environ.get('ANTHROPIC_API_KEY')
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY not set")
+    client = anthropic.Anthropic(api_key=api_key)
+    message = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=512,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_message}]
+    )
+    return message.content[0].text
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=SERVE_DIR, **kwargs)
+
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
 
     def do_GET(self):
         import urllib.parse
@@ -67,11 +128,29 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._serve_tasks()
             return
 
+        if path == '/api/congress/identities':
+            self._serve_congress_identities()
+            return
+
+        if path == '/api/agents':
+            self._serve_agents()
+            return
+
         if '.' not in path.split('/')[-1]:
             candidate = os.path.join(SERVE_DIR, path.lstrip('/') + '.html')
             if os.path.isfile(candidate):
                 self.path = path + '.html'
         super().do_GET()
+
+    def do_POST(self):
+        import urllib.parse
+        path = urllib.parse.urlparse(self.path).path
+
+        if path == '/api/congress':
+            self._handle_congress_post()
+            return
+
+        self.send_error(404)
 
     def _serve_tasks(self):
         tasks = []
@@ -94,6 +173,148 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         body = json.dumps(tasks, indent=2).encode('utf-8')
         self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _serve_agents(self):
+        """Return active debaters and fired personas for the congress page."""
+        EMOJI_MAP = {
+            'architect': '🏗️', 'critic': '🔍', 'ux': '🎨',
+            'pragmatist': '🔧', 'devil': '😈',
+        }
+        COLOR_MAP = {
+            'architect': '#f59e0b', 'critic': '#f87171', 'ux': '#60a5fa',
+            'pragmatist': '#4ecca3', 'devil': '#c084fc',
+        }
+        AGENTS_DIR_BASE = os.path.dirname(AGENTS_ACTIVE_DIR)
+        active = []
+        fired = []
+
+        def load_agent_dir(dirpath, dest_list):
+            try:
+                for fpath in sorted(glob.glob(os.path.join(dirpath, '*.md'))):
+                    try:
+                        with open(fpath, 'r') as f:
+                            content = f.read()
+                        meta, _ = _parse_frontmatter(content)
+                        name = meta.get('name', '')
+                        if not name:
+                            continue
+                        dest_list.append({
+                            'id': name,
+                            'name': name,
+                            'role': meta.get('role', ''),
+                            'emoji': EMOJI_MAP.get(name, '🤖'),
+                            'color': COLOR_MAP.get(name, '#888888'),
+                            'description': meta.get('role', ''),
+                            'traits': meta.get('traits', []),
+                            'is_moderator': meta.get('name') == 'hiring-manager',
+                        })
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+        load_agent_dir(AGENTS_ACTIVE_DIR, active)
+        load_agent_dir(os.path.join(AGENTS_DIR_BASE, 'fired'), fired)
+
+        # Separate moderator from debaters
+        debaters = [a for a in active if not a.get('is_moderator')]
+
+        body = json.dumps({'active': debaters, 'fired': fired}).encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _serve_congress_identities(self):
+        identities = []
+        try:
+            for fpath in sorted(glob.glob(os.path.join(AGENTS_ACTIVE_DIR, '*.md'))):
+                try:
+                    with open(fpath, 'r') as f:
+                        content = f.read()
+                    meta, _ = _parse_frontmatter(content)
+                    if meta.get('name'):
+                        identities.append({
+                            'name': meta.get('name', ''),
+                            'role': meta.get('role', ''),
+                            'traits': meta.get('traits', []),
+                            'evolves': meta.get('evolves', False),
+                        })
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        body = json.dumps(identities).encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _handle_congress_post(self):
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+            raw = self.rfile.read(length)
+            data = json.loads(raw)
+        except Exception as e:
+            self._json_error(400, f"Invalid JSON: {e}")
+            return
+
+        task = data.get('task', '').strip()
+        identity = data.get('identity', '').strip()
+
+        if not task:
+            self._json_error(400, "Missing 'task' field")
+            return
+        if not identity:
+            self._json_error(400, "Missing 'identity' field")
+            return
+
+        # Sanitize identity name — only allow alphanumeric, dash, underscore
+        if not re.match(r'^[\w-]+$', identity):
+            self._json_error(400, "Invalid identity name")
+            return
+
+        meta, full_content = _load_identity(identity)
+        if full_content is None:
+            self._json_error(404, f"Identity '{identity}' not found")
+            return
+
+        user_message = (
+            "Congress is debating the following task/question. "
+            "Respond as your persona in 2-4 sentences, focused and direct:\n\n"
+            + task
+        )
+
+        try:
+            response_text = _call_claude(full_content, user_message)
+        except ValueError as e:
+            self._json_error(503, str(e))
+            return
+        except Exception as e:
+            self._json_error(500, f"Claude API error: {e}")
+            return
+
+        body = json.dumps({"response": response_text, "identity": identity}).encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _json_error(self, code, message):
+        body = json.dumps({"error": message}).encode('utf-8')
+        self.send_response(code)
         self.send_header('Content-Type', 'application/json')
         self.send_header('Content-Length', str(len(body)))
         self.send_header('Access-Control-Allow-Origin', '*')

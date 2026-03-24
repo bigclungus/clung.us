@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>congress — clung.us</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/sitenav.css">
+  <script src="/sitenav.js" defer></script>
+  <style>
+    :root {
+      --card-bg: #22223a;
+      --card-border: #333350;
+      --node-idle: #22223a;
+      --node-active: #e94560;
+      --node-done: #2d6a4f;
+      --node-border-idle: #444466;
+      --node-border-active: #e94560;
+      --node-border-done: #4ecca3;
+      --bubble-bg: #1e1e38;
+      --bubble-border: #444466;
+      --review-bg: #141425;
+      --teal: #4ecca3;
+    }
+    [data-theme="light"] {
+      --card-bg: #fff8ea;
+      --card-border: #d0c9b0;
+      --node-idle: #f5efe0;
+      --node-active: #e94560;
+      --node-done: #d4edda;
+      --node-border-idle: #c9b8a0;
+      --node-border-active: #e94560;
+      --node-border-done: #2aa198;
+      --bubble-bg: #ede7d4;
+      --bubble-border: #c9b8a0;
+      --review-bg: #f0e8d8;
+      --teal: #2aa198;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
+      transition: background 0.2s ease, color 0.2s ease;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Page header ── */
+    .page-header {
+      padding: 24px 32px 12px;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .page-header h1 {
+      margin: 0 0 4px;
+      font-size: 1.6rem;
+      color: var(--accent);
+      text-shadow: 0 0 14px var(--accent);
+    }
+    .page-header .subtitle {
+      color: var(--text-muted);
+      font-size: 0.78rem;
+    }
+
+    /* ── Task input ── */
+    .task-input-section {
+      padding: 24px 32px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--card-border);
+    }
+    .task-input-section textarea {
+      flex: 1;
+      min-width: 240px;
+      min-height: 72px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      padding: 10px 12px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .task-input-section textarea:focus {
+      border-color: var(--accent);
+    }
+    .task-input-section textarea::placeholder {
+      color: var(--text-muted);
+    }
+    .btn {
+      padding: 10px 20px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: opacity 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--text);
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); opacity: 1; }
+    .btn-yes { background: #2d6a4f; }
+    .btn-yes:hover { background: #3a8c66; opacity: 1; }
+    .btn-no { background: #6b2737; }
+    .btn-no:hover { background: #8c3347; opacity: 1; }
+
+    /* ── Parliament arena ── */
+    .arena-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 32px 16px 16px;
+    }
+    .arena {
+      position: relative;
+      width: min(600px, 90vw);
+      height: min(600px, 90vw);
+    }
+    .center-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 160px;
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      pointer-events: none;
+      transition: color 0.3s;
+    }
+    .center-label .task-preview {
+      color: var(--text);
+      font-size: 0.76rem;
+      margin-top: 6px;
+      font-style: italic;
+    }
+
+    /* Persona node */
+    .persona-node {
+      position: absolute;
+      width: 90px;
+      height: 90px;
+      transform: translate(-50%, -50%);
+      cursor: default;
+      z-index: 2;
+    }
+    .persona-node .node-circle {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: var(--node-idle);
+      border: 2px solid var(--node-border-idle);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
+    }
+    .persona-node .node-emoji {
+      font-size: 1.5rem;
+      line-height: 1;
+    }
+    .persona-node .node-name {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-align: center;
+      transition: color 0.3s;
+      max-width: 80px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    /* Active state */
+    .persona-node.active .node-circle {
+      background: #2a1520;
+      border-color: var(--node-border-active);
+      box-shadow: 0 0 20px var(--accent), 0 0 40px rgba(233,69,96,0.3);
+    }
+    .persona-node.active .node-name { color: var(--accent); }
+
+    /* Done state */
+    .persona-node.done .node-circle {
+      background: #102820;
+      border-color: var(--node-border-done);
+      box-shadow: 0 0 10px rgba(78, 204, 163, 0.3);
+    }
+    .persona-node.done .node-name { color: var(--teal); }
+
+    /* Speech bubble */
+    .speech-bubble {
+      position: absolute;
+      background: var(--bubble-bg);
+      border: 1px solid var(--bubble-border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 0.72rem;
+      line-height: 1.6;
+      color: var(--text);
+      max-width: 200px;
+      width: 200px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      z-index: 10;
+    }
+    .speech-bubble.visible { opacity: 1; pointer-events: auto; }
+    .speech-bubble .bubble-label {
+      color: var(--accent);
+      font-size: 0.65rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+      letter-spacing: 0.06em;
+    }
+    .speech-bubble .bubble-text {
+      color: var(--text);
+    }
+    .speech-bubble .bubble-loading {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      color: var(--text-muted);
+    }
+    .dot-pulse span {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      animation: dotpulse 1.2s infinite;
+    }
+    .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+    .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dotpulse {
+      0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+      30% { opacity: 1; transform: scale(1.1); }
+    }
+
+    /* ── Review bar ── */
+    .review-bar {
+      background: var(--review-bg);
+      border-top: 2px solid var(--accent);
+      padding: 20px 32px;
+      display: none;
+    }
+    .review-bar.visible { display: block; }
+    .review-label {
+      font-size: 0.7rem;
+      color: var(--accent);
+      letter-spacing: 0.12em;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .review-synthesis {
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: var(--text);
+      margin-bottom: 16px;
+      max-width: 720px;
+      border-left: 3px solid var(--accent);
+      padding-left: 12px;
+    }
+    .review-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .verdict-msg {
+      margin-top: 14px;
+      font-size: 0.8rem;
+      padding: 8px 12px;
+      border-radius: 4px;
+      display: none;
+    }
+    .verdict-msg.yes { background: #102820; border: 1px solid var(--teal); color: var(--teal); display: block; }
+    .verdict-msg.no { background: #200d10; border: 1px solid var(--accent); color: var(--accent); display: block; }
+    .verdict-msg.again { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-muted); display: block; }
+
+    /* Status line */
+    .status-line {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+      min-height: 1.2em;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <h1>congress</h1>
+    <div class="subtitle">AI parliament — personas deliberate, vote, decide</div>
+  </div>
+
+  <div class="task-input-section">
+    <textarea id="taskInput" placeholder="Enter a task or question for congress to debate...&#10;e.g. &quot;Should we add user auth to the congress API?&quot;"></textarea>
+    <button class="btn" id="conveneBtn" onclick="convene()">Convene Congress</button>
+  </div>
+
+  <div class="arena-wrap">
+    <div class="arena" id="arena">
+      <div class="center-label" id="centerLabel">
+        <span id="centerStatus">awaiting session</span>
+        <div class="task-preview" id="centerTask"></div>
+      </div>
+    </div>
+    <div class="status-line" id="statusLine"></div>
+  </div>
+
+  <div class="review-bar" id="reviewBar">
+    <div class="review-label">REVIEW — hiring-manager synthesis</div>
+    <div class="review-synthesis" id="reviewSynthesis">
+      <span class="dot-pulse"><span></span><span></span><span></span></span>
+    </div>
+    <div class="review-actions">
+      <button class="btn btn-yes" onclick="verdict('yes')">YES — EXECUTE</button>
+      <button class="btn btn-no" onclick="verdict('no')">NO — REJECT</button>
+      <button class="btn btn-secondary" onclick="verdict('again')">KEEP DEBATING</button>
+    </div>
+    <div class="verdict-msg" id="verdictMsg"></div>
+  </div>
+
+  <script>
+    const EMOJI_MAP = {
+      critic: '🔍',
+      architect: '🏗️',
+      ux: '👤',
+      'hiring-manager': '⚖️',
+    };
+
+    function getEmoji(name) {
+      return EMOJI_MAP[name] || '🤖';
+    }
+
+    let currentTask = '';
+    let personas = [];
+    let round = 0;
+    let allResponses = [];
+
+    // ── Layout personas in a circle ──
+    function layoutNodes(identities) {
+      const arena = document.getElementById('arena');
+      // Remove old nodes and bubbles
+      arena.querySelectorAll('.persona-node, .speech-bubble').forEach(el => el.remove());
+
+      const W = arena.offsetWidth;
+      const H = arena.offsetHeight;
+      const cx = W / 2;
+      const cy = H / 2;
+      const r = Math.min(W, H) * 0.36;
+
+      identities.forEach((id, i) => {
+        const angle = (2 * Math.PI * i / identities.length) - Math.PI / 2;
+        const nx = cx + r * Math.cos(angle);
+        const ny = cy + r * Math.sin(angle);
+
+        // Node
+        const node = document.createElement('div');
+        node.className = 'persona-node';
+        node.id = `node-${id.name}`;
+        node.style.left = nx + 'px';
+        node.style.top = ny + 'px';
+        node.innerHTML = `
+          <div class="node-circle">
+            <div class="node-emoji">${getEmoji(id.name)}</div>
+            <div class="node-name">${id.name}</div>
+          </div>`;
+        arena.appendChild(node);
+
+        // Bubble — position outside the circle
+        const bubble = document.createElement('div');
+        bubble.className = 'speech-bubble';
+        bubble.id = `bubble-${id.name}`;
+
+        // Position bubble: push it further from center
+        const bOffset = 110;
+        const bx = cx + (r + bOffset) * Math.cos(angle);
+        const by = cy + (r + bOffset) * Math.sin(angle);
+
+        // Adjust so bubble doesn't overflow arena
+        const bw = 200;
+        let bleft = bx - bw / 2;
+        let btop = by - 50;
+        bleft = Math.max(4, Math.min(W - bw - 4, bleft));
+        btop = Math.max(4, Math.min(H - 120, btop));
+
+        bubble.style.left = bleft + 'px';
+        bubble.style.top = btop + 'px';
+        bubble.innerHTML = `<div class="bubble-label">${id.name}</div><div class="bubble-text"></div>`;
+        arena.appendChild(bubble);
+      });
+    }
+
+    function setNodeState(name, state) {
+      const node = document.getElementById(`node-${name}`);
+      if (node) {
+        node.classList.remove('active', 'done');
+        if (state) node.classList.add(state);
+      }
+    }
+
+    function showBubbleLoading(name) {
+      const bubble = document.getElementById(`bubble-${name}`);
+      if (!bubble) return;
+      bubble.querySelector('.bubble-text').innerHTML =
+        '<div class="bubble-loading"><div class="dot-pulse"><span></span><span></span><span></span></div></div>';
+      bubble.classList.add('visible');
+    }
+
+    function setBubbleText(name, text) {
+      const bubble = document.getElementById(`bubble-${name}`);
+      if (!bubble) return;
+      bubble.querySelector('.bubble-text').textContent = text;
+    }
+
+    function hideBubble(name) {
+      const bubble = document.getElementById(`bubble-${name}`);
+      if (bubble) bubble.classList.remove('visible');
+    }
+
+    function setStatus(msg) {
+      document.getElementById('statusLine').textContent = msg;
+    }
+
+    async function convene() {
+      const taskInput = document.getElementById('taskInput');
+      const task = taskInput.value.trim();
+      if (!task) { taskInput.focus(); return; }
+
+      currentTask = task;
+      round++;
+      allResponses = [];
+
+      document.getElementById('conveneBtn').disabled = true;
+      document.getElementById('reviewBar').classList.remove('visible');
+      document.getElementById('verdictMsg').className = 'verdict-msg';
+      document.getElementById('centerTask').textContent = task.length > 80 ? task.slice(0, 77) + '...' : task;
+      document.getElementById('centerStatus').textContent = 'loading personas...';
+
+      setStatus('fetching identities...');
+
+      let identities;
+      try {
+        const res = await fetch('/api/congress/identities');
+        identities = await res.json();
+      } catch (e) {
+        setStatus('error: could not load identities');
+        document.getElementById('conveneBtn').disabled = false;
+        return;
+      }
+
+      // Split hiring-manager from the rest
+      const moderator = identities.find(i => i.name === 'hiring-manager');
+      const debaters = identities.filter(i => i.name !== 'hiring-manager');
+      personas = identities;
+
+      // All nodes including hiring-manager in circle
+      layoutNodes(identities);
+      document.getElementById('centerStatus').textContent = 'in session';
+      setStatus(`round ${round} — ${debaters.length} persona(s) deliberating`);
+
+      // Debate phase
+      const debateTexts = [];
+      for (const persona of debaters) {
+        setNodeState(persona.name, 'active');
+        showBubbleLoading(persona.name);
+        setStatus(`${persona.name} is speaking...`);
+
+        try {
+          const res = await fetch('/api/congress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ task, identity: persona.name }),
+          });
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+          setBubbleText(persona.name, data.response);
+          debateTexts.push({ name: persona.name, text: data.response });
+          allResponses.push({ name: persona.name, text: data.response });
+        } catch (e) {
+          setBubbleText(persona.name, `[error: ${e.message}]`);
+          debateTexts.push({ name: persona.name, text: `(failed to respond)` });
+        }
+
+        setNodeState(persona.name, 'done');
+        // Small pause between speakers
+        await new Promise(r => setTimeout(r, 400));
+      }
+
+      setStatus('hiring-manager synthesizing...');
+
+      // Hiring-manager synthesis
+      if (moderator) {
+        setNodeState('hiring-manager', 'active');
+        showBubbleLoading('hiring-manager');
+
+        const summaryTask =
+          `The congress just debated the following task:\n\n"${task}"\n\nHere are the persona responses:\n\n` +
+          debateTexts.map(d => `[${d.name}]: ${d.text}`).join('\n\n') +
+          `\n\nSynthesize the key points, note consensus and disagreement, and issue a concise recommendation.`;
+
+        try {
+          const res = await fetch('/api/congress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ task: summaryTask, identity: 'hiring-manager' }),
+          });
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+          setBubbleText('hiring-manager', data.response);
+          document.getElementById('reviewSynthesis').textContent = data.response;
+          allResponses.push({ name: 'hiring-manager', text: data.response });
+        } catch (e) {
+          setBubbleText('hiring-manager', `[error: ${e.message}]`);
+          document.getElementById('reviewSynthesis').textContent = `Synthesis failed: ${e.message}`;
+        }
+
+        setNodeState('hiring-manager', 'done');
+      }
+
+      document.getElementById('reviewBar').classList.add('visible');
+      setStatus(`round ${round} complete — review the synthesis below`);
+      document.getElementById('conveneBtn').disabled = false;
+    }
+
+    function verdict(choice) {
+      const msg = document.getElementById('verdictMsg');
+      msg.className = 'verdict-msg';
+      // Force reflow
+      void msg.offsetWidth;
+      if (choice === 'yes') {
+        msg.className = 'verdict-msg yes';
+        msg.textContent = 'Task marked for execution. Good luck.';
+        // Disable action buttons briefly
+        document.querySelectorAll('.review-actions .btn').forEach(b => b.disabled = true);
+      } else if (choice === 'no') {
+        msg.className = 'verdict-msg no';
+        msg.textContent = 'Task rejected by congress.';
+        document.querySelectorAll('.review-actions .btn').forEach(b => b.disabled = true);
+      } else {
+        msg.className = 'verdict-msg again';
+        msg.textContent = 'Starting another round of deliberation...';
+        setTimeout(() => convene(), 800);
+      }
+    }
+  </script>
+</body>
+</html>
