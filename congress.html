@@ -60,11 +60,11 @@
       flex-direction: column;
     }
 
-    /* ── Two-column layout ── */
+    /* ── Three-column layout ── */
     .congress-layout {
       flex: 1;
       display: grid;
-      grid-template-columns: 240px 1fr;
+      grid-template-columns: 240px 1fr 240px;
       min-height: 0;
     }
 
@@ -683,6 +683,7 @@
         grid-template-columns: 1fr;
       }
       .sidebar-left { order: 2; border-right: none; border-bottom: 1px solid var(--panel-border); }
+      .sidebar-right { order: 3; border-left: none; border-top: 1px solid var(--panel-border); }
       .arena-col { order: 1; }
     }
 
@@ -1204,7 +1205,7 @@
     <div class="sidebar-section-divider">
       Active <span class="count-badge" id="rosterCount" style="font-size:0.55rem; color: var(--text-muted); margin-left:4px;"></span>
     </div>
-    <div class="sidebar-body" id="rosterList" style="flex: 1;"></div>
+    <div class="sidebar-body" id="rosterList" style="flex: 0 1 auto;"></div>
     <div class="sidebar-section-divider" id="leftSeveranceDivider" style="display:none;">
       Severance <span class="count-badge" id="leftSeveranceCount" style="font-size:0.55rem; color: var(--text-muted); margin-left:4px;"></span>
     </div>
