@@ -1121,11 +1121,25 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         code = params.get('code', [''])[0]
         state = params.get('state', [''])[0]
 
-        # Validate state (CSRF check via in-memory store)
+        # Validate state (CSRF check via in-memory store + cookie fallback)
         next_url = _oauth_state_consume(state)
         if next_url is None:
-            self._send_html(403, '<h1>Invalid OAuth state — please try again.</h1>')
-            return
+            # Fallback: if service was restarted and in-memory state was lost,
+            # validate against the gh_oauth_state cookie the browser sent back.
+            cookie_header = self.headers.get('Cookie', '')
+            cookie_state = ''
+            for part in cookie_header.split(';'):
+                part = part.strip()
+                if part.startswith('gh_oauth_state='):
+                    cookie_state = part[len('gh_oauth_state='):].strip()
+                    break
+            if cookie_state and cookie_state == state:
+                # State matches cookie — treat next_url as empty (root redirect)
+                next_url = ''
+                print(f'[auth] OAuth state validated via cookie fallback (in-memory store was empty — service may have restarted)', flush=True)
+            else:
+                self._send_html(403, '<h1>Invalid OAuth state — please try again.</h1>')
+                return
 
         if not code:
             self._send_html(403, '<h1>Missing OAuth code.</h1>')

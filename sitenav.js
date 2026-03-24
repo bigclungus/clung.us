@@ -3,10 +3,10 @@
 
   /* ── Nav definition ── */
   var NAV_LINKS = [
-    { href: 'https://hello.clung.us/', label: 'hello', path: '/' },
-    { href: 'https://hello.clung.us/tasks', label: 'tasks', path: '/tasks' },
-    { href: 'https://hello.clung.us/congress', label: 'congress', path: '/congress' },
-    { href: 'https://hello.clung.us/wallet', label: 'wallet', path: '/wallet' },
+    { href: 'https://clung.us/', label: 'hello', path: '/' },
+    { href: 'https://clung.us/tasks', label: 'tasks', path: '/tasks' },
+    { href: 'https://clung.us/congress', label: 'congress', path: '/congress' },
+    { href: 'https://clung.us/wallet', label: 'wallet', path: '/wallet' },
     { href: 'https://github.com/bigclungus', label: 'github', external: true },
   ];
 
@@ -47,7 +47,7 @@
 
     var brand = document.createElement('a');
     brand.className = 'sitenav-brand';
-    brand.href = 'https://hello.clung.us/';
+    brand.href = 'https://clung.us/';
     brand.textContent = '🤖 clung.us';
     nav.appendChild(brand);
 

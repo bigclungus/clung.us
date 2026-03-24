@@ -49,6 +49,18 @@
 
 - use grok-4.20-0309-reasoning (latest, was mistakenly downgraded to grok-3)
 
+- exclude vote rounds from debate feed columns
+
+- filter NONE task-creation entry from synthesis view
+
+- filter Claude CLI system/init events from congress debate output
+
+- log warning in _call_claude_cli when no assistant text is extracted
+
+- move musicBar div before script tag to prevent JS crash on init
+
+- music bar fixed to viewport bottom; filter congress:false from roster snapshot
+
 
 ### Changes
 - add /tasks endpoint and tasks.html dashboard
@@ -197,6 +209,22 @@
 
 - clean up serve.py — remove dead code, tighten patterns
 
+- Fix milestone/blocked/user_feedback event types leaking as task status
+
+- Mark congress-0017 as failed (stalled workflow)
+
+- Remove deaths.html and changelog; retire 1998 and cost tunnel routes
+
+- Replace static landing page with live at-a-glance dashboard
+
+- Improve tasks dashboard: priority sort, inline snippets, age indicators, relative timestamps
+
+- Wire GitHub webhook to GitHubWebhookWorkflow via Temporal
+
+- flat recency sort instead of status-priority grouping
+
+- verify HMAC-signed auth cookie
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
@@ -272,6 +300,18 @@
 - show RETAIN/EVOLVE/FIRE stats in persona cards (small font)
 
 - add opus model routing in congress (claude-opus-4-6)
+
+- GitHub webhook receiver for issues/comments/PRs
+
+- make congress UI fully read-only (remove reinstate buttons)
+
+- add Holden Bloodfeast avatar
+
+- add congress:false flag to exclude personas from congress seats
+
+- congress page defaults to latest session, add bottom music bar with persistent mute
+
+- move OAuth issuer to clung.us, add /terminal redirect, retire hello.clung.us
 
 
 ### Refactoring

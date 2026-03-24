@@ -23,7 +23,7 @@ HTML = r"""<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <link rel="icon" type="image/png" href="https://hello.clung.us/favicon.png">
+  <link rel="icon" type="image/png" href="https://clung.us/favicon.png">
   <title>BigClungus Live Terminal</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css" />
   <style>
