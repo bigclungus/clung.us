@@ -203,6 +203,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._serve_changelog()
             return
 
+        if path == '/api/wallet/balance':
+            self._serve_wallet_balance()
+            return
+
         if '.' not in path.split('/')[-1]:
             candidate = os.path.join(SERVE_DIR, path.lstrip('/') + '.html')
             if os.path.isfile(candidate):
@@ -289,6 +293,40 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         self.wfile.write(body)
+
+    def _serve_wallet_balance(self):
+        """Fetch ETH balance on Base for the public wallet address."""
+        import urllib.request as _urlreq
+        ADDRESS = '0x425bC492E43b2a5Eb7E02c9F5dd9c1D2F378f02f'
+        BASE_RPC = 'https://mainnet.base.org'
+        payload = json.dumps({
+            'jsonrpc': '2.0',
+            'method': 'eth_getBalance',
+            'params': [ADDRESS, 'latest'],
+            'id': 1,
+        }).encode('utf-8')
+        try:
+            req = _urlreq.Request(
+                BASE_RPC,
+                data=payload,
+                headers={'Content-Type': 'application/json'},
+                method='POST',
+            )
+            with _urlreq.urlopen(req, timeout=8) as resp:
+                rdata = json.loads(resp.read().decode('utf-8'))
+            hex_val = rdata.get('result', '0x0')
+            wei = int(hex_val, 16)
+            eth = wei / 1e18
+            balance_str = f'{eth:.6f}'.rstrip('0').rstrip('.')
+            if '.' not in balance_str:
+                balance_str += '.0'
+            self._send_json({
+                'address': ADDRESS,
+                'balance_eth': balance_str,
+                'chain': 'Base',
+            })
+        except Exception as e:
+            self._json_error(502, f'RPC error: {e}')
 
     def _serve_agents(self):
         """Return active debaters and fired personas for the congress page."""
