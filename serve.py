@@ -143,7 +143,7 @@ def _call_gemini_cli(system_prompt, user_message):
     # Combine system prompt + user message as the full prompt; gemini -p appends to stdin
     full_prompt = system_prompt + "\n\n" + user_message
     result = subprocess.run(
-        ['/usr/local/bin/gemini', '--output-format', 'text', '-p', full_prompt],
+        ['/usr/local/bin/gemini', '--output-format', 'text', '--max-tokens', '300', '-p', full_prompt],
         input='',
         capture_output=True,
         text=True,
@@ -165,7 +165,7 @@ def _call_grok(system_prompt: str, user_message: str) -> str:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message}
         ],
-        "max_tokens": 1000
+        "max_tokens": 300
     }).encode()
     req = _urlreq.Request(
         "https://api.x.ai/v1/chat/completions",
@@ -191,7 +191,7 @@ def _call_claude(system_prompt, user_message):
         client = anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=512,
+            max_tokens=300,
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}]
         )
@@ -602,7 +602,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         user_message = (
             "Congress is debating the following task/question. "
-            "Respond as your persona in 2-4 sentences, focused and direct:\n\n"
+            "Respond in 3 sentences maximum. Be direct and sharp — no padding, no hedging, no lists:\n\n"
             + task
         )
 
