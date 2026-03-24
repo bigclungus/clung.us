@@ -578,6 +578,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             content = f.read()
                         meta, _ = _parse_frontmatter(content)
                         if meta.get('name'):
+                            # Exclude personas with congress: false from congress seat selection
+                            if meta.get('congress') is False:
+                                continue
                             identities.append({
                                 'name': meta.get('name', ''),
                                 'role': meta.get('role', ''),
