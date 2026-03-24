@@ -180,6 +180,17 @@
       box-shadow: none;
     }
     .seat-card.bench .seat-name { color: var(--text-muted); }
+    /* ── Severance cards in session mode ── */
+    .fired-card.seated {
+      border-color: var(--sc, var(--accent));
+      box-shadow: 0 0 5px color-mix(in srgb, var(--sc, var(--accent)) 25%, transparent);
+    }
+    .fired-card.bench {
+      opacity: 0.38;
+      border-style: dashed;
+      box-shadow: none;
+    }
+    .fired-card.bench .seat-name { color: var(--text-muted); }
 
     .btn-remove {
       background: none;
@@ -1195,6 +1206,10 @@
       Full Panel <span class="count-badge" id="rosterCount" style="font-size:0.55rem; color: var(--text-muted); margin-left:4px;"></span>
     </div>
     <div class="sidebar-body" id="rosterList" style="flex: 1;"></div>
+    <div class="sidebar-section-divider" id="leftSeveranceDivider" style="display:none;">
+      Severance <span class="count-badge" id="leftSeveranceCount" style="font-size:0.55rem; color: var(--text-muted); margin-left:4px;"></span>
+    </div>
+    <div class="sidebar-body" id="leftSeveranceList" style="flex: 0 1 auto; max-height: 30%;"></div>
   </aside>
 
   <!-- CENTER: Arena -->
@@ -1725,14 +1740,20 @@
     const panelPersonas = allActivePersonas.length > 0 ? allActivePersonas : seats.filter(Boolean);
     const sessionMode = sessionParticipantIds !== null;
 
-    const seatedCount = sessionMode
+    // Severance personas that participated in the current session
+    const seatedFired = sessionMode
+      ? firedPool.filter(p => sessionParticipantIds.has(p.id || p.name))
+      : [];
+
+    const activeSeatedCount = sessionMode
       ? panelPersonas.filter(p => sessionParticipantIds.has(p.id)).length
       : panelPersonas.length;
+    const totalSeatedCount = activeSeatedCount + seatedFired.length;
 
     // Update count badge: "X seated / Y total" when in session mode, else just count
     const countBadge = document.getElementById('rosterCount');
     if (sessionMode) {
-      countBadge.textContent = seatedCount + ' seated / ' + panelPersonas.length + ' total';
+      countBadge.textContent = totalSeatedCount + ' seated / ' + panelPersonas.length + ' total';
     } else {
       countBadge.textContent = panelPersonas.length + ' active';
     }
@@ -1742,54 +1763,117 @@
       empty.className = 'sidebar-empty';
       empty.textContent = 'No active personas.';
       list.appendChild(empty);
-      return;
+    } else {
+      panelPersonas.forEach(p => {
+        const isSeated = sessionMode ? sessionParticipantIds.has(p.id) : true;
+        const card = document.createElement('div');
+        // In session mode: seated = highlighted occupied, bench = dimmed
+        // Outside session mode: all show as occupied (no session context)
+        card.className = 'seat-card ' + (isSeated ? 'occupied' : 'bench');
+        if (p.color) card.style.setProperty('--sc', p.color);
+
+        if (p.avatar_url) {
+          const avatar = document.createElement('img');
+          avatar.className = 'seat-avatar';
+          avatar.src = p.avatar_url;
+          avatar.alt = p.display_name || p.name;
+          card.appendChild(avatar);
+        } else {
+          const emoji = document.createElement('span');
+          emoji.className = 'seat-emoji';
+          emoji.textContent = p.emoji || '🤖';
+          card.appendChild(emoji);
+        }
+
+        const info = document.createElement('div');
+        info.className = 'seat-info';
+        const name = document.createElement('div');
+        name.className = 'seat-name';
+        name.textContent = p.display_name || p.name;
+        info.appendChild(name);
+        if (p.title || p.description || p.role) {
+          const desc = document.createElement('div');
+          desc.className = 'seat-desc';
+          desc.textContent = p.title || p.description || p.role || '';
+          info.appendChild(desc);
+        }
+        card.appendChild(info);
+
+        // Seated badge (only shown in session mode)
+        if (sessionMode && isSeated) {
+          const badge = document.createElement('span');
+          badge.className = 'roster-badge seated';
+          badge.textContent = 'seated';
+          card.appendChild(badge);
+        }
+
+        list.appendChild(card);
+      });
     }
 
-    panelPersonas.forEach(p => {
-      const isSeated = sessionMode ? sessionParticipantIds.has(p.id) : true;
-      const card = document.createElement('div');
-      // In session mode: seated = highlighted occupied, bench = dimmed
-      // Outside session mode: all show as occupied (no session context)
-      card.className = 'seat-card ' + (isSeated ? 'occupied' : 'bench');
-      if (p.color) card.style.setProperty('--sc', p.color);
+    // ── Left-pane Severance section ──────────────────────────────────────────
+    // Show all severance personas in the left pane; in session mode apply seated/bench logic.
+    const leftSeveranceDivider = document.getElementById('leftSeveranceDivider');
+    const leftSeveranceList = document.getElementById('leftSeveranceList');
+    leftSeveranceList.innerHTML = '';
 
-      if (p.avatar_url) {
-        const avatar = document.createElement('img');
-        avatar.className = 'seat-avatar';
-        avatar.src = p.avatar_url;
-        avatar.alt = p.display_name || p.name;
-        card.appendChild(avatar);
+    if (firedPool.length === 0) {
+      leftSeveranceDivider.style.display = 'none';
+    } else {
+      leftSeveranceDivider.style.display = '';
+      const leftSeveranceCount = document.getElementById('leftSeveranceCount');
+      if (sessionMode) {
+        leftSeveranceCount.textContent = seatedFired.length > 0
+          ? seatedFired.length + ' seated / ' + firedPool.length + ' total'
+          : firedPool.length + ' total';
       } else {
-        const emoji = document.createElement('span');
-        emoji.className = 'seat-emoji';
-        emoji.textContent = p.emoji || '🤖';
-        card.appendChild(emoji);
+        leftSeveranceCount.textContent = firedPool.length;
       }
 
-      const info = document.createElement('div');
-      info.className = 'seat-info';
-      const name = document.createElement('div');
-      name.className = 'seat-name';
-      name.textContent = p.display_name || p.name;
-      info.appendChild(name);
-      if (p.title || p.description || p.role) {
-        const desc = document.createElement('div');
-        desc.className = 'seat-desc';
-        desc.textContent = p.title || p.description || p.role || '';
-        info.appendChild(desc);
-      }
-      card.appendChild(info);
+      firedPool.forEach(p => {
+        const isSeated = sessionMode ? sessionParticipantIds.has(p.id || p.name) : false;
+        const card = document.createElement('div');
+        card.className = 'fired-card' + (sessionMode ? (isSeated ? ' seated' : ' bench') : '');
+        if (p.color) card.style.setProperty('--sc', p.color);
 
-      // Seated badge (only shown in session mode)
-      if (sessionMode && isSeated) {
-        const badge = document.createElement('span');
-        badge.className = 'roster-badge seated';
-        badge.textContent = 'seated';
-        card.appendChild(badge);
-      }
+        if (p.avatar_url) {
+          const avatar = document.createElement('img');
+          avatar.className = 'seat-avatar';
+          avatar.src = p.avatar_url;
+          avatar.alt = p.display_name || p.name;
+          card.appendChild(avatar);
+        } else {
+          const emoji = document.createElement('span');
+          emoji.className = 'seat-emoji';
+          emoji.textContent = p.emoji || '🤖';
+          card.appendChild(emoji);
+        }
 
-      list.appendChild(card);
-    });
+        const info = document.createElement('div');
+        info.className = 'seat-info';
+        const name = document.createElement('div');
+        name.className = 'seat-name';
+        name.textContent = p.display_name || p.name;
+        info.appendChild(name);
+        if (p.title || p.role) {
+          const desc = document.createElement('div');
+          desc.className = 'seat-desc';
+          desc.textContent = p.title || p.role;
+          info.appendChild(desc);
+        }
+        card.appendChild(info);
+
+        // Seated badge (only shown in session mode)
+        if (sessionMode && isSeated) {
+          const badge = document.createElement('span');
+          badge.className = 'roster-badge seated';
+          badge.textContent = 'seated';
+          card.appendChild(badge);
+        }
+
+        leftSeveranceList.appendChild(card);
+      });
+    }
   }
 
   function renderCircle() {
@@ -1843,9 +1927,12 @@
       return;
     }
 
+    const sessionMode = sessionParticipantIds !== null;
+
     firedPool.forEach(p => {
+      const isSeated = sessionMode ? sessionParticipantIds.has(p.id || p.name) : false;
       const card = document.createElement('div');
-      card.className = 'fired-card';
+      card.className = 'fired-card' + (sessionMode ? (isSeated ? ' seated' : ' bench') : '');
       if (p.color) card.style.setProperty('--sc', p.color);
 
       if (p.avatar_url) {
@@ -1880,6 +1967,14 @@
         info.appendChild(reason);
       }
       card.appendChild(info);
+
+      // Seated badge (only shown in session mode)
+      if (sessionMode && isSeated) {
+        const badge = document.createElement('span');
+        badge.className = 'roster-badge seated';
+        badge.textContent = 'seated';
+        card.appendChild(badge);
+      }
 
       const btn = document.createElement('button');
       btn.className = 'btn-reinstate';
