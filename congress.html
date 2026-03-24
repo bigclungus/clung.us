@@ -752,17 +752,32 @@
       color: var(--teal);
     }
 
-    /* ── Soundtrack link ── */
-    #soundtrackLink {
+    /* ── Soundtrack ── */
+    #soundtrackWrap {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    #soundtrackWrap.visible { display: flex; }
+    #soundtrackLabel {
       font-size: 0.72rem;
       color: var(--text-muted);
-      text-decoration: none;
-      opacity: 0.7;
-      transition: opacity 0.2s;
       letter-spacing: 0.04em;
-      padding: 3px 0;
+      animation: soundtrackPulse 1.6s ease-in-out infinite;
     }
-    #soundtrackLink:hover { opacity: 1; color: var(--teal); }
+    @keyframes soundtrackPulse {
+      0%, 100% { opacity: 0.5; }
+      50%       { opacity: 1;   color: var(--teal); }
+    }
+    #soundtrackFrame {
+      border: none;
+      border-radius: 4px;
+      width: 320px;
+      height: 180px;
+    }
+    /* keep the old id as an alias so nothing else breaks */
+    #soundtrackLink { display: none; }
 
     /* ── Topic display ── */
     .topic-display {
@@ -1176,9 +1191,14 @@
     <!-- Round/status banner -->
     <div class="round-banner" id="roundBanner"></div>
 
-    <!-- Soundtrack link (shown only during deliberation) -->
+    <!-- Soundtrack (shown only during deliberation) -->
+    <!-- legacy anchor kept for any external references -->
     <a id="soundtrackLink" href="https://www.youtube.com/watch?v=h6N1_GJAyFw" target="_blank" rel="noopener"
        style="display:none">🎵 Congressional Soundtrack</a>
+    <div id="soundtrackWrap">
+      <span id="soundtrackLabel">🎵 Congressional Soundtrack</span>
+      <!-- iframe injected/removed by setCenterDeliberating() -->
+    </div>
 
     <div class="arena" id="arena">
       <div class="center-label" id="centerLabel">
@@ -1460,6 +1480,8 @@
     statusLine.appendChild(document.createTextNode(sessionId + ' — ' + st));
   }
 
+  const SOUNDTRACK_URL = 'https://www.youtube.com/embed/h6N1_GJAyFw';
+
   function setCenterDeliberating(active) {
     const cl = document.getElementById('centerLabel');
     if (!cl) return;
@@ -1468,8 +1490,29 @@
     } else {
       cl.classList.remove('deliberating-active');
     }
-    const sl = document.getElementById('soundtrackLink');
-    if (sl) sl.style.display = active ? 'inline' : 'none';
+
+    const wrap = document.getElementById('soundtrackWrap');
+    if (!wrap) return;
+
+    if (active) {
+      wrap.classList.add('visible');
+      // Inject a fresh iframe so autoplay fires reliably
+      if (!document.getElementById('soundtrackFrame')) {
+        const iframe = document.createElement('iframe');
+        iframe.id = 'soundtrackFrame';
+        iframe.className = 'soundtrackFrame';
+        // autoplay=1, loop=1 — browser will honour autoplay inside an iframe embed
+        iframe.src = SOUNDTRACK_URL + '?autoplay=1&loop=1&playlist=h6N1_GJAyFw&rel=0';
+        iframe.allow = 'autoplay; encrypted-media';
+        iframe.allowFullscreen = true;
+        wrap.appendChild(iframe);
+      }
+    } else {
+      wrap.classList.remove('visible');
+      // Remove iframe so audio actually stops
+      const old = document.getElementById('soundtrackFrame');
+      if (old) old.remove();
+    }
   }
 
   function startSessionPolling(sessionId) {
