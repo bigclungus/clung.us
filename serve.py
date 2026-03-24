@@ -541,6 +541,44 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         num = self._next_session_number()
         session_id = f"congress-{num:04d}"
+
+        # Snapshot the current persona roster so historical sessions show who existed then
+        EMOJI_MAP_LOCAL = {
+            'architect': '🏗️', 'critic': '🔍', 'ux': '🎨',
+            'otto': '🌪️', 'spengler': '🕰️', 'hiring-manager': '⚖️',
+        }
+        COLOR_MAP_LOCAL = {
+            'architect': '#f59e0b', 'critic': '#f87171', 'ux': '#60a5fa',
+            'otto': '#a78bfa', 'spengler': '#94a3b8',
+        }
+        roster = []
+        for dirpath, status in ((AGENTS_ACTIVE_DIR, 'active'), (AGENTS_FIRED_DIR, 'severance')):
+            try:
+                for fpath_agent in sorted(glob.glob(os.path.join(dirpath, '*.md'))):
+                    try:
+                        with open(fpath_agent, 'r') as _af:
+                            content = _af.read()
+                        meta, _ = _parse_frontmatter(content)
+                        name = meta.get('name', '')
+                        if not name or name == 'hiring-manager':
+                            continue
+                        roster.append({
+                            'id': name,
+                            'name': name,
+                            'display_name': meta.get('display_name', ''),
+                            'title': meta.get('title', ''),
+                            'avatar_url': meta.get('avatar_url', ''),
+                            'status': status,
+                            'emoji': EMOJI_MAP_LOCAL.get(name, '🤖'),
+                            'color': COLOR_MAP_LOCAL.get(name, '#888888'),
+                            'description': meta.get('role', ''),
+                            'role': meta.get('role', ''),
+                        })
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
         session = {
             "session_id": session_id,
             "session_number": num,
@@ -549,6 +587,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             "status": "deliberating",
             "rounds": [],
             "verdict": None,
+            "roster": roster,
         }
 
         os.makedirs(SESSIONS_DIR, exist_ok=True)
