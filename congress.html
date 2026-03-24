@@ -21,7 +21,7 @@
       --btn-border: #444466;
       --node-idle: #22223a;
       --node-border-idle: #444466;
-      --node-border-active: #e94560;
+      --node-border-active: #f59e0b;
       --node-border-done: #4ecca3;
       --bubble-bg: #1e1e38;
       --bubble-border: #444466;
@@ -41,7 +41,7 @@
       --btn-border: #bbb5a0;
       --node-idle: #f5efe0;
       --node-border-idle: #c9b8a0;
-      --node-border-active: #e94560;
+      --node-border-active: #f59e0b;
       --node-border-done: #2aa198;
       --bubble-bg: #ede7d4;
       --bubble-border: #c9b8a0;
@@ -149,7 +149,7 @@
       text-overflow: ellipsis;
     }
     .seat-desc {
-      font-size: 0.58rem;
+      font-size: 0.75rem;
       color: var(--text-muted);
       white-space: nowrap;
       overflow: hidden;
@@ -471,7 +471,7 @@
     }
     .persona-node .node-emoji { font-size: 1.45rem; line-height: 1; }
     .persona-node .node-display-name {
-      font-size: 0.48rem;
+      font-size: 0.75rem;
       font-weight: 700;
       color: var(--text);
       text-align: center;
@@ -480,9 +480,11 @@
       white-space: nowrap;
       text-overflow: ellipsis;
       transition: color 0.3s;
+      display: none; /* shown on hover via JS — too cramped at node size */
     }
+    .persona-node:hover .node-display-name { display: block; }
     .persona-node .node-title {
-      font-size: 0.40rem;
+      font-size: 0.75rem;
       color: var(--text-muted);
       text-align: center;
       max-width: 86px;
@@ -492,13 +494,15 @@
       text-transform: uppercase;
       letter-spacing: 0.06em;
       margin-top: 0px;
+      display: none; /* shown on hover */
     }
+    .persona-node:hover .node-title { display: block; }
     .persona-node.active .node-circle {
-      background: #2a1520;
+      background: #2a1f00;
       border-color: var(--node-border-active);
-      box-shadow: 0 0 20px var(--accent), 0 0 40px rgba(233,69,96,0.3);
+      box-shadow: 0 0 20px #f59e0b, 0 0 40px rgba(245,158,11,0.3);
     }
-    .persona-node.active .node-display-name { color: var(--accent); }
+    .persona-node.active .node-display-name { color: #f59e0b; }
     .persona-node.done .node-circle {
       background: #102820;
       border-color: var(--node-border-done);
@@ -707,7 +711,7 @@
       border: 1px solid var(--bubble-border);
       border-radius: 6px;
       padding: 6px 8px;
-      font-size: 0.65rem;
+      font-size: 0.75rem;
       line-height: 1.4;
       color: var(--text);
       display: none;
@@ -747,7 +751,7 @@
       to   { opacity: 1; transform: translateY(-50%) scale(1); }
     }
     .node-bubble .bubble-label {
-      font-size: 0.58rem;
+      font-size: 0.75rem;
       font-weight: 700;
       letter-spacing: 0.06em;
       margin-bottom: 4px;
@@ -1091,7 +1095,7 @@
       letter-spacing: 0.05em;
       margin-top: 1px;
     }
-    .persona-node.active .node-model-badge { border-color: var(--accent); color: var(--accent); }
+    .persona-node.active .node-model-badge { border-color: #f59e0b; color: #f59e0b; }
     .persona-node.done .node-model-badge { border-color: var(--teal); color: var(--teal); }
 
     /* ── Topic modal ── */
@@ -1367,6 +1371,8 @@
   let round = 0;
   let currentSessionId = null;       // active session id (from URL or newly started)
   let sessionPollTimer = null;
+  let sidebarPollTimer = null;
+  let sidebarLastFingerprint = null;  // "<count>|<newestId>|<newestStatus>" — skip re-render when unchanged
   let streamingEventSource = null;
   let streamingSessionId = null;
   let streamingPlaceholderIdentity = null;  // identity currently streaming in feed
@@ -2521,6 +2527,21 @@
       });
     } else {
       evoEl.style.display = 'none';
+    }
+
+    // Session ended timestamp — shown prominently above the meta row when status is done
+    const headingEl = card.querySelector('.verdict-card-heading');
+    const existingEndedTag = card.querySelector('.verdict-ended-at');
+    if (existingEndedTag) existingEndedTag.remove();
+    const endedTs = session.finished_at || session.updated_at;
+    if (endedTs && headingEl) {
+      const d = new Date(endedTs);
+      const tag = document.createElement('span');
+      tag.className = 'verdict-ended-at';
+      tag.style.cssText = 'font-size:0.75rem;font-weight:400;color:var(--text-muted);margin-left:auto;opacity:0.75;';
+      tag.textContent = 'ended ' + d.toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'})
+        + ' ' + d.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit'});
+      headingEl.appendChild(tag);
     }
 
     // Session metadata
