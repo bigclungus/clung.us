@@ -2936,7 +2936,7 @@
     }
 
     // Session ended timestamp — shown prominently above the meta row when status is done
-    const headingEl = card.querySelector('.verdict-card-heading');
+    // (headingEl already declared above)
     const existingEndedTag = card.querySelector('.verdict-ended-at');
     if (existingEndedTag) existingEndedTag.remove();
     const endedTs = session.finished_at || session.updated_at;
