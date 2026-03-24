@@ -470,11 +470,13 @@
       var logHtml = '';
       if (task.log && task.log.length > 0) {
         var cardId = 'log-' + (++_cardCounter);
+        var taskIdAttr = task.id ? ' data-task-id="' + escHtml(String(task.id)) + '"' : '';
         logHtml = '<button class="card-log-toggle" onclick="toggleLog(\'' + cardId + '\', this)">▶ log (' + task.log.length + ')</button>' +
-          '<div class="card-log" id="' + cardId + '">' + makeLogTimeline(task.log) + '</div>';
+          '<div class="card-log"' + taskIdAttr + ' id="' + cardId + '">' + makeLogTimeline(task.log) + '</div>';
       }
 
-      return '<div class="task-card status-' + escHtml(status) + '">' +
+      var cardTaskIdAttr = task.id ? ' data-task-id="' + escHtml(String(task.id)) + '"' : '';
+      return '<div class="task-card status-' + escHtml(status) + '"' + cardTaskIdAttr + '>' +
         '<div class="card-top">' +
           '<div class="card-title">' + title + '</div>' +
           '<span class="status-badge ' + escHtml(badgeClass) + '">' + escHtml(status.replace('_', ' ')) + '</span>' +
@@ -555,6 +557,12 @@
     }
 
     function render(tasks) {
+      // Save the set of task IDs whose log panels are currently open
+      var openLogIds = new Set(
+        Array.prototype.slice.call(document.querySelectorAll('.card-log.open[data-task-id]'))
+          .map(function(el) { return el.getAttribute('data-task-id'); })
+      );
+
       _cardCounter = 0;
       var buckets = { in_progress: [], done: [], stale: [] };
       tasks.forEach(function(t) {
@@ -604,6 +612,20 @@
       });
 
       container.innerHTML = html;
+
+      // Re-open any log panels that were open before the re-render
+      if (openLogIds.size > 0) {
+        openLogIds.forEach(function(taskId) {
+          var logEl = container.querySelector('.card-log[data-task-id="' + taskId + '"]');
+          if (!logEl) return;
+          logEl.classList.add('open');
+          // Update the sibling toggle button label to reflect open state
+          var btn = logEl.previousElementSibling;
+          if (btn && btn.classList.contains('card-log-toggle')) {
+            btn.textContent = '▼' + btn.textContent.slice(1);
+          }
+        });
+      }
 
       var now = new Date();
       var hh = String(now.getHours()).padStart(2,'0');
