@@ -4,13 +4,10 @@
   /* ── Nav definition ── */
   var NAV_LINKS = [
     { href: 'https://hello.clung.us/', label: 'hello', path: '/' },
-    { href: 'https://hello.clung.us/changelog', label: 'changelog', path: '/changelog' },
-    { href: 'https://hello.clung.us/deaths', label: 'deaths', path: '/deaths' },
     { href: 'https://hello.clung.us/tasks', label: 'tasks', path: '/tasks' },
     { href: 'https://hello.clung.us/congress', label: 'congress', path: '/congress' },
     { href: 'https://hello.clung.us/wallet', label: 'wallet', path: '/wallet' },
     { href: 'https://github.com/bigclungus', label: 'github', external: true },
-    { href: 'https://1998.clung.us', label: '1998', external: true },
   ];
 
   var TOOL_LINKS = [
