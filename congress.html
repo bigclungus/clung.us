@@ -64,7 +64,7 @@
     .congress-layout {
       flex: 1;
       display: grid;
-      grid-template-columns: 210px 1fr 210px;
+      grid-template-columns: 240px 1fr 210px;
       min-height: 0;
     }
 
@@ -250,24 +250,69 @@
       font-size: 0.72rem;
     }
 
-    /* ── Session list ── */
-    .session-list-panel {
-      width: 100%;
-      max-width: 560px;
+    /* ── Session list (sidebar version) ── */
+    .sidebar-session-item {
+      background: var(--seat-bg);
+      border: 1px solid var(--seat-border);
+      border-radius: 4px;
+      padding: 7px 9px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      text-decoration: none;
+      color: inherit;
+      font-size: 0.68rem;
     }
-    .session-list-panel h2 {
-      font-size: 0.85rem;
+    .sidebar-session-item:hover { border-color: var(--accent); }
+    .sidebar-session-item.selected {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 8%, var(--seat-bg));
+    }
+    .sidebar-session-item.deliberating {
+      box-shadow: 0 0 6px color-mix(in srgb, #f59e0b 30%, transparent);
+      border-color: color-mix(in srgb, #f59e0b 50%, var(--seat-border));
+    }
+    .sidebar-session-num {
+      font-size: 0.62rem;
+      font-weight: 700;
       color: var(--accent);
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      text-shadow: 0 0 8px var(--accent);
-      margin: 0 0 14px;
+      min-width: 26px;
+      flex-shrink: 0;
+    }
+    .sidebar-session-topic {
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 0.65rem;
+      color: var(--text);
     }
     .session-list-empty {
-      font-size: 0.72rem;
+      font-size: 0.67rem;
       color: var(--text-muted);
-      padding: 12px 0;
+      opacity: 0.45;
+      padding: 10px 4px;
     }
+
+    /* ── Legacy session-list-panel (center) — hidden, replaced by sidebar ── */
+    .session-list-panel { display: none !important; }
+
+    /* ── Sidebar section divider ── */
+    .sidebar-section-divider {
+      padding: 8px 9px 4px;
+      font-size: 0.58rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      border-top: 1px solid var(--panel-border);
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    /* Compact session items */
     .session-item {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -328,17 +373,36 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 130px;
+      width: 110px;
+      height: 110px;
       text-align: center;
       font-size: 0.68rem;
       color: var(--text-muted);
       line-height: 1.5;
-      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--panel-bg);
+      border: 2px solid var(--accent);
+      border-radius: 14px;
+      box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 20%, transparent);
+      z-index: 3;
+      gap: 2px;
     }
-    .center-label .mod-emoji { font-size: 1.4rem; display: block; margin-bottom: 2px; }
-    .center-label .mod-name { font-size: 0.62rem; color: var(--accent); text-shadow: 0 0 6px var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
-    .center-label .mod-role { font-size: 0.5rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
-    .center-label .task-preview { color: var(--text); font-size: 0.68rem; margin-top: 6px; font-style: italic; }
+    .center-label .mod-emoji { font-size: 1.5rem; display: block; line-height: 1; }
+    .center-label .mod-name { font-size: 0.6rem; color: var(--accent); text-shadow: 0 0 6px var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
+    .center-label .mod-role { font-size: 0.48rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+    .center-label .mod-deliberating {
+      font-size: 0.5rem;
+      color: #f59e0b;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      display: none;
+    }
+    .center-label.deliberating-active .mod-deliberating { display: block; }
+    /* Remove task-preview from center — topic shown in topic-display bar above */
+    .center-label .task-preview { display: none; }
 
     /* Persona nodes around circle */
     .persona-node {
@@ -376,19 +440,9 @@
     }
     .persona-node .node-emoji { font-size: 1.45rem; line-height: 1; }
     .persona-node .node-display-name {
-      font-size: 0.54rem;
+      font-size: 0.48rem;
       font-weight: 700;
       color: var(--text);
-      text-align: center;
-      max-width: 86px;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      transition: color 0.3s;
-    }
-    .persona-node .node-name {
-      font-size: 0.5rem;
-      color: var(--text-muted);
       text-align: center;
       max-width: 86px;
       overflow: hidden;
@@ -402,14 +456,12 @@
       box-shadow: 0 0 20px var(--accent), 0 0 40px rgba(233,69,96,0.3);
     }
     .persona-node.active .node-display-name { color: var(--accent); }
-    .persona-node.active .node-name { color: var(--accent); }
     .persona-node.done .node-circle {
       background: #102820;
       border-color: var(--node-border-done);
       box-shadow: 0 0 10px rgba(78,204,163,0.3);
     }
     .persona-node.done .node-display-name { color: var(--teal); }
-    .persona-node.done .node-name { color: var(--teal); }
 
     @keyframes dotpulse {
       0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
@@ -429,17 +481,14 @@
       display: none;
       width: 100%;
       max-width: 520px;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-left: 3px solid var(--accent);
-      border-radius: 4px;
-      padding: 10px 14px;
-      font-size: 0.72rem;
+      font-size: 0.62rem;
       color: var(--text-muted);
       box-sizing: border-box;
+      padding: 2px 0 0;
+      opacity: 0.6;
     }
-    .session-hint strong { color: var(--text); }
-    .session-hint code { color: var(--teal); font-size: 0.78rem; }
+    .session-hint strong { color: var(--text-muted); }
+    .session-hint code { color: var(--teal); font-size: 0.65rem; }
 
     /* ── Status badge dots ── */
     .status-dot {
@@ -586,7 +635,7 @@
     .btn-cancel:hover { color: var(--accent); border-color: var(--accent); }
 
     /* ── Mobile ── */
-    @media (max-width: 820px) {
+    @media (max-width: 860px) {
       .congress-layout {
         grid-template-columns: 1fr;
       }
@@ -721,7 +770,8 @@
       font-size: 0.95rem;
       color: var(--text);
       line-height: 1.5;
-      cursor: pointer;
+      word-wrap: break-word;
+      white-space: normal;
     }
     .topic-display-text:hover { color: var(--accent); }
 
@@ -755,6 +805,7 @@
     .feed-entry {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
+      border-left: 3px solid var(--fe-color, var(--card-border));
       border-radius: 5px;
       padding: 12px 14px;
       margin-bottom: 8px;
@@ -799,6 +850,16 @@
       flex-shrink: 0;
     }
     .feed-entry-round-tag.synthesis { color: var(--teal); border-color: var(--teal); }
+    .feed-entry-model-badge {
+      font-size: 0.5rem;
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+    }
     .feed-entry-body {
       font-size: 0.75rem;
       line-height: 1.65;
@@ -901,7 +962,7 @@
 
     /* ── Model badge on persona nodes ── */
     .node-model-badge {
-      font-size: 0.42rem;
+      font-size: 0.38rem;
       padding: 1px 4px;
       border-radius: 2px;
       border: 1px solid var(--node-border-idle);
@@ -1017,13 +1078,18 @@
 
 <div class="congress-layout">
 
-  <!-- LEFT: Roster -->
+  <!-- LEFT: Sessions + Roster -->
   <aside class="sidebar sidebar-left">
     <div class="sidebar-header">
-      <h2>Roster</h2>
-      <span class="count-badge" id="rosterCount">0 / 5</span>
+      <h2>Sessions</h2>
     </div>
-    <div class="sidebar-body" id="rosterList"></div>
+    <div class="sidebar-body" id="sidebarSessionList" style="flex: 0 1 auto; max-height: 45%; min-height: 80px;">
+      <div class="session-list-empty">Loading…</div>
+    </div>
+    <div class="sidebar-section-divider">
+      Roster <span class="count-badge" id="rosterCount" style="font-size:0.55rem; color: var(--text-muted); margin-left:4px;">0 / 5</span>
+    </div>
+    <div class="sidebar-body" id="rosterList" style="flex: 1;"></div>
   </aside>
 
   <!-- CENTER: Arena -->
@@ -1048,9 +1114,10 @@
     <div class="arena" id="arena">
       <div class="center-label" id="centerLabel">
         <span class="mod-emoji">⚖️</span>
-        <span class="mod-name">Hiring Manager</span>
+        <span class="mod-name">Ibrahim</span>
         <span class="mod-role">moderator</span>
-        <div class="task-preview" id="centerTask"></div>
+        <span class="mod-deliberating" id="centerDeliberating">deliberating…</span>
+        <div class="task-preview" id="centerTask" style="display:none"></div>
       </div>
     </div>
 
@@ -1104,8 +1171,8 @@
   const BUBBLE_SIDE = ['right', 'right', 'right', 'left', 'left'];
 
   // Emoji & color defaults (server also provides these, used as fallback)
-  const EMOJI_MAP = { critic: '🔍', architect: '🏗️', ux: '🎨', 'hiring-manager': '⚖️' };
-  const COLOR_MAP = { architect: '#f59e0b', critic: '#f87171', ux: '#60a5fa' };
+  const EMOJI_MAP = { critic: '🔍', architect: '🏗️', ux: '🎨', 'hiring-manager': '⚖️', otto: '🌪️', spengler: '🕰️' };
+  const COLOR_MAP = { architect: '#f59e0b', critic: '#f87171', ux: '#60a5fa', otto: '#a78bfa', spengler: '#94a3b8' };
 
   // ── State ──────────────────────────────────────────────────────────────────
   let seats = [null, null, null, null, null];   // persona | null for each seat
@@ -1154,6 +1221,9 @@
       } catch (e2) { /* ignore */ }
     }
 
+    // Always load sessions into the left sidebar
+    loadSidebarSessionList(sessionParam);
+
     if (sessionParam && /^congress-\d+$/.test(sessionParam)) {
       // ── Session view ──
       currentSessionId = sessionParam;
@@ -1163,15 +1233,10 @@
       setStatus('loading session…');
       await loadSessionIntoPage(sessionParam);
     } else {
-      // ── Default view: session list ──
-      document.getElementById('sessionListPanel').style.display = 'block';
-      // Hide circle arena and sidebars in list mode — just show session list
-      document.getElementById('arena').style.display = 'none';
-      document.getElementById('statusLine').style.display = 'none';
-      document.querySelector('.sidebar-left').style.display = 'none';
-      document.querySelector('.sidebar-right').style.display = 'none';
+      // ── Default view: no session selected ──
+      render();
+      setStatus('select a session from the sidebar');
       document.querySelector('.page-header .subtitle').textContent = 'select a session to replay';
-      await loadSessionList();
     }
   }
 
@@ -1200,17 +1265,14 @@
         return;
       }
       const session = await res.json();
-      // Show topic in center of circle (small preview) and in prominent topic display
+      // Show topic in the prominent topic display bar above the arena
       if (session.topic) {
         fullTopicText = session.topic;
-        document.getElementById('centerTask').textContent =
-          session.topic.length > 70 ? session.topic.slice(0, 67) + '…' : session.topic;
-        // Topic display bar
+        // Topic display bar — always show full topic, word-wrapped
         const topicDisplay = document.getElementById('topicDisplay');
         const topicText = document.getElementById('topicDisplayText');
         topicText.textContent = session.topic;
         topicDisplay.classList.add('visible');
-        topicText.addEventListener('click', openTopicModal);
       }
 
       renderSessionStatus(sessionId, session.status);
@@ -1262,7 +1324,18 @@
     statusLine.appendChild(document.createTextNode(sessionId + ' — ' + st));
   }
 
+  function setCenterDeliberating(active) {
+    const cl = document.getElementById('centerLabel');
+    if (!cl) return;
+    if (active) {
+      cl.classList.add('deliberating-active');
+    } else {
+      cl.classList.remove('deliberating-active');
+    }
+  }
+
   function startSessionPolling(sessionId) {
+    setCenterDeliberating(true);
     if (sessionPollTimer) clearInterval(sessionPollTimer);
     sessionPollTimer = setInterval(async () => {
       try {
@@ -1274,12 +1347,63 @@
         if (session.status !== 'deliberating') {
           clearInterval(sessionPollTimer);
           sessionPollTimer = null;
+          setCenterDeliberating(false);
         }
         applySessionData(session, false);
       } catch (e) {
         // Ignore polling errors
       }
     }, 4000);
+  }
+
+  async function loadSidebarSessionList(selectedId) {
+    const container = document.getElementById('sidebarSessionList');
+    try {
+      const res = await fetch('/api/congress/sessions');
+      if (!res.ok) throw new Error('status ' + res.status);
+      let sessions = await res.json();
+      container.innerHTML = '';
+      if (sessions.length === 0) {
+        container.innerHTML = '<div class="session-list-empty">No sessions yet.</div>';
+        return;
+      }
+      // Sort: deliberating first, then by session number descending
+      sessions = sessions.slice().sort((a, b) => {
+        const aActive = a.status === 'deliberating' ? 0 : 1;
+        const bActive = b.status === 'deliberating' ? 0 : 1;
+        if (aActive !== bActive) return aActive - bActive;
+        return (b.session_number || 0) - (a.session_number || 0);
+      });
+      sessions.forEach(s => {
+        const a = document.createElement('a');
+        const isSelected = selectedId && s.session_id === selectedId;
+        const isDeliberating = s.status === 'deliberating';
+        a.className = 'sidebar-session-item' +
+          (isSelected ? ' selected' : '') +
+          (isDeliberating ? ' deliberating' : '');
+        a.href = '/congress?session=' + s.session_id;
+
+        const numEl = document.createElement('span');
+        numEl.className = 'sidebar-session-num';
+        numEl.textContent = '#' + s.session_number;
+
+        const topicEl = document.createElement('span');
+        topicEl.className = 'sidebar-session-topic';
+        const shortTopic = (s.topic || '(no topic)');
+        topicEl.textContent = shortTopic.length > 32 ? shortTopic.slice(0, 30) + '…' : shortTopic;
+        topicEl.title = s.topic || '';
+
+        const dotEl = document.createElement('span');
+        dotEl.className = 'status-dot ' + (s.status || '');
+
+        a.appendChild(numEl);
+        a.appendChild(topicEl);
+        a.appendChild(dotEl);
+        container.appendChild(a);
+      });
+    } catch (e) {
+      container.innerHTML = '<div class="session-list-empty">Could not load sessions.</div>';
+    }
   }
 
   async function loadSessionList() {
@@ -1433,7 +1557,7 @@
       const modelLabel = p ? (p.model ? p.model.charAt(0).toUpperCase() + p.model.slice(1) : 'Claude') : '';
       const modelBadge = p ? `<div class="node-model-badge">${modelLabel}</div>` : '';
       const displayNameHtml = p
-        ? `<div class="node-display-name">${p.display_name || p.name}</div><div class="node-name">&lt;${p.name}&gt;</div>${modelBadge}`
+        ? `<div class="node-display-name">${p.display_name || p.name}</div>${modelBadge}`
         : '';
       const side = BUBBLE_SIDE[i] || 'right';
       node.classList.add('bubble-' + side);
@@ -1711,6 +1835,12 @@
     div.className = 'feed-entry' + (isSynthesis ? ' synthesis-entry' : '');
 
     const headerColor = p && p.color ? p.color : (isSynthesis ? 'var(--teal)' : 'var(--text-muted)');
+    // Set persona color as left border accent via CSS variable
+    if (p && p.color) {
+      div.style.setProperty('--fe-color', p.color);
+    } else if (isSynthesis) {
+      div.style.setProperty('--fe-color', 'var(--teal)');
+    }
 
     const header = document.createElement('div');
     header.className = 'feed-entry-header';
@@ -1733,6 +1863,15 @@
     nameEl.style.color = headerColor;
     nameEl.textContent = p ? (p.display_name || p.name) : (isSynthesis ? 'Ibrahim the Immovable' : entry.identity);
     header.appendChild(nameEl);
+
+    // Model badge in feed header
+    const modelLabel = p ? (p.model ? p.model.charAt(0).toUpperCase() + p.model.slice(1) : 'Claude') : (isSynthesis ? 'Claude' : '');
+    if (modelLabel) {
+      const modelBadge = document.createElement('div');
+      modelBadge.className = 'feed-entry-model-badge';
+      modelBadge.textContent = modelLabel;
+      header.appendChild(modelBadge);
+    }
 
     const tag = document.createElement('div');
     tag.className = 'feed-entry-round-tag' + (isSynthesis ? ' synthesis' : '');
@@ -1812,8 +1951,6 @@
   document.getElementById('topicModal').addEventListener('click', function (e) {
     if (e.target === this) closeTopicModal();
   });
-
-  document.getElementById('centerTask').addEventListener('click', openTopicModal);
 
   // Re-render circle when window resizes (positions are layout-dependent)
   window.addEventListener('resize', () => renderCircle());

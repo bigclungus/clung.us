@@ -395,11 +395,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         """Return active debaters and fired personas for the congress page."""
         EMOJI_MAP = {
             'architect': '🏗️', 'critic': '🔍', 'ux': '🎨',
-            'pragmatist': '🔧', 'devil': '😈',
+            'otto': '🌪️', 'spengler': '🕰️', 'hiring-manager': '⚖️',
         }
         COLOR_MAP = {
             'architect': '#f59e0b', 'critic': '#f87171', 'ux': '#60a5fa',
-            'pragmatist': '#4ecca3', 'devil': '#c084fc',
+            'otto': '#a78bfa', 'spengler': '#94a3b8',
         }
         AGENTS_DIR_BASE = os.path.dirname(AGENTS_ACTIVE_DIR)
         active = []
