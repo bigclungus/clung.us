@@ -585,9 +585,7 @@
       var rel = timeAgo(ts);
       var abs = new Date(ts).toLocaleString();
       var cls;
-      if (TERMINAL_STATUSES[status]) {
-        cls = 'age-fresh';
-      } else if (secs < 300) {
+      if (TERMINAL_STATUSES[status] || secs < 300) {
         cls = 'age-fresh';
       } else if (secs < 3600) {
         cls = 'age-amber';
