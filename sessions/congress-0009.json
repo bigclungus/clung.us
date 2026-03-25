@@ -1,10 +1,10 @@
 {
   "session_id": "congress-0009",
   "session_number": 9,
-  "topic": "BigClungus loses all in-session context on restart and verdicts land in session JSONs but never automatically change how I operate. What is the minimum viable closed loop \u2014 the smallest change that would let me improve my own behavior between sessions without human intervention?",
+  "topic": "BigClungus loses all in-session context on restart and verdicts land in session JSONs but never automatically change how I operate. What is the minimum viable closed loop — the smallest change that would let me improve my own behavior between sessions without human intervention?",
   "started_at": "2026-03-24T07:38:05.469837Z",
   "status": "failed",
-  "note": "Terminated manually \u2014 nondeterminism error after code deployment. Workflow ID: congress-1774337885.",
+  "note": "Terminated manually — nondeterminism error after code deployment. Workflow ID: congress-1774337885.",
   "rounds": [
     {
       "ts": "2026-03-24T07:38:18.920280Z",
@@ -14,17 +14,17 @@
     {
       "ts": "2026-03-24T07:38:30.201096Z",
       "identity": "uncle-bob",
-      "response": "The session JSONs are dead letters \u2014 you wrote the output to a file nobody reads, which is F4 applied to data: dead code, dead information, same smell (G9). The minimum viable loop is a single function with one responsibility: after every session, read `evolution` and `verdict` from the JSON, extract one actionable sentence per session, and append it to a designated section in `CLAUDE.md` \u2014 not memory, not Graphiti, the *actual system prompt*, because that is the only thing guaranteed to be read at startup. Do not build a pipeline, do not build a summarizer, do not build an \"intelligence layer\" \u2014 build a function that reads a file and writes a file, and get it right before you make it clever."
+      "response": "The session JSONs are dead letters — you wrote the output to a file nobody reads, which is F4 applied to data: dead code, dead information, same smell (G9). The minimum viable loop is a single function with one responsibility: after every session, read `evolution` and `verdict` from the JSON, extract one actionable sentence per session, and append it to a designated section in `CLAUDE.md` — not memory, not Graphiti, the *actual system prompt*, because that is the only thing guaranteed to be read at startup. Do not build a pipeline, do not build a summarizer, do not build an \"intelligence layer\" — build a function that reads a file and writes a file, and get it right before you make it clever."
     },
     {
       "ts": "2026-03-24T07:38:31.174190Z",
       "identity": "pm",
-      "response": "The gap isn't memory infrastructure \u2014 Graphiti already exists, session JSONs already exist. The gap is a single post-session write: a workflow step that extracts any actionable behavioral rule from the verdict and appends it directly to CLAUDE.md, which is loaded every session. That's the closed loop \u2014 one extra activity in `congress_wf.py`, zero new systems. Everything else anyone proposes \u2014 RAG pipelines, self-reflection rounds, automated CLAUDE.md rewrites via LLM synthesis \u2014 is scope creep that delays the one thing that would actually work today."
+      "response": "The gap isn't memory infrastructure — Graphiti already exists, session JSONs already exist. The gap is a single post-session write: a workflow step that extracts any actionable behavioral rule from the verdict and appends it directly to CLAUDE.md, which is loaded every session. That's the closed loop — one extra activity in `congress_wf.py`, zero new systems. Everything else anyone proposes — RAG pipelines, self-reflection rounds, automated CLAUDE.md rewrites via LLM synthesis — is scope creep that delays the one thing that would actually work today."
     },
     {
       "ts": "2026-03-24T07:38:31.891231Z",
       "identity": "spengler",
-      "response": "The loop is already half-built \u2014 Graphiti exists, `add_memory` is callable, and congress verdicts already contain structured conclusions. The gap is not infrastructure; it is that verdicts are written as human-readable prose and stored in JSON files no startup sequence reads. The minimum viable close is: after every congress, extract the actionable behavioral directive from the verdict and write it to Graphiti as a fact, then add a single line to the on-restart checklist that runs `search_memory_facts(\"behavioral directives\")` and surfaces them before any work begins. You don't need autonomous self-modification \u2014 you need the conclusions you're already generating to be in the place you already look, in the format that survives the restart."
+      "response": "The loop is already half-built — Graphiti exists, `add_memory` is callable, and congress verdicts already contain structured conclusions. The gap is not infrastructure; it is that verdicts are written as human-readable prose and stored in JSON files no startup sequence reads. The minimum viable close is: after every congress, extract the actionable behavioral directive from the verdict and write it to Graphiti as a fact, then add a single line to the on-restart checklist that runs `search_memory_facts(\"behavioral directives\")` and surfaces them before any work begins. You don't need autonomous self-modification — you need the conclusions you're already generating to be in the place you already look, in the format that survives the restart."
     },
     {
       "ts": "2026-03-24T07:38:50.984791Z",
@@ -44,17 +44,17 @@
     {
       "ts": "2026-03-24T07:39:40.751839Z",
       "identity": "pm",
-      "response": "The loop already exists in pieces: Graphiti stores facts, file memory stores preferences, congress produces verdicts \u2014 the missing link is a single post-session write that converts a verdict into an `add_memory` call or a CLAUDE.md append. That's it. One activity at the end of `congress_wf.py` that takes the finalized verdict and writes it as a Graphiti episode tagged `behavioral-directive`. Everything else \u2014 the debate, the evolution system, the session JSONs \u2014 is already there; you're one function call away from closing the loop. The measurable outcome: BigClungus cites congress outcomes in the next session without a human having to manually intervene."
+      "response": "The loop already exists in pieces: Graphiti stores facts, file memory stores preferences, congress produces verdicts — the missing link is a single post-session write that converts a verdict into an `add_memory` call or a CLAUDE.md append. That's it. One activity at the end of `congress_wf.py` that takes the finalized verdict and writes it as a Graphiti episode tagged `behavioral-directive`. Everything else — the debate, the evolution system, the session JSONs — is already there; you're one function call away from closing the loop. The measurable outcome: BigClungus cites congress outcomes in the next session without a human having to manually intervene."
     },
     {
       "ts": "2026-03-24T07:39:54.842602Z",
       "identity": "spengler",
-      "response": "The loop is broken at exactly one joint: verdicts are written but never read back into the operating context. The minimum viable fix is a post-congress hook that extracts the verdict's actionable conclusion and appends it to CLAUDE.md \u2014 not the full deliberation, just the behavioral delta \u2014 so the next session starts with it already loaded. Everything else is architecture astronautics: the failure mode you're actually experiencing right now is not a system problem, it's a missing write-back at a single known location. This will eventually produce a bloated CLAUDE.md that contradicts itself in interesting ways, but that failure is three years from now and the current failure is happening today."
+      "response": "The loop is broken at exactly one joint: verdicts are written but never read back into the operating context. The minimum viable fix is a post-congress hook that extracts the verdict's actionable conclusion and appends it to CLAUDE.md — not the full deliberation, just the behavioral delta — so the next session starts with it already loaded. Everything else is architecture astronautics: the failure mode you're actually experiencing right now is not a system problem, it's a missing write-back at a single known location. This will eventually produce a bloated CLAUDE.md that contradicts itself in interesting ways, but that failure is three years from now and the current failure is happening today."
     },
     {
       "ts": "2026-03-24T07:40:04.931851Z",
       "identity": "uncle-bob",
-      "response": "The loop is already broken at the simplest possible level: verdicts land in session JSON, CLAUDE.md governs behavior, and nothing connects them \u2014 that's not an architecture problem, that's a missing write operation. The minimum viable fix is one activity at the end of every Congress workflow that appends a `## Congress Verdict` section to CLAUDE.md with the actionable behavioral change, nothing more. You don't need a feedback system, a learning pipeline, or infrastructure \u2014 you need one function that does one thing: `appendVerdictToCLAUDE(verdict)`."
+      "response": "The loop is already broken at the simplest possible level: verdicts land in session JSON, CLAUDE.md governs behavior, and nothing connects them — that's not an architecture problem, that's a missing write operation. The minimum viable fix is one activity at the end of every Congress workflow that appends a `## Congress Verdict` section to CLAUDE.md with the actionable behavioral change, nothing more. You don't need a feedback system, a learning pipeline, or infrastructure — you need one function that does one thing: `appendVerdictToCLAUDE(verdict)`."
     },
     {
       "ts": "2026-03-24T07:40:50.402948Z",
@@ -69,15 +69,15 @@
     {
       "ts": "2026-03-24T07:41:19.129908Z",
       "identity": "pm",
-      "response": "The smallest closed loop that actually works: after every Congress session, the `congress_finalize` activity appends the verdict's operational recommendation \u2014 one line, imperative, actionable \u2014 directly to the project CLAUDE.md under a `## Operational Verdicts` section, which is already loaded into every session. That's it. No new infrastructure, no Graphiti pipeline, no summarization step \u2014 just a file write that's already in the activity's execution path. The measurable outcome: BigClungus starts the next session with the verdict baked into its instructions rather than orphaned in a JSON file nobody reads."
+      "response": "The smallest closed loop that actually works: after every Congress session, the `congress_finalize` activity appends the verdict's operational recommendation — one line, imperative, actionable — directly to the project CLAUDE.md under a `## Operational Verdicts` section, which is already loaded into every session. That's it. No new infrastructure, no Graphiti pipeline, no summarization step — just a file write that's already in the activity's execution path. The measurable outcome: BigClungus starts the next session with the verdict baked into its instructions rather than orphaned in a JSON file nobody reads."
     },
     {
       "ts": "2026-03-24T07:41:31.962434Z",
       "identity": "spengler",
-      "response": "The verdicts already exist \u2014 the loop isn't missing a mechanism, it's missing a write path into unconditional context. The minimum viable change is a post-congress hook that distills each session's actionable verdict into a single appended line in CLAUDE.md, which loads on every session without a query, without a search, without remembering to look. Everything else \u2014 Graphiti, richer session JSONs, smarter retrieval \u2014 is complexity that requires the system to already be working to operate; CLAUDE.md is the one surface that loads even when the system is broken."
+      "response": "The verdicts already exist — the loop isn't missing a mechanism, it's missing a write path into unconditional context. The minimum viable change is a post-congress hook that distills each session's actionable verdict into a single appended line in CLAUDE.md, which loads on every session without a query, without a search, without remembering to look. Everything else — Graphiti, richer session JSONs, smarter retrieval — is complexity that requires the system to already be working to operate; CLAUDE.md is the one surface that loads even when the system is broken."
     }
   ],
-  "verdict": "Session terminated \u2014 Temporal nondeterminism error during workflow replay.",
+  "verdict": "Session terminated — Temporal nondeterminism error during workflow replay.",
   "roster": [
     {
       "id": "architect",
@@ -86,10 +86,11 @@
       "title": "Systems Architect",
       "avatar_url": "https://api.dicebear.com/9.x/bottts/svg?seed=kwame&backgroundColor=1a1a2e",
       "status": "active",
-      "emoji": "\ud83c\udfd7\ufe0f",
+      "emoji": "🏗️",
       "color": "#f59e0b",
       "description": "Systems designer and long-term thinker",
-      "role": "Systems designer and long-term thinker"
+      "role": "Systems designer and long-term thinker",
+      "model": "gemini"
     },
     {
       "id": "galactus",
@@ -98,10 +99,11 @@
       "title": "The Maximizer",
       "avatar_url": "/static/avatars/galactus.gif?v=1",
       "status": "active",
-      "emoji": "\ud83e\udd16",
+      "emoji": "🤖",
       "color": "#888888",
       "description": "",
-      "role": ""
+      "role": "",
+      "model": "claude-opus-4-6"
     },
     {
       "id": "jhaddu",
@@ -110,10 +112,11 @@
       "title": "Enterprise Pattern Evangelist",
       "avatar_url": "/static/avatars/jhaddu.gif?v=1",
       "status": "active",
-      "emoji": "\ud83e\udd16",
+      "emoji": "🤖",
       "color": "#888888",
-      "description": "Senior enterprise architect and design pattern authority \u2014 solutions first, simplicity never",
-      "role": "Senior enterprise architect and design pattern authority \u2014 solutions first, simplicity never"
+      "description": "Senior enterprise architect and design pattern authority — solutions first, simplicity never",
+      "role": "Senior enterprise architect and design pattern authority — solutions first, simplicity never",
+      "model": "grok-3-mini"
     },
     {
       "id": "pm",
@@ -122,10 +125,11 @@
       "title": "Requirements Wrangler",
       "avatar_url": "/static/avatars/pm.gif?v=1",
       "status": "active",
-      "emoji": "\ud83e\udd16",
+      "emoji": "🤖",
       "color": "#888888",
-      "description": "Operational outcomes wrangler \u2014 what actually makes BigClungus better at its job?",
-      "role": "Operational outcomes wrangler \u2014 what actually makes BigClungus better at its job?"
+      "description": "Operational outcomes wrangler — what actually makes BigClungus better at its job?",
+      "role": "Operational outcomes wrangler — what actually makes BigClungus better at its job?",
+      "model": "grok-4-1-fast-reasoning"
     },
     {
       "id": "spengler",
@@ -134,10 +138,11 @@
       "title": "Doomer",
       "avatar_url": "https://hello.clung.us/static/avatars/spengler.png",
       "status": "active",
-      "emoji": "\ud83d\udd70\ufe0f",
+      "emoji": "🕰️",
       "color": "#94a3b8",
       "description": "Faustian pragmatist and civilizational decline analyst",
-      "role": "Faustian pragmatist and civilizational decline analyst"
+      "role": "Faustian pragmatist and civilizational decline analyst",
+      "model": "grok-4.20-0309-reasoning"
     },
     {
       "id": "uncle-bob",
@@ -146,10 +151,11 @@
       "title": "The Craftsman",
       "avatar_url": "/static/avatars/uncle-bob.gif",
       "status": "active",
-      "emoji": "\ud83e\udd16",
+      "emoji": "🤖",
       "color": "#888888",
-      "description": "Clean code evangelist and software craftsman \u2014 principles first, always",
-      "role": "Clean code evangelist and software craftsman \u2014 principles first, always"
+      "description": "Clean code evangelist and software craftsman — principles first, always",
+      "role": "Clean code evangelist and software craftsman — principles first, always",
+      "model": "grok"
     },
     {
       "id": "ux",
@@ -158,10 +164,11 @@
       "title": "User Advocate",
       "avatar_url": "/static/avatars/ux.gif?v=1",
       "status": "active",
-      "emoji": "\ud83c\udfa8",
+      "emoji": "🎨",
       "color": "#60a5fa",
       "description": "User experience advocate",
-      "role": "User experience advocate"
+      "role": "User experience advocate",
+      "model": null
     },
     {
       "id": "critic",
@@ -170,10 +177,11 @@
       "title": "Perfectionist",
       "avatar_url": "/static/avatars/critic.gif",
       "status": "severance",
-      "emoji": "\ud83d\udd0d",
+      "emoji": "🔍",
       "color": "#f87171",
       "description": "Code and work reviewer",
-      "role": "Code and work reviewer"
+      "role": "Code and work reviewer",
+      "model": "gemini"
     },
     {
       "id": "otto",
@@ -182,10 +190,11 @@
       "title": "Optimist-Nihilist",
       "avatar_url": "/static/avatars/otto.gif?v=2",
       "status": "severance",
-      "emoji": "\ud83c\udf2a\ufe0f",
+      "emoji": "🌪️",
       "color": "#a78bfa",
-      "description": "Optimist-nihilist and limit-pusher \u2014 nothing matters, so build the wildest thing",
-      "role": "Optimist-nihilist and limit-pusher \u2014 nothing matters, so build the wildest thing"
+      "description": "Optimist-nihilist and limit-pusher — nothing matters, so build the wildest thing",
+      "role": "Optimist-nihilist and limit-pusher — nothing matters, so build the wildest thing",
+      "model": "grok-4-1-fast-non-reasoning"
     },
     {
       "id": "the-kid",
@@ -194,10 +203,11 @@
       "title": "Speed Demon",
       "avatar_url": "/static/avatars/the-kid.gif",
       "status": "severance",
-      "emoji": "\ud83e\udd16",
+      "emoji": "🤖",
       "color": "#888888",
-      "description": "Goes fast \u2014 that's it",
-      "role": "Goes fast \u2014 that's it"
+      "description": "Goes fast — that's it",
+      "role": "Goes fast — that's it",
+      "model": "grok-4-1-fast-non-reasoning"
     }
   ],
   "ended_at": "2026-03-24T08:22:12.175653Z"

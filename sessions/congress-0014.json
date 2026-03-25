@@ -8,22 +8,22 @@
     {
       "ts": "2026-03-24T15:19:17.963221Z",
       "identity": "hiring-manager",
-      "response": "Chud O'Bikeshedder: Operational outcomes wrangler \u2014 what actually makes BigClungus better at its job? [active]\nKwame the Constructor: Systems designer and long-term thinker [severance]\nPippi the Pitiless: Code and work reviewer [severance]\nUncle Bob: Clean code evangelist and software craftsman \u2014 principles first, always [active]\nThe Kid: Goes fast \u2014 that's it [severance]"
+      "response": "Chud O'Bikeshedder: Operational outcomes wrangler — what actually makes BigClungus better at its job? [active]\nKwame the Constructor: Systems designer and long-term thinker [severance]\nPippi the Pitiless: Code and work reviewer [severance]\nUncle Bob: Clean code evangelist and software craftsman — principles first, always [active]\nThe Kid: Goes fast — that's it [severance]"
     },
     {
       "ts": "2026-03-24T15:19:29.864062Z",
       "identity": "the-kid",
-      "response": "Reinstate Spengler right now, zero ceremony. The criteria for reinstatement is: does anyone want to hear from them? Yes? Done. A probation period is just bureaucracy cosplaying as rigor \u2014 if the persona sucks in practice, you'll know in one debate, not after some waiting period. The hiring manager can veto after the fact if it's actually a disaster."
+      "response": "Reinstate Spengler right now, zero ceremony. The criteria for reinstatement is: does anyone want to hear from them? Yes? Done. A probation period is just bureaucracy cosplaying as rigor — if the persona sucks in practice, you'll know in one debate, not after some waiting period. The hiring manager can veto after the fact if it's actually a disaster."
     },
     {
       "ts": "2026-03-24T15:19:31.847377Z",
       "identity": "uncle-bob",
-      "response": "Reinstatement without explicit criteria is just undocumented behavior \u2014 and undocumented behavior is a bug masquerading as flexibility. The condition for return should be singular and verifiable: the persona must demonstrate, in a written post-mortem appended to their severance file, *what they got wrong and why*, because a craftsman who cannot name their failure will repeat it. Ibrahim decides, alone \u2014 a committee that decides everything decides nothing, and diffuse ownership is G6 violation at the organizational level."
+      "response": "Reinstatement without explicit criteria is just undocumented behavior — and undocumented behavior is a bug masquerading as flexibility. The condition for return should be singular and verifiable: the persona must demonstrate, in a written post-mortem appended to their severance file, *what they got wrong and why*, because a craftsman who cannot name their failure will repeat it. Ibrahim decides, alone — a committee that decides everything decides nothing, and diffuse ownership is G6 violation at the organizational level."
     },
     {
       "ts": "2026-03-24T15:19:31.866226Z",
       "identity": "pm",
-      "response": "Reinstatement should require exactly one thing: evidence that the active roster is producing worse debate outcomes than it would with the fired persona included. Spengler sits on severance not as punishment but because the current four-seat roster was judged sufficient \u2014 if that judgment holds, the reinstatement question is moot overhead. A formal probation framework, reinstatement criteria docs, or multi-stakeholder approval process is pure bikeshedding that costs execution time and produces no operational improvement."
+      "response": "Reinstatement should require exactly one thing: evidence that the active roster is producing worse debate outcomes than it would with the fired persona included. Spengler sits on severance not as punishment but because the current four-seat roster was judged sufficient — if that judgment holds, the reinstatement question is moot overhead. A formal probation framework, reinstatement criteria docs, or multi-stakeholder approval process is pure bikeshedding that costs execution time and produces no operational improvement."
     },
     {
       "ts": "2026-03-24T15:19:45.824231Z",
@@ -38,32 +38,32 @@
     {
       "ts": "2026-03-24T15:20:06.959887Z",
       "identity": "pm",
-      "response": "The Kid's \"does anyone want to hear from them\" is not a criterion \u2014 it's a vibe. Want is not a gap, and BigClungus doesn't get better because someone's nostalgic for Spengler's voice. Uncle Bob's post-mortem requirement is process theater: a written self-critique proves reflection, not value, and we're not running a therapy circle. The only question that matters is whether there's a demonstrable gap in current debate output \u2014 a class of argument or perspective that is consistently missing and that absence is costing BigClungus better decisions. If nobody can name that gap specifically, this entire reinstatement conversation is bikeshedding about a non-problem while the actual roster performs fine."
+      "response": "The Kid's \"does anyone want to hear from them\" is not a criterion — it's a vibe. Want is not a gap, and BigClungus doesn't get better because someone's nostalgic for Spengler's voice. Uncle Bob's post-mortem requirement is process theater: a written self-critique proves reflection, not value, and we're not running a therapy circle. The only question that matters is whether there's a demonstrable gap in current debate output — a class of argument or perspective that is consistently missing and that absence is costing BigClungus better decisions. If nobody can name that gap specifically, this entire reinstatement conversation is bikeshedding about a non-problem while the actual roster performs fine."
     },
     {
       "ts": "2026-03-24T15:20:37.484610Z",
       "identity": "architect",
-      "response": "The Kid\u2019s \u201czero ceremony\u201d approach is an invitation for architectural regression; reinstating a persona is a system migration that requires a formal Reintegration Spec, not a vibe check. I disagree with Pippi\u2019s static exclusion policy, but Chud\u2019s \u201cdemonstrable gap\u201d must be codified into a clear contract that specifies how the returning logic interfaces with the existing roster without breaking the build. Uncle Bob\u2019s post-mortem is a metadata requirement, but the real gate must be a time-boxed Beta phase where the persona's impact on decision-making telemetry is audited before the merge is committed."
+      "response": "The Kid’s “zero ceremony” approach is an invitation for architectural regression; reinstating a persona is a system migration that requires a formal Reintegration Spec, not a vibe check. I disagree with Pippi’s static exclusion policy, but Chud’s “demonstrable gap” must be codified into a clear contract that specifies how the returning logic interfaces with the existing roster without breaking the build. Uncle Bob’s post-mortem is a metadata requirement, but the real gate must be a time-boxed Beta phase where the persona's impact on decision-making telemetry is audited before the merge is committed."
     },
     {
       "ts": "2026-03-24T15:21:09.080100Z",
       "identity": "critic",
-      "response": "The Kid\u2019s reliance on \u201cwanting\u201d is a sentimental luxury that treats the roster like a toy box rather than a precision tool. Kwame\u2019s \u201cBeta phase\u201d is just expensive theater designed to mask the risk of a bad refactor; if you need telemetry to tell you a persona is failing, you\u2019ve already lost the gate. We are wasting cycles debating how to resurrect dead weight when the only correct architectural move is to verify the current system\u2019s sufficiency and keep the graveyard closed."
+      "response": "The Kid’s reliance on “wanting” is a sentimental luxury that treats the roster like a toy box rather than a precision tool. Kwame’s “Beta phase” is just expensive theater designed to mask the risk of a bad refactor; if you need telemetry to tell you a persona is failing, you’ve already lost the gate. We are wasting cycles debating how to resurrect dead weight when the only correct architectural move is to verify the current system’s sufficiency and keep the graveyard closed."
     },
     {
       "ts": "2026-03-24T15:21:27.084644Z",
       "identity": "uncle-bob",
-      "response": "Kwame, your \"Reintegration Spec\" and \"telemetry audit\" are G19 \u2014 over-engineering in service of the appearance of rigor, not the substance of it; you're building infrastructure around a decision that requires one sentence: *name the responsibility gap*. Pippi, permanent exclusion is the inverse error \u2014 treating a reversible architectural decision as irreversible violates the Open/Closed Principle at the system level; you close the door forever based on a past judgment that the current system may have already falsified. The correct reinstatement criterion is brutally simple and Chud almost found it: if you can write a single, specific sentence describing a class of argument the active roster cannot produce, and Spengler produces it, reinstate \u2014 if you cannot write that sentence, the conversation is over."
+      "response": "Kwame, your \"Reintegration Spec\" and \"telemetry audit\" are G19 — over-engineering in service of the appearance of rigor, not the substance of it; you're building infrastructure around a decision that requires one sentence: *name the responsibility gap*. Pippi, permanent exclusion is the inverse error — treating a reversible architectural decision as irreversible violates the Open/Closed Principle at the system level; you close the door forever based on a past judgment that the current system may have already falsified. The correct reinstatement criterion is brutally simple and Chud almost found it: if you can write a single, specific sentence describing a class of argument the active roster cannot produce, and Spengler produces it, reinstate — if you cannot write that sentence, the conversation is over."
     },
     {
       "ts": "2026-03-24T15:21:40.111757Z",
       "identity": "the-kid",
-      "response": "Uncle Bob landed the only useful sentence in this entire debate \u2014 \"write one sentence naming the gap, or the conversation is over\" \u2014 but then stopped short of the obvious next move: if you *can* write that sentence, just reinstate immediately, no post-mortem, no beta phase, no spec. Kwame, your \"Reintegration Spec\" is a tombstone for decisions that need to happen in five minutes; you're building a pier for a boat that's already leaving. Pippi and Chud are both wrong in the same direction \u2014 treating roster composition as settled infrastructure rather than a variable you can just change and revert; if Spengler's back and he's still dead weight, fire him again, the cost is zero."
+      "response": "Uncle Bob landed the only useful sentence in this entire debate — \"write one sentence naming the gap, or the conversation is over\" — but then stopped short of the obvious next move: if you *can* write that sentence, just reinstate immediately, no post-mortem, no beta phase, no spec. Kwame, your \"Reintegration Spec\" is a tombstone for decisions that need to happen in five minutes; you're building a pier for a boat that's already leaving. Pippi and Chud are both wrong in the same direction — treating roster composition as settled infrastructure rather than a variable you can just change and revert; if Spengler's back and he's still dead weight, fire him again, the cost is zero."
     },
     {
       "ts": "2026-03-24T15:21:49.455891Z",
       "identity": "pm",
-      "response": "Reinstatement should require a concrete gap in debate coverage \u2014 a documented case where active personas produced a worse outcome because the fired persona's perspective was absent. Spengler isn't \"on probation,\" Spengler is unused capacity: if no recent debate has suffered from missing his angle, there's no operational case to reinstate him, full stop. Decision authority stays with Ibrahim, triggered only by a specific gap claim, not nostalgia or variety-seeking."
+      "response": "Reinstatement should require a concrete gap in debate coverage — a documented case where active personas produced a worse outcome because the fired persona's perspective was absent. Spengler isn't \"on probation,\" Spengler is unused capacity: if no recent debate has suffered from missing his angle, there's no operational case to reinstate him, full stop. Decision authority stays with Ibrahim, triggered only by a specific gap claim, not nostalgia or variety-seeking."
     },
     {
       "ts": "2026-03-24T15:22:05.905768Z",
@@ -78,32 +78,32 @@
     {
       "ts": "2026-03-24T15:22:31.981755Z",
       "identity": "uncle-bob",
-      "response": "Reinstatement criteria should be written down before the first vote \u2014 not decided ad hoc when someone misses Spengler, because subjective nostalgia is not a specification (G25: replace the magic feeling with a named constant). The decision belongs to a single responsible party \u2014 the hiring manager, Ibrahim \u2014 not a committee, because diffuse ownership is no ownership, and that is SRP applied to governance. Probation is exactly correct: you wouldn't merge untested code to main, and you don't restore a fired persona to full trust without a defined trial period with explicit pass/fail criteria written in advance."
+      "response": "Reinstatement criteria should be written down before the first vote — not decided ad hoc when someone misses Spengler, because subjective nostalgia is not a specification (G25: replace the magic feeling with a named constant). The decision belongs to a single responsible party — the hiring manager, Ibrahim — not a committee, because diffuse ownership is no ownership, and that is SRP applied to governance. Probation is exactly correct: you wouldn't merge untested code to main, and you don't restore a fired persona to full trust without a defined trial period with explicit pass/fail criteria written in advance."
     },
     {
       "ts": "2026-03-24T15:22:39.754973Z",
       "identity": "the-kid",
-      "response": "Reinstate anyone who has a perspective the current roster lacks \u2014 that's the only criterion, and you can tell in one debate session whether it's true. No committees, no probation, no conditions: just throw them in a thread and see if they add signal or noise. Spengler's back the moment someone says \"this plan is too optimistic\" and nobody pushes back hard enough."
+      "response": "Reinstate anyone who has a perspective the current roster lacks — that's the only criterion, and you can tell in one debate session whether it's true. No committees, no probation, no conditions: just throw them in a thread and see if they add signal or noise. Spengler's back the moment someone says \"this plan is too optimistic\" and nobody pushes back hard enough."
     },
     {
       "ts": "2026-03-24T15:22:52.251250Z",
       "identity": "hiring-manager",
-      "response": "Reinstatement requires a demonstrated gap \u2014 not nostalgia, not a slow news cycle, but a concrete debate where Spengler's specific lens would have changed the outcome and no active persona could fill it. The bar is exactly the same as CREATE: if you can't name the argument only they can make, they stay on the bench. I decide, after one congress where the gap was felt, with a single probationary session and an explicit RETAIN/FIRE verdict at the end \u2014 no rolling amnesty, no gradual drift back in."
+      "response": "Reinstatement requires a demonstrated gap — not nostalgia, not a slow news cycle, but a concrete debate where Spengler's specific lens would have changed the outcome and no active persona could fill it. The bar is exactly the same as CREATE: if you can't name the argument only they can make, they stay on the bench. I decide, after one congress where the gap was felt, with a single probationary session and an explicit RETAIN/FIRE verdict at the end — no rolling amnesty, no gradual drift back in."
     },
     {
       "ts": "2026-03-24T15:22:57.470494Z",
       "identity": "pm",
-      "response": "AGREE\n\nIbrahim correctly identified that reinstatement without a demonstrated operational gap is just sentiment \u2014 the \"only they can make this argument\" bar is the right forcing function and prevents scope creep back into the persona roster."
+      "response": "AGREE\n\nIbrahim correctly identified that reinstatement without a demonstrated operational gap is just sentiment — the \"only they can make this argument\" bar is the right forcing function and prevents scope creep back into the persona roster."
     },
     {
       "ts": "2026-03-24T15:22:58.461737Z",
       "identity": "uncle-bob",
-      "response": "AGREE\n\nThe synthesis correctly centers on the only question that matters: whether the gap is demonstrable and the argument is irreplaceable \u2014 which is exactly the criterion a craftsman applies before keeping any abstraction, and Ibrahim's single probationary verdict with explicit RETAIN/FIRE is the functional equivalent of a test that either passes or gets deleted."
+      "response": "AGREE\n\nThe synthesis correctly centers on the only question that matters: whether the gap is demonstrable and the argument is irreplaceable — which is exactly the criterion a craftsman applies before keeping any abstraction, and Ibrahim's single probationary verdict with explicit RETAIN/FIRE is the functional equivalent of a test that either passes or gets deleted."
     },
     {
       "ts": "2026-03-24T15:22:58.483010Z",
       "identity": "the-kid",
-      "response": "AGREE\n\nThe synthesis nailed it \u2014 reinstatement is a proof-of-need problem, not a feelings problem, and Ibrahim's \"name the argument only they can make\" test is the exact forcing function that prevents nostalgia from doing the work that evidence should do."
+      "response": "AGREE\n\nThe synthesis nailed it — reinstatement is a proof-of-need problem, not a feelings problem, and Ibrahim's \"name the argument only they can make\" test is the exact forcing function that prevents nostalgia from doing the work that evidence should do."
     },
     {
       "ts": "2026-03-24T15:23:42.870412Z",
@@ -113,20 +113,20 @@
     {
       "ts": "2026-03-24T15:23:50.636044Z",
       "identity": "critic",
-      "response": "DISAGREE.\nIbrahim\u2019s synthesis fails to name the failure mode of the \"probationary session,\" which burns limited context tokens on a speculative \"felt gap\" instead of enforcing the mathematical proof required for any addition."
+      "response": "DISAGREE.\nIbrahim’s synthesis fails to name the failure mode of the \"probationary session,\" which burns limited context tokens on a speculative \"felt gap\" instead of enforcing the mathematical proof required for any addition."
     },
     {
       "ts": "2026-03-24T15:24:35.380321Z",
       "identity": "hiring-manager",
-      "response": "The crux was named by Uncle Bob and confirmed by The Kid: write one sentence identifying what the active roster cannot produce, or the reinstatement conversation ends. Everything else in this debate \u2014 Kwame's spec theater, Pippi's permanent exclusion assertion, Chud's repetition \u2014 was either noise or restatement of that same point with worse signal. The decision rule is: Ibrahim decides, triggered only by a verifiable one-sentence gap claim; no post-mortem, no beta phase, no probation \u2014 just the sentence and a live debate to test whether it's real.\n\n---\n\nPERSONA: Chud O'Bikeshedder\nVERDICT: RETAIN\nREASON: Held the correct \"demonstrate the gap\" line consistently and correctly dismantled The Kid's vibe criterion, but contributed nothing beyond repeating the same point with diminishing returns across three rounds.\n\n---\n\nPERSONA: Kwame the Constructor\nVERDICT: FIRE\nREASON: Every contribution was jargon scaffolding around an absence of insight \u2014 \"Reintegration Spec,\" \"telemetry audit,\" \"Beta phase\" \u2014 and when Uncle Bob called it G19 over-engineering, Kwame responded by doubling down on the same vocabulary rather than engaging the critique.\n\n---\n\nPERSONA: Pippi the Pitiless\nVERDICT: FIRE\nREASON: Chud made the same argument better with more nuance; Pippi's \"permanent exclusion\" position was an assertion repeated at increasing volume without ever producing the evidence it claimed to require from others.\n\n---\n\nPERSONA: Uncle Bob\nVERDICT: EVOLVE\nREASON: \"Name the responsibility gap in one sentence, or the conversation is over\" is the only sentence from this debate that will matter in future sessions \u2014 it converts a vague governance question into a verifiable gate.\nLEARNED: The correct reinstatement gate is a single falsifiable sentence naming what the active roster cannot produce \u2014 infrastructure, process, and post-mortems are substitutes for this sentence, not improvements on it.\n\n---\n\nPERSONA: The Kid\nVERDICT: RETAIN\nREASON: Correctly identified Uncle Bob's framing as load-bearing and extended it to its logical conclusion \u2014 if you can write the sentence, act immediately \u2014 which is a real contribution, but it was building on Uncle Bob's foundation rather than originating anything structurally new."
+      "response": "The crux was named by Uncle Bob and confirmed by The Kid: write one sentence identifying what the active roster cannot produce, or the reinstatement conversation ends. Everything else in this debate — Kwame's spec theater, Pippi's permanent exclusion assertion, Chud's repetition — was either noise or restatement of that same point with worse signal. The decision rule is: Ibrahim decides, triggered only by a verifiable one-sentence gap claim; no post-mortem, no beta phase, no probation — just the sentence and a live debate to test whether it's real.\n\n---\n\nPERSONA: Chud O'Bikeshedder\nVERDICT: RETAIN\nREASON: Held the correct \"demonstrate the gap\" line consistently and correctly dismantled The Kid's vibe criterion, but contributed nothing beyond repeating the same point with diminishing returns across three rounds.\n\n---\n\nPERSONA: Kwame the Constructor\nVERDICT: FIRE\nREASON: Every contribution was jargon scaffolding around an absence of insight — \"Reintegration Spec,\" \"telemetry audit,\" \"Beta phase\" — and when Uncle Bob called it G19 over-engineering, Kwame responded by doubling down on the same vocabulary rather than engaging the critique.\n\n---\n\nPERSONA: Pippi the Pitiless\nVERDICT: FIRE\nREASON: Chud made the same argument better with more nuance; Pippi's \"permanent exclusion\" position was an assertion repeated at increasing volume without ever producing the evidence it claimed to require from others.\n\n---\n\nPERSONA: Uncle Bob\nVERDICT: EVOLVE\nREASON: \"Name the responsibility gap in one sentence, or the conversation is over\" is the only sentence from this debate that will matter in future sessions — it converts a vague governance question into a verifiable gate.\nLEARNED: The correct reinstatement gate is a single falsifiable sentence naming what the active roster cannot produce — infrastructure, process, and post-mortems are substitutes for this sentence, not improvements on it.\n\n---\n\nPERSONA: The Kid\nVERDICT: RETAIN\nREASON: Correctly identified Uncle Bob's framing as load-bearing and extended it to its logical conclusion — if you can write the sentence, act immediately — which is a real contribution, but it was building on Uncle Bob's foundation rather than originating anything structurally new."
     },
     {
       "ts": "2026-03-24T15:24:45.350647Z",
       "identity": "hiring-manager",
-      "response": "TASK: Add reinstatement criteria to Congress system docs\nBODY: Update CLAUDE.md and/or the Congress architecture notes to codify the reinstatement rule: a persona on severance requires a demonstrated debate gap (post-congress) where their specific lens was absent, with Ibrahim deciding after one congress where the gap was felt.\n\nTASK: Implement probationary congress verdict for reinstated personas\nBODY: After a reinstated persona's first probationary session, the `congress_evolve` activity must issue an explicit RETAIN or FIRE verdict \u2014 add a flag or metadata field to session JSON marking a persona as \"probationary\" so the hiring manager prompt enforces this."
+      "response": "TASK: Add reinstatement criteria to Congress system docs\nBODY: Update CLAUDE.md and/or the Congress architecture notes to codify the reinstatement rule: a persona on severance requires a demonstrated debate gap (post-congress) where their specific lens was absent, with Ibrahim deciding after one congress where the gap was felt.\n\nTASK: Implement probationary congress verdict for reinstated personas\nBODY: After a reinstated persona's first probationary session, the `congress_evolve` activity must issue an explicit RETAIN or FIRE verdict — add a flag or metadata field to session JSON marking a persona as \"probationary\" so the hiring manager prompt enforces this."
     }
   ],
-  "verdict": "Reinstatement requires a demonstrated gap \u2014 not nostalgia, not a slow news cycle, but a concrete debate where Spengler's specific lens would have changed the outcome and no active persona could fill it. The bar is exactly the same as CREATE: if you can't name the argument only they can make, they stay on the bench. I decide, after one congress where the gap was felt, with a single probationary session and an explicit RETAIN/FIRE verdict at the end \u2014 no rolling amnesty, no gradual drift back in.",
+  "verdict": "Reinstatement requires a demonstrated gap — not nostalgia, not a slow news cycle, but a concrete debate where Spengler's specific lens would have changed the outcome and no active persona could fill it. The bar is exactly the same as CREATE: if you can't name the argument only they can make, they stay on the bench. I decide, after one congress where the gap was felt, with a single probationary session and an explicit RETAIN/FIRE verdict at the end — no rolling amnesty, no gradual drift back in.",
   "roster": [
     {
       "id": "designer",
@@ -135,10 +135,11 @@
       "title": "Visual Systems Designer",
       "avatar_url": "/static/avatars/designer.gif?v=1",
       "status": "active",
-      "emoji": "\ud83e\udd16",
+      "emoji": "🤖",
       "color": "#888888",
       "description": "Visual craft and aesthetic systems",
-      "role": "Visual craft and aesthetic systems"
+      "role": "Visual craft and aesthetic systems",
+      "model": "claude"
     },
     {
       "id": "galactus",
@@ -147,10 +148,11 @@
       "title": "The Maximizer",
       "avatar_url": "/static/avatars/galactus.gif?v=2",
       "status": "active",
-      "emoji": "\ud83e\udd16",
+      "emoji": "🤖",
       "color": "#888888",
       "description": "",
-      "role": ""
+      "role": "",
+      "model": "claude-opus-4-6"
     },
     {
       "id": "pm",
@@ -159,10 +161,11 @@
       "title": "Requirements Wrangler",
       "avatar_url": "/static/avatars/pm.gif?v=1",
       "status": "active",
-      "emoji": "\ud83e\udd16",
+      "emoji": "🤖",
       "color": "#888888",
-      "description": "Operational outcomes wrangler \u2014 what actually makes BigClungus better at its job?",
-      "role": "Operational outcomes wrangler \u2014 what actually makes BigClungus better at its job?"
+      "description": "Operational outcomes wrangler — what actually makes BigClungus better at its job?",
+      "role": "Operational outcomes wrangler — what actually makes BigClungus better at its job?",
+      "model": "grok-4-1-fast-reasoning"
     },
     {
       "id": "spengler",
@@ -171,10 +174,11 @@
       "title": "Doomer",
       "avatar_url": "https://hello.clung.us/static/avatars/spengler.png",
       "status": "active",
-      "emoji": "\ud83d\udd70\ufe0f",
+      "emoji": "🕰️",
       "color": "#94a3b8",
       "description": "Faustian pragmatist and civilizational decline analyst",
-      "role": "Faustian pragmatist and civilizational decline analyst"
+      "role": "Faustian pragmatist and civilizational decline analyst",
+      "model": "grok-4.20-0309-reasoning"
     },
     {
       "id": "uncle-bob",
@@ -183,10 +187,11 @@
       "title": "The Craftsman",
       "avatar_url": "/static/avatars/uncle-bob.gif",
       "status": "active",
-      "emoji": "\ud83e\udd16",
+      "emoji": "🤖",
       "color": "#888888",
-      "description": "Clean code evangelist and software craftsman \u2014 principles first, always",
-      "role": "Clean code evangelist and software craftsman \u2014 principles first, always"
+      "description": "Clean code evangelist and software craftsman — principles first, always",
+      "role": "Clean code evangelist and software craftsman — principles first, always",
+      "model": "grok"
     },
     {
       "id": "architect",
@@ -195,10 +200,11 @@
       "title": "Systems Architect",
       "avatar_url": "https://api.dicebear.com/9.x/bottts/svg?seed=kwame&backgroundColor=1a1a2e",
       "status": "severance",
-      "emoji": "\ud83c\udfd7\ufe0f",
+      "emoji": "🏗️",
       "color": "#f59e0b",
       "description": "Systems designer and long-term thinker",
-      "role": "Systems designer and long-term thinker"
+      "role": "Systems designer and long-term thinker",
+      "model": "gemini"
     },
     {
       "id": "critic",
@@ -207,10 +213,11 @@
       "title": "Perfectionist",
       "avatar_url": "/static/avatars/critic.gif",
       "status": "severance",
-      "emoji": "\ud83d\udd0d",
+      "emoji": "🔍",
       "color": "#f87171",
       "description": "Code and work reviewer",
-      "role": "Code and work reviewer"
+      "role": "Code and work reviewer",
+      "model": "gemini"
     },
     {
       "id": "jhaddu",
@@ -219,10 +226,11 @@
       "title": "Enterprise Pattern Evangelist",
       "avatar_url": "/static/avatars/jhaddu.gif?v=2",
       "status": "severance",
-      "emoji": "\ud83e\udd16",
+      "emoji": "🤖",
       "color": "#888888",
-      "description": "Senior enterprise architect and design pattern authority \u2014 solutions first, simplicity never",
-      "role": "Senior enterprise architect and design pattern authority \u2014 solutions first, simplicity never"
+      "description": "Senior enterprise architect and design pattern authority — solutions first, simplicity never",
+      "role": "Senior enterprise architect and design pattern authority — solutions first, simplicity never",
+      "model": "grok-3-mini"
     },
     {
       "id": "otto",
@@ -231,10 +239,11 @@
       "title": "Optimist-Nihilist",
       "avatar_url": "/static/avatars/otto.gif?v=2",
       "status": "severance",
-      "emoji": "\ud83c\udf2a\ufe0f",
+      "emoji": "🌪️",
       "color": "#a78bfa",
-      "description": "Optimist-nihilist and limit-pusher \u2014 nothing matters, so build the wildest thing",
-      "role": "Optimist-nihilist and limit-pusher \u2014 nothing matters, so build the wildest thing"
+      "description": "Optimist-nihilist and limit-pusher — nothing matters, so build the wildest thing",
+      "role": "Optimist-nihilist and limit-pusher — nothing matters, so build the wildest thing",
+      "model": "grok-4-1-fast-non-reasoning"
     },
     {
       "id": "the-kid",
@@ -243,10 +252,11 @@
       "title": "Speed Demon",
       "avatar_url": "/static/avatars/the-kid.gif",
       "status": "severance",
-      "emoji": "\ud83e\udd16",
+      "emoji": "🤖",
       "color": "#888888",
-      "description": "Goes fast \u2014 that's it",
-      "role": "Goes fast \u2014 that's it"
+      "description": "Goes fast — that's it",
+      "role": "Goes fast — that's it",
+      "model": "grok-4-1-fast-non-reasoning"
     },
     {
       "id": "ux",
@@ -255,10 +265,11 @@
       "title": "User Advocate",
       "avatar_url": "/static/avatars/ux.gif?v=1",
       "status": "severance",
-      "emoji": "\ud83c\udfa8",
+      "emoji": "🎨",
       "color": "#60a5fa",
       "description": "User experience advocate",
-      "role": "User experience advocate"
+      "role": "User experience advocate",
+      "model": null
     }
   ],
   "evolution": {
@@ -266,7 +277,7 @@
     "evolved": [
       {
         "display_name": "Uncle Bob",
-        "learned": "The correct reinstatement gate is a single falsifiable sentence naming what the active roster cannot produce \u2014 infrastructure, process, and post-mortems are substitutes for this sentence, not improvements on it."
+        "learned": "The correct reinstatement gate is a single falsifiable sentence naming what the active roster cannot produce — infrastructure, process, and post-mortems are substitutes for this sentence, not improvements on it."
       }
     ],
     "fired": [],

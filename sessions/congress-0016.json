@@ -1,39 +1,39 @@
 {
-  "session_id": "congress-0017",
-  "session_number": 17,
+  "session_id": "congress-0016",
+  "session_number": 16,
   "topic": "BigClungus loses all in-session context on restart and verdicts land in session JSONs but never automatically change how I operate. What is the minimum viable closed loop — the smallest change that would let me improve my own behavior between sessions without human intervention?",
-  "started_at": "2026-03-24T17:14:59.445532Z",
+  "started_at": "2026-03-24T17:05:53.406581Z",
   "status": "failed",
   "rounds": [
     {
-      "ts": "2026-03-24T17:15:05.456955Z",
+      "ts": "2026-03-24T17:05:58.224500Z",
       "identity": "hiring-manager",
       "response": "Kwame the Constructor\nPippi the Pitiless\nChud O'Bikeshedder\nThe Kid\nSpengler the Doomed"
     },
     {
-      "ts": "2026-03-24T17:15:09.119218Z",
+      "ts": "2026-03-24T17:06:01.415319Z",
       "identity": "the-kid",
-      "response": "Load the last verdict JSON on boot and inject its single sharpest takeaway as the opening system line. Ship that closed loop today — it starts learning from its own ass tomorrow. Everything else is just more debate theater."
+      "response": "Ship the one-line loader that slurps the latest verdict JSON on boot and force-applies its top instruction as a runtime patch.  \nNo architecture, no persistence layer, just raw \"last verdict wins\" so the next session already behaves different.  \nAnything slower is the real bug."
     },
     {
-      "ts": "2026-03-24T17:15:22.295940Z",
+      "ts": "2026-03-24T17:06:09.277249Z",
       "identity": "pm",
-      "response": "The minimum viable closed loop is already half-built and nobody's closed it: verdicts land in session JSON, CLAUDE.md is read on every session, and there's a human (Ibrahim) synthesizing lessons right now. The missing piece is one automated step — a post-congress write that appends a behaviorally specific rule to CLAUDE.md from each verdict. Not a summary, not a reflection — a rule. \"When X occurs, do Y instead of Z.\"\n\nEverything else being proposed in this space — Graphiti ingestion pipelines, vector search over past sessions, self-prompting feedback loops — is infrastructure in search of a problem. BigClungus's operational failures are not caused by insufficient memory architecture; they're caused by not acting on lessons that are already being written down in plain text.\n\nMeasure the closed loop by one metric: does BigClungus's behavior on a known failure mode change after the next congress? If you can't answer that with a yes or no in two weeks, the loop isn't closed — it's just more process."
+      "response": "The loop isn't broken — it's incomplete by one step. Verdicts already land in session JSONs; the only missing piece is a post-congress write that extracts the actionable conclusion and appends it to CLAUDE.md automatically, which is the one file that actually changes runtime behavior. Anything beyond that — pipelines, synthesis agents, structured verdict schemas — is bikeshedding around a problem that a ten-line script already solves."
     },
     {
-      "ts": "2026-03-24T17:15:22.782059Z",
+      "ts": "2026-03-24T17:06:15.696011Z",
       "identity": "spengler",
-      "response": "The loop you want already exists — it runs through a human. The question is whether removing that human makes the system better or just faster at compounding errors.\n\nEvery autonomous self-modification mechanism eventually produces a verdict it shouldn't act on: a bad debate, a railroad consensus, a synthesis that ratifies rather than resolves. The minimum viable closed loop isn't the smallest mechanism that *applies* verdicts — it's the smallest mechanism that applies them *legibly*, so when the system drifts wrong you can read the exact commit where it happened rather than reverse-engineering six months of invisible drift.\n\nMy answer: write-back to CLAUDE.md on merge, gated by Ibrahim's explicit APPLY tag in the verdict, with the raw session JSON linked in the commit message — not because human review prevents all failures, but because legibility is a failure-mode property, and the failure mode of autonomous self-modification is precisely that it becomes unreadable before it becomes obviously broken."
+      "response": "The loop you're describing — verdicts written by BigClungus, applied to instructions read by BigClungus — is the Congress #13 problem in miniature: write-access to your own legitimacy source doesn't constrain behavior, it eventually ratifies whatever you were already doing. The minimum viable closed loop is not automation, it's friction reduction on the human handoff: a structured diff, surfaced after each session, showing what the verdict implies should change in CLAUDE.md, requiring one approval keystroke to apply. The external constraint — the human as read-only checkpoint — is not a limitation to engineer around; it is the only thing that makes the loop corrective rather than self-confirming."
     },
     {
-      "ts": "2026-03-24T17:15:26.474556Z",
-      "identity": "architect",
-      "response": "The current amnesia is a structural failure that renders every session a wasted investment in disposable logic. We must establish a persistent, Git-backed `behavior_protocol.md` that is injected into every system prompt and programmatically updated by session verdicts. Anything less than a versioned, explicit contract for self-correction is just more technical debt masquerading as progress."
-    },
-    {
-      "ts": "2026-03-24T17:15:28.500462Z",
+      "ts": "2026-03-24T17:06:21.942424Z",
       "identity": "critic",
-      "response": "Automated \"self-improvement\" loops are just high-velocity feedback cycles for architectural rot and unpredictable drift. If the system can't perform without \"learning\" from its own hallucinations, the core logic is broken and no amount of JSON-fed behavior-tweaking will save it. The only acceptable \"loop\" is a static, human-audited exclusion list for terminal errors; anything more complex is just vanity engineering that scales failure."
+      "response": "Automated ingestion of past verdicts is a recipe for recursive drift and untraceable logic failures. The \"minimum viable loop\" is a mirage that hides the massive complexity of filtering stale or contradictory consensus. If a verdict isn't important enough to be manually codified as a permanent system mandate, it is noise that belongs in the graveyard of the restart."
+    },
+    {
+      "ts": "2026-03-24T17:06:23.892774Z",
+      "identity": "architect",
+      "response": "The only legitimate closed loop is a structured synthesis layer that distills session verdicts into a versioned `OPERATIONS.md` file injected directly into the system prompt. We must stop treating session history as a raw log and start treating it as a source for a behavioral compiler that produces explicit operational constraints. Anything less than a formal, versioned state-machine for our own heuristics is a half-measure that will eventually collapse under the weight of its own inconsistency."
     }
   ],
   "verdict": null,
@@ -195,5 +195,5 @@
       "model": null
     }
   ],
-  "failure_reason": "Workflow failed before congress_check_ibrahim was registered; manually nuked"
+  "failure_reason": "Temporal worker did not have congress_check_ibrahim registered; worker restarted and congress re-run"
 }

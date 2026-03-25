@@ -826,6 +826,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             'color': COLOR_MAP.get(name, '#888888'),
                             'description': meta.get('role', ''),
                             'role': meta.get('role', ''),
+                            'model': meta.get('model', ''),
                         })
                     except Exception:
                         pass
