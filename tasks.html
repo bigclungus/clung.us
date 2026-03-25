@@ -611,7 +611,7 @@
       var startedRel   = task.started_at ? timeAgo(task.started_at) : '?';
 
       var activityTs = lastActivityTs(task);
-      var agePill = makeAgePill(activityTs);
+      var agePill = makeAgePill(activityTs, status);
 
       // Last log snippet (for inline display, ~80 chars)
       var lastEntry = lastLogEntry(task.log);
