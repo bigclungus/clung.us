@@ -655,6 +655,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._handle_persona_create()
             return
 
+        m = re.match(r'^/api/personas/([\w-]+)/verdict$', path)
+        if m:
+            if not _is_localhost(self.client_address):
+                self._json_auth_error()
+                return
+            self._handle_persona_verdict(m.group(1))
+            return
+
         self.send_error(404)
 
     def do_PATCH(self):
@@ -971,6 +979,86 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         _PERSONA_META.pop(name, None)
 
         self._send_json({'ok': True, 'deleted': name})
+
+    def _handle_persona_verdict(self, name):
+        """POST /api/personas/{name}/verdict — record a congress verdict in personas.db.
+
+        Body: {"verdict": "FIRE"|"EVOLVE"|"RETAIN", "date": "YYYY-MM-DD"}
+
+        For FIRE: increments times_fired, sets status='fired', moves md file to agents/fired/
+          (if not already there — Option A: skip move if already in fired/).
+        For EVOLVE: increments times_evolved.
+        For RETAIN: no counter change beyond last_verdict fields.
+        Always: sets last_verdict and last_verdict_date, refreshes _PERSONA_META.
+        """
+        global _PERSONA_META
+
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+            raw = self.rfile.read(length)
+            data = json.loads(raw) if raw else {}
+        except Exception as e:
+            self._json_error(400, f'Invalid JSON: {e}')
+            return
+
+        verdict = (data.get('verdict') or '').strip().upper()
+        date_str = (data.get('date') or datetime.datetime.utcnow().strftime('%Y-%m-%d')).strip()
+
+        if verdict not in ('FIRE', 'EVOLVE', 'RETAIN'):
+            self._json_error(400, "Invalid verdict — must be FIRE, EVOLVE, or RETAIN")
+            return
+
+        conn = _get_personas_db()
+        try:
+            row = conn.execute('SELECT * FROM personas WHERE name=?', (name,)).fetchone()
+            if not row:
+                conn.close()
+                self._json_error(404, f"Persona '{name}' not found")
+                return
+
+            now_iso = datetime.datetime.utcnow().isoformat() + '+00:00'
+
+            if verdict == 'FIRE':
+                conn.execute('''
+                    UPDATE personas
+                    SET last_verdict=?, last_verdict_date=?, times_fired=times_fired+1,
+                        status='fired', updated_at=?
+                    WHERE name=?
+                ''', (verdict, date_str, now_iso, name))
+                # Move md file to agents/fired/ unless already there
+                active_path = os.path.join(AGENTS_ACTIVE_DIR, f'{name}.md')
+                fired_path = os.path.join(AGENTS_FIRED_DIR, f'{name}.md')
+                if os.path.isfile(active_path) and not os.path.isfile(fired_path):
+                    import shutil as _shutil
+                    _shutil.move(active_path, fired_path)
+                # Update md_path in db to reflect new location
+                final_path = fired_path if os.path.isfile(fired_path) else active_path
+                conn.execute('UPDATE personas SET md_path=? WHERE name=?', (final_path, name))
+
+            elif verdict == 'EVOLVE':
+                conn.execute('''
+                    UPDATE personas
+                    SET last_verdict=?, last_verdict_date=?, times_evolved=times_evolved+1,
+                        updated_at=?
+                    WHERE name=?
+                ''', (verdict, date_str, now_iso, name))
+
+            else:  # RETAIN
+                conn.execute('''
+                    UPDATE personas
+                    SET last_verdict=?, last_verdict_date=?, updated_at=?
+                    WHERE name=?
+                ''', (verdict, date_str, now_iso, name))
+
+            conn.commit()
+            # Refresh cache
+            updated_row = conn.execute('SELECT * FROM personas WHERE name=?', (name,)).fetchone()
+            if updated_row:
+                _PERSONA_META[name] = dict(updated_row)
+        finally:
+            conn.close()
+
+        self._send_json({'ok': True})
 
     # ── Tasks ─────────────────────────────────────────────────────────────────
 
@@ -1385,6 +1473,26 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             fcntl.flock(f, fcntl.LOCK_UN)
                 except Exception:
                     pass  # Non-fatal: session update failure doesn't block the response
+
+        # Increment total_congresses for this persona in personas.db
+        if identity and identity != 'hiring-manager':
+            try:
+                now_iso = datetime.datetime.utcnow().isoformat() + '+00:00'
+                conn = _get_personas_db()
+                try:
+                    conn.execute(
+                        'UPDATE personas SET total_congresses = total_congresses + 1, updated_at = ? WHERE name = ?',
+                        (now_iso, identity)
+                    )
+                    conn.commit()
+                    row = conn.execute('SELECT * FROM personas WHERE name=?', (identity,)).fetchone()
+                    if row:
+                        _PERSONA_META[identity] = dict(row)
+                finally:
+                    conn.close()
+            except Exception as _e:
+                import logging
+                logging.warning("Failed to increment total_congresses for %s: %s", identity, _e)
 
         self._send_json({"response": response_text, "identity": identity})
 
