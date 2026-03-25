@@ -149,8 +149,20 @@ def _get_persona_meta() -> dict:
     return _PERSONA_META
 
 
-def _is_authed(request_headers):
-    """Check tauth_github cookie (HMAC-signed) against GITHUB_ALLOWED_USERS. Empty set = any authed user ok."""
+def _is_authed(request_headers, client_address=None):
+    """Check auth via tauth_github cookie or X-Internal-Token header.
+
+    Cookie path: HMAC-signed tauth_github cookie checked against GITHUB_ALLOWED_USERS.
+    Token path: X-Internal-Token header must match INTERNAL_TOKEN and request must be from localhost.
+    Empty GITHUB_ALLOWED_USERS set = any authed user ok.
+    """
+    # Internal service-to-service auth via X-Internal-Token (localhost only)
+    if INTERNAL_TOKEN and client_address is not None and _is_localhost(client_address):
+        token_header = request_headers.get('X-Internal-Token', '')
+        if token_header and hmac.compare_digest(token_header, INTERNAL_TOKEN):
+            return True
+
+    # Browser cookie auth path
     cookie_header = request_headers.get('Cookie', '')
     for part in cookie_header.split(';'):
         part = part.strip()
@@ -572,7 +584,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
 
         if path == '/api/tasks':
-            if not _is_authed(self.headers):
+            if not _is_authed(self.headers, self.client_address):
                 self._json_auth_error()
                 return
             self._serve_tasks()
@@ -615,14 +627,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
 
         if path == '/api/wallet/balance':
-            if not _is_authed(self.headers):
+            if not _is_authed(self.headers, self.client_address):
                 self._json_auth_error()
                 return
             self._serve_wallet_balance()
             return
 
         if path in ('/wallet', '/wallet.html'):
-            if not _is_authed(self.headers):
+            if not _is_authed(self.headers, self.client_address):
                 self._json_auth_error()
                 return
             # fall through to static serve
@@ -646,14 +658,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         path = urllib.parse.urlparse(self.path).path
 
         if path == '/api/congress/start':
-            if not _is_localhost(self.client_address) and not _is_authed(self.headers):
+            if not _is_localhost(self.client_address) and not _is_authed(self.headers, self.client_address):
                 self._json_auth_error()
                 return
             self._handle_congress_start()
             return
 
         if path == '/api/congress':
-            if not _is_localhost(self.client_address) and not _is_authed(self.headers):
+            if not _is_localhost(self.client_address) and not _is_authed(self.headers, self.client_address):
                 self._json_auth_error()
                 return
             self._handle_congress_post()
@@ -661,7 +673,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         m = re.match(r'^/api/congress/sessions/(congress-\d+)$', path)
         if m:
-            if not _is_localhost(self.client_address) and not _is_authed(self.headers):
+            if not _is_localhost(self.client_address) and not _is_authed(self.headers, self.client_address):
                 self._json_auth_error()
                 return
             self._handle_congress_session_patch(m.group(1))
@@ -693,7 +705,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         m = re.match(r'^/api/congress/sessions/(congress-\d+)$', path)
         if m:
-            if not _is_localhost(self.client_address) and not _is_authed(self.headers):
+            if not _is_localhost(self.client_address) and not _is_authed(self.headers, self.client_address):
                 self._json_auth_error()
                 return
             self._handle_congress_session_patch(m.group(1))
