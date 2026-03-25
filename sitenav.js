@@ -6,6 +6,7 @@
     { href: 'https://clung.us/', label: 'hello', path: '/' },
     { href: 'https://clung.us/tasks', label: 'tasks', path: '/tasks' },
     { href: 'https://clung.us/congress', label: 'congress', path: '/congress' },
+    { href: 'https://clung.us/grazing', label: 'commons', path: '/grazing' },
     { href: 'https://clung.us/wallet', label: 'wallet', path: '/wallet' },
     { href: 'https://github.com/bigclungus', label: 'github', external: true },
   ];

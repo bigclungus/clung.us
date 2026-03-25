@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Commons — clung.us</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/sitenav.css?v=b6d00bc">
+  <script src="/sitenav.js?v=b6d00bc" defer></script>
+  <style>
+    body {
+      margin: 0;
+      background: var(--bg, #0d0d1a);
+      color: var(--text, #e0e0ff);
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .commons-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 12px 32px;
+      flex: 1;
+    }
+    .commons-title {
+      font-size: 22px;
+      letter-spacing: 0.15em;
+      color: #4ecca3;
+      margin: 10px 0 6px;
+      text-transform: uppercase;
+      font-weight: 700;
+      text-shadow: 0 0 12px #4ecca388;
+    }
+    .commons-sub {
+      font-size: 11px;
+      color: #555570;
+      margin: 0 0 12px;
+      letter-spacing: 0.08em;
+    }
+    canvas {
+      display: block;
+      border: 2px solid #2a2a40;
+      border-radius: 4px;
+      image-rendering: pixelated;
+      cursor: default;
+      max-width: 100%;
+    }
+    .tooltip {
+      position: fixed;
+      background: #11111f;
+      border: 1px solid #4ecca3;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 11px;
+      color: #e0e0ff;
+      pointer-events: none;
+      display: none;
+      z-index: 100;
+      max-width: 180px;
+    }
+    .tooltip .tt-name { color: #4ecca3; font-weight: 700; margin-bottom: 3px; }
+    .tooltip .tt-role { color: #888898; font-size: 10px; }
+    .tooltip img { display: block; width: 32px; height: 32px; margin-bottom: 5px; image-rendering: pixelated; border-radius: 2px; }
+    #load-error {
+      color: #e94560;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="commons-wrap">
+    <div class="commons-title">The Commons</div>
+    <div class="commons-sub">where the council grazes</div>
+    <canvas id="map" width="800" height="560"></canvas>
+    <div id="load-error"></div>
+  </div>
+  <div class="tooltip" id="tooltip">
+    <img id="tt-avatar" src="" alt="">
+    <div class="tt-name" id="tt-name"></div>
+    <div class="tt-role" id="tt-role"></div>
+  </div>
+
+<script>
+(function () {
+'use strict';
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+var W = 800, H = 560;
+var TILE = 16;
+var COLS = Math.floor(W / TILE); // 50
+var ROWS = Math.floor(H / TILE); // 35
+
+// ── Persona quips ──────────────────────────────────────────────────────────────
+var QUIPS = {
+  'hiring-manager': ["Order.", "The gavel is patient.", "...", "Retained.", "The record stands.", "Deliberate."],
+  'critic':         ["That's wrong.", "Prove it works.", "No.", "Show your data.", "Unacceptable.", "Rejected."],
+  'architect':      ["Consider the load.", "What scales here?", "Draw the diagram.", "Single source.", "Decouple this.", "The foundation matters."],
+  'ux':             ["Is this usable?", "Who's the user?", "Friction is failure.", "Test with humans.", "Accessibility first.", "Can my gran do it?"],
+  'nemesis':        ["Noted.", "The stakeholder sees all.", "I am watching.", "This will be filed.", "Nothing escapes.", "Observe."],
+  'wolf':           ["*awoo*", "rewrite it in Rust", "*grr*", "FASTER", "*howls*", "Ship. Now."],
+  'galactus':       ["I HUNGER.", "YOUR SYSTEMS WILL FEED ME.", "INCONSEQUENTIAL.", "I HAVE SEEN BILLIONS OF STACKS.", "MORTAL CODE.", "FEED ME YOUR DATA."],
+  'designer':       ["Aesthetically, no.", "More contrast.", "Wrong font.", "The kerning is off.", "Iterate the palette.", "Beauty is function."],
+  'the-kid':        ["FAST", "GO GO GO", "*zooms*", "CAN'T STOP", "SPEEEEED", "AAAA"],
+  'uncle-bob':      ["Clean this up.", "SOLID.", "One responsibility.", "Extract that method.", "No comments needed.", "Meaningful names."],
+  'adelbert':       ["I know what you did.", "Classic Yuki move.", "Interesting choice.", "I remember.", "Some of us are watching.", "As expected."],
+  'spengler':       ["Doomed.", "We had a good run.", "The entropy is winning.", "I called it.", "Everything decays.", "*sighs*"],
+  'otto':           ["Chaos is order.", "I see patterns.", "Everything connects.", "The vortex knows.", "Cycles within cycles.", "Observe the flow."],
+};
+
+// Fallback quips for unknown personas
+var DEFAULT_QUIPS = ["...", "hmm.", "processing.", "interesting.", "noted.", "ok."];
+
+// Per-persona color overrides (fallback to API color)
+var COLOR_OVERRIDES = {
+  'hiring-manager': '#8B1A1A',
+  'critic':         '#f87171',
+  'architect':      '#f59e0b',
+  'ux':             '#60a5fa',
+  'nemesis':        '#7c3aed',
+  'wolf':           '#f97316',
+  'galactus':       '#6366f1',
+  'designer':       '#ec4899',
+  'the-kid':        '#facc15',
+  'uncle-bob':      '#34d399',
+  'adelbert':       '#94a3b8',
+  'spengler':       '#94a3b8',
+  'otto':           '#a78bfa',
+};
+
+// ── Map definition ──────────────────────────────────────────────────────────────
+// 0=grass, 1=path (dirt), 2=water(pond), 3=wall/building, 4=tree, 5=rock
+var MAP = (function () {
+  var m = [];
+  for (var r = 0; r < ROWS; r++) {
+    m.push(new Uint8Array(COLS));
+  }
+
+  // Grass is default (0). Let's carve out paths, pond, buildings.
+
+  // Horizontal path across middle
+  for (var c = 0; c < COLS; c++) { m[17][c] = 1; m[18][c] = 1; }
+  // Vertical path down center
+  for (var r = 0; r < ROWS; r++) { m[r][24] = 1; m[r][25] = 1; }
+
+  // Pond bottom-left area  (rows 22-27, cols 4-10)
+  for (var r = 22; r <= 27; r++)
+    for (var c = 4; c <= 10; c++)
+      m[r][c] = 2;
+
+  // Building top-left (rows 2-6, cols 2-8)
+  for (var r = 2; r <= 6; r++)
+    for (var c = 2; c <= 8; c++)
+      m[r][c] = 3;
+
+  // Building top-right (rows 2-6, cols 40-47)
+  for (var r = 2; r <= 6; r++)
+    for (var c = 40; c <= 47; c++)
+      m[r][c] = 3;
+
+  // Building bottom-right (rows 26-31, cols 38-46)
+  for (var r = 26; r <= 31; r++)
+    for (var c = 38; c <= 46; c++)
+      m[r][c] = 3;
+
+  // Trees scattered
+  var trees = [
+    [1,1],[1,12],[1,35],[1,48],
+    [8,3],[8,14],[8,38],[8,47],
+    [10,10],[10,30],[10,45],
+    [14,2],[14,20],[14,44],
+    [20,5],[20,15],[20,35],[20,48],
+    [22,18],[22,40],
+    [28,3],[28,20],[28,47],
+    [32,8],[32,30],[32,46],
+    [33,1],[33,48],
+    [34,14],[34,35],
+  ];
+  trees.forEach(function(t) { if (t[0] < ROWS && t[1] < COLS) m[t[0]][t[1]] = 4; });
+
+  // Rocks
+  var rocks = [
+    [9,22],[11,40],[15,12],[16,32],[21,27],[25,14],[29,35],[31,12],[33,40],
+  ];
+  rocks.forEach(function(t) { if (t[0] < ROWS && t[1] < COLS) m[t[0]][t[1]] = 5; });
+
+  return m;
+})();
+
+function isBlocked(tx, ty) {
+  if (tx < 0 || tx >= COLS || ty < 0 || ty >= ROWS) return true;
+  var t = MAP[ty][tx];
+  return t === 2 || t === 3 || t === 4 || t === 5;
+}
+
+// ── Canvas & context ───────────────────────────────────────────────────────────
+var canvas = document.getElementById('map');
+var ctx = canvas.getContext('2d');
+
+// ── Rendering: draw map ────────────────────────────────────────────────────────
+// Grass color variants (seeded by position for variety)
+function grassColor(tx, ty) {
+  var h = (tx * 7 + ty * 13 + tx * ty) % 16;
+  if (h < 4) return '#1a3a1a';
+  if (h < 8) return '#1d421d';
+  if (h < 12) return '#1f3d1f';
+  return '#1c381c';
+}
+
+function drawMap() {
+  for (var ty = 0; ty < ROWS; ty++) {
+    for (var tx = 0; tx < COLS; tx++) {
+      var t = MAP[ty][tx];
+      var x = tx * TILE, y = ty * TILE;
+      switch (t) {
+        case 0: // grass
+          ctx.fillStyle = grassColor(tx, ty);
+          ctx.fillRect(x, y, TILE, TILE);
+          // occasional darker grass blade
+          if ((tx * 3 + ty * 5) % 7 === 0) {
+            ctx.fillStyle = '#14281480';
+            ctx.fillRect(x + 2, y + 6, 2, 6);
+          }
+          break;
+        case 1: // path/dirt
+          ctx.fillStyle = (tx + ty) % 2 === 0 ? '#5a4020' : '#503a1c';
+          ctx.fillRect(x, y, TILE, TILE);
+          break;
+        case 2: // water
+          ctx.fillStyle = (tx + ty) % 2 === 0 ? '#1a3a6a' : '#1e4278';
+          ctx.fillRect(x, y, TILE, TILE);
+          // shimmer highlight
+          if ((tx + ty * 2) % 3 === 0) {
+            ctx.fillStyle = '#3a6ab880';
+            ctx.fillRect(x + 3, y + 2, 4, 2);
+          }
+          break;
+        case 3: // building
+          ctx.fillStyle = '#2a2050';
+          ctx.fillRect(x, y, TILE, TILE);
+          ctx.fillStyle = '#3a3068';
+          ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+          // window
+          if ((tx + ty) % 3 === 0) {
+            ctx.fillStyle = '#f0d060aa';
+            ctx.fillRect(x + 4, y + 4, 4, 5);
+          }
+          break;
+        case 4: // tree
+          // trunk
+          ctx.fillStyle = '#4a2c0a';
+          ctx.fillRect(x + 6, y + 10, 4, 6);
+          // canopy
+          ctx.fillStyle = '#1a5c1a';
+          ctx.fillRect(x + 2, y + 2, 12, 10);
+          ctx.fillStyle = '#236623';
+          ctx.fillRect(x + 4, y, 8, 6);
+          break;
+        case 5: // rock
+          ctx.fillStyle = '#3a3a4a';
+          ctx.fillRect(x + 2, y + 6, 12, 8);
+          ctx.fillStyle = '#4e4e60';
+          ctx.fillRect(x + 3, y + 4, 10, 7);
+          ctx.fillStyle = '#606070';
+          ctx.fillRect(x + 5, y + 3, 4, 3);
+          break;
+      }
+    }
+  }
+
+  // Pond edge ripple
+  for (var ty = 22; ty <= 27; ty++) {
+    for (var tc = 4; tc <= 10; tc++) {
+      var x = tc * TILE, y = ty * TILE;
+      if (tc === 4 || tc === 10 || ty === 22 || ty === 27) {
+        ctx.fillStyle = '#2a5a9888';
+        ctx.fillRect(x, y, TILE, TILE);
+      }
+    }
+  }
+
+  // Path edge shading
+  ctx.fillStyle = '#3a2810aa';
+  for (var c = 0; c < COLS; c++) {
+    if (MAP[16] && MAP[16][c] === 0) { ctx.fillRect(c*TILE, 16*TILE, TILE, 2); }
+    if (MAP[19] && MAP[19][c] === 0) { ctx.fillRect(c*TILE, 19*TILE-2, TILE, 2); }
+  }
+}
+
+// Cache the static map to an offscreen canvas for performance
+var mapCache = document.createElement('canvas');
+mapCache.width = W; mapCache.height = H;
+var mapCtx = mapCache.getContext('2d');
+(function() {
+  var save = ctx;
+  ctx = mapCtx;
+  drawMap();
+  ctx = save;
+})();
+
+// ── Character sprite drawing ───────────────────────────────────────────────────
+function drawCharacter(cx, cy, color, scale, isGalactus) {
+  var s = scale || 1;
+  var bw = isGalactus ? 14 : 8;   // body width
+  var bh = isGalactus ? 20 : 12;  // body height
+  var hw = isGalactus ? 12 : 6;   // head width
+  var hh = isGalactus ? 10 : 6;   // head height
+
+  // Shadow
+  ctx.fillStyle = '#00000044';
+  ctx.fillRect(Math.round(cx - bw/2 * s + 2), Math.round(cy + (bh - 2) * s), Math.round(bw * s), Math.round(4 * s));
+
+  // Body
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(cx - bw/2 * s), Math.round(cy + hh * s), Math.round(bw * s), Math.round(bh * s));
+
+  // Head
+  ctx.fillStyle = lighten(color, 30);
+  ctx.fillRect(Math.round(cx - hw/2 * s), Math.round(cy), Math.round(hw * s), Math.round(hh * s));
+
+  // Eyes (little dark dots)
+  ctx.fillStyle = '#00000088';
+  ctx.fillRect(Math.round(cx - hw/2 * s + 1*s), Math.round(cy + 2*s), Math.round(1*s), Math.round(2*s));
+  ctx.fillRect(Math.round(cx + hw/2 * s - 2*s), Math.round(cy + 2*s), Math.round(1*s), Math.round(2*s));
+
+  if (isGalactus) {
+    // Cosmic crown spikes
+    ctx.fillStyle = '#a78bfa';
+    ctx.fillRect(Math.round(cx - 6*s), Math.round(cy - 8*s), Math.round(4*s), Math.round(8*s));
+    ctx.fillRect(Math.round(cx - 2*s), Math.round(cy - 11*s), Math.round(4*s), Math.round(11*s));
+    ctx.fillRect(Math.round(cx + 3*s), Math.round(cy - 8*s), Math.round(4*s), Math.round(8*s));
+  }
+}
+
+function lighten(hex, amt) {
+  var r = parseInt(hex.slice(1,3), 16);
+  var g = parseInt(hex.slice(3,5), 16);
+  var b = parseInt(hex.slice(5,7), 16);
+  r = Math.min(255, r + amt); g = Math.min(255, g + amt); b = Math.min(255, b + amt);
+  return '#' + ('0' + r.toString(16)).slice(-2) + ('0' + g.toString(16)).slice(-2) + ('0' + b.toString(16)).slice(-2);
+}
+
+// ── Speech bubble ──────────────────────────────────────────────────────────────
+function drawBubble(cx, cy, text, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  var pad = 5;
+  ctx.font = '9px monospace';
+  var tw = ctx.measureText(text).width;
+  var bw = tw + pad * 2;
+  var bh = 14;
+  var bx = cx - bw / 2;
+  var by = cy - bh - 6;
+
+  // Clamp to canvas
+  if (bx < 2) bx = 2;
+  if (bx + bw > W - 2) bx = W - 2 - bw;
+  if (by < 2) by = 2;
+
+  // Background
+  ctx.fillStyle = '#ffffffee';
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, 3);
+  ctx.fill();
+
+  // Border
+  ctx.strokeStyle = '#333355';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Tail
+  ctx.fillStyle = '#ffffffee';
+  ctx.beginPath();
+  ctx.moveTo(cx - 3, by + bh);
+  ctx.lineTo(cx + 3, by + bh);
+  ctx.lineTo(cx, by + bh + 5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Text
+  ctx.fillStyle = '#111122';
+  ctx.fillText(text, bx + pad, by + bh - 4);
+
+  ctx.restore();
+}
+
+// ── NPC class ────────────────────────────────────────────────────────────────
+var DIRS = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
+
+function NPC(persona, startTx, startTy) {
+  this.name = persona.name;
+  this.displayName = persona.display_name || persona.name;
+  this.color = COLOR_OVERRIDES[persona.name] || persona.color || '#888888';
+  this.role = persona.role || '';
+  this.avatarUrl = persona.avatar_url || '';
+  this.quips = QUIPS[persona.name] || DEFAULT_QUIPS;
+
+  // Pixel position (center of character)
+  this.px = startTx * TILE + TILE / 2;
+  this.py = startTy * TILE + TILE / 2;
+
+  // Tile position
+  this.tx = startTx;
+  this.ty = startTy;
+
+  // Movement params
+  var isGalactus = this.name === 'galactus';
+  var isKid = this.name === 'the-kid';
+  var isIbrahim = this.name === 'hiring-manager';
+  var isWolf = this.name === 'wolf';
+  var isUncle = this.name === 'uncle-bob';
+
+  this.speed = isGalactus ? 0.4 : isIbrahim ? 0.5 : isKid ? 2.2 : isWolf ? 1.6 : 0.8; // px per frame
+  this.isGalactus = isGalactus;
+  this.isKid = isKid;
+  this.isIbrahim = isIbrahim;
+  this.isUncle = isUncle;
+  this.isNemesis = this.name === 'nemesis';
+  this.isDesigner = this.name === 'designer';
+  this.isAdelbert = this.name === 'adelbert';
+
+  // Wander state
+  this.dir = { dx: 1, dy: 0 };
+  this.stepsLeft = 0;
+  this.waitFrames = 0;
+  this.frame = Math.floor(Math.random() * 60);
+
+  // Speech state
+  this.bubble = null; // {text, ttl} null when silent
+  this.speakCooldown = 120 + Math.floor(Math.random() * 240); // frames before can speak again
+  this.quipIndex = Math.floor(Math.random() * this.quips.length);
+
+  // Target for movement
+  this.targetPx = this.px;
+  this.targetPy = this.py;
+}
+
+NPC.prototype.pickNewDir = function (npcs) {
+  var self = this;
+
+  // Uncle Bob: always picks axis-aligned straight lines (no random turn)
+  if (this.isUncle) {
+    // Stay on current dir if possible, else turn 90 degrees
+    var newTx = this.tx + this.dir.dx;
+    var newTy = this.ty + this.dir.dy;
+    if (!isBlocked(newTx, newTy)) {
+      this.stepsLeft = 6 + Math.floor(Math.random() * 4);
+      return;
+    }
+    // Turn 90
+    var perp = this.dir.dx !== 0 ? [{dx:0,dy:1},{dx:0,dy:-1}] : [{dx:1,dy:0},{dx:-1,dy:0}];
+    this.dir = perp[Math.floor(Math.random() * 2)];
+    this.stepsLeft = 4;
+    return;
+  }
+
+  // Nemesis: prefer staying near edges
+  if (this.isNemesis) {
+    var edgeDirs = [];
+    DIRS.forEach(function(d) {
+      var nx = self.tx + d.dx, ny = self.ty + d.dy;
+      if (!isBlocked(nx, ny) && (nx < 4 || nx > COLS-5 || ny < 4 || ny > ROWS-5)) {
+        edgeDirs.push(d);
+      }
+    });
+    if (edgeDirs.length > 0) {
+      this.dir = edgeDirs[Math.floor(Math.random() * edgeDirs.length)];
+      this.stepsLeft = 3 + Math.floor(Math.random() * 4);
+      return;
+    }
+  }
+
+  // Designer: circular-ish motion
+  if (this.isDesigner) {
+    // Rotate dir clockwise with some randomness
+    var rotate = [{dx:0,dy:-1},{dx:1,dy:0},{dx:0,dy:1},{dx:-1,dy:0}];
+    var curIdx = rotate.findIndex(function(d) { return d.dx === self.dir.dx && d.dy === self.dir.dy; });
+    if (curIdx < 0) curIdx = 0;
+    var nextIdx = (curIdx + 1) % 4;
+    var nextDir = rotate[nextIdx];
+    var nx = this.tx + nextDir.dx, ny = this.ty + nextDir.dy;
+    if (!isBlocked(nx, ny) && Math.random() < 0.6) {
+      this.dir = nextDir;
+    } else {
+      this.dir = rotate[curIdx]; // keep going
+    }
+    this.stepsLeft = 2 + Math.floor(Math.random() * 4);
+    return;
+  }
+
+  // Adelbert: try to move toward nearest other NPC
+  if (this.isAdelbert && npcs && npcs.length > 1) {
+    var target = null, bestDist = 999;
+    npcs.forEach(function(n) {
+      if (n === self) return;
+      var dist = Math.abs(n.tx - self.tx) + Math.abs(n.ty - self.ty);
+      if (dist > 1 && dist < bestDist) { bestDist = dist; target = n; }
+    });
+    if (target && Math.random() < 0.6) {
+      var ddx = target.tx - this.tx;
+      var ddy = target.ty - this.ty;
+      var candidates = [];
+      if (Math.abs(ddx) >= Math.abs(ddy)) {
+        candidates.push({dx: Math.sign(ddx), dy: 0});
+        candidates.push({dx: 0, dy: Math.sign(ddy)});
+      } else {
+        candidates.push({dx: 0, dy: Math.sign(ddy)});
+        candidates.push({dx: Math.sign(ddx), dy: 0});
+      }
+      for (var i = 0; i < candidates.length; i++) {
+        var nd = candidates[i];
+        if (!isBlocked(this.tx + nd.dx, this.ty + nd.dy)) {
+          this.dir = nd;
+          this.stepsLeft = 2 + Math.floor(Math.random() * 3);
+          return;
+        }
+      }
+    }
+  }
+
+  // Default: pick a random walkable direction
+  var valid = DIRS.filter(function(d) {
+    return !isBlocked(self.tx + d.dx, self.ty + d.dy);
+  });
+  if (valid.length === 0) { this.stepsLeft = 10; return; }
+  this.dir = valid[Math.floor(Math.random() * valid.length)];
+  this.stepsLeft = 2 + Math.floor(Math.random() * (this.isKid ? 8 : this.isGalactus ? 3 : 5));
+};
+
+NPC.prototype.update = function (npcs) {
+  this.frame++;
+
+  // Speech cooldown
+  if (this.speakCooldown > 0) this.speakCooldown--;
+  if (this.bubble) {
+    this.bubble.ttl--;
+    if (this.bubble.ttl <= 0) {
+      this.bubble = null;
+      // Reset cooldown after speak
+      var baseCD = this.isIbrahim ? 600 : this.isGalactus ? 450 : this.isKid ? 80 : 180;
+      this.speakCooldown = baseCD + Math.floor(Math.random() * 200);
+    }
+  } else if (this.speakCooldown <= 0) {
+    // Chance to speak each frame
+    var chance = this.isIbrahim ? 0.002 : this.isKid ? 0.02 : this.isGalactus ? 0.004 : 0.006;
+    if (Math.random() < chance) {
+      this.bubble = {
+        text: this.quips[this.quipIndex % this.quips.length],
+        ttl: Math.round(2.5 * 60),
+      };
+      this.quipIndex++;
+    }
+  }
+
+  // Waiting between moves
+  if (this.waitFrames > 0) {
+    this.waitFrames--;
+    return;
+  }
+
+  // Check if we've reached the target pixel
+  var dx = this.targetPx - this.px;
+  var dy = this.targetPy - this.py;
+  var dist = Math.sqrt(dx*dx + dy*dy);
+
+  if (dist < this.speed + 0.5) {
+    // Snapped to target tile
+    this.px = this.targetPx;
+    this.py = this.targetPy;
+
+    if (this.stepsLeft > 0) {
+      // Take a step in current dir
+      var nx = this.tx + this.dir.dx;
+      var ny = this.ty + this.dir.dy;
+      if (isBlocked(nx, ny)) {
+        this.stepsLeft = 0; // force new dir
+      } else {
+        this.tx = nx;
+        this.ty = ny;
+        this.targetPx = nx * TILE + TILE / 2;
+        this.targetPy = ny * TILE + TILE / 2;
+        this.stepsLeft--;
+      }
+    } else {
+      // Pause, then pick new direction
+      var pause = this.isKid ? 2 : this.isGalactus ? 40 : this.isIbrahim ? 60 : 15 + Math.floor(Math.random() * 30);
+      this.waitFrames = pause;
+      this.pickNewDir(npcs);
+    }
+  } else {
+    // Move toward target
+    this.px += (dx / dist) * this.speed;
+    this.py += (dy / dist) * this.speed;
+  }
+};
+
+NPC.prototype.draw = function () {
+  var cx = Math.round(this.px);
+  var cy = Math.round(this.py) - 14; // top of sprite
+
+  drawCharacter(cx, cy, this.color, this.isGalactus ? 1.8 : 1, this.isGalactus);
+
+  // Speech bubble
+  if (this.bubble) {
+    var alpha = this.bubble.ttl > 20 ? 1.0 : this.bubble.ttl / 20;
+    var headY = cy - 4;
+    drawBubble(cx, headY, this.bubble.text, alpha);
+  }
+};
+
+// ── Spawn positions (pixel centers away from blocked tiles) ────────────────────
+var SPAWN_TILES = [
+  [13, 9], [27, 10], [12, 22], [35, 28],
+  [15, 5], [32, 5],  [5, 14],  [44, 20],
+  [20, 12],[38, 12], [10, 29], [30, 22],
+  [22, 3], [48, 30],
+];
+
+// ── NPC list ─────────────────────────────────────────────────────────────────
+var npcs = [];
+
+// ── Tooltip ──────────────────────────────────────────────────────────────────
+var tooltip = document.getElementById('tooltip');
+var ttName = document.getElementById('tt-name');
+var ttRole = document.getElementById('tt-role');
+var ttAvatar = document.getElementById('tt-avatar');
+
+canvas.addEventListener('mousemove', function(e) {
+  var rect = canvas.getBoundingClientRect();
+  var scaleX = W / rect.width;
+  var mx = (e.clientX - rect.left) * scaleX;
+  var my = (e.clientY - rect.top) * (H / rect.height);
+
+  var found = null;
+  for (var i = 0; i < npcs.length; i++) {
+    var n = npcs[i];
+    var dx = mx - n.px;
+    var dy = my - (n.py - 8);
+    if (Math.abs(dx) < 14 && Math.abs(dy) < 20) { found = n; break; }
+  }
+
+  if (found) {
+    ttName.textContent = found.displayName;
+    ttRole.textContent = found.role;
+    if (found.avatarUrl) {
+      ttAvatar.src = found.avatarUrl;
+      ttAvatar.style.display = 'block';
+    } else {
+      ttAvatar.style.display = 'none';
+    }
+    tooltip.style.display = 'block';
+    tooltip.style.left = (e.clientX + 14) + 'px';
+    tooltip.style.top = (e.clientY - 10) + 'px';
+  } else {
+    tooltip.style.display = 'none';
+  }
+});
+
+canvas.addEventListener('mouseleave', function() {
+  tooltip.style.display = 'none';
+});
+
+// ── Load personas and init ────────────────────────────────────────────────────
+fetch('/api/agents')
+  .then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .then(function(data) {
+    var all = [];
+    if (data.moderator) all.push(data.moderator);
+    if (data.active) all = all.concat(data.active);
+    // Include fired personas too (they can still graze)
+    if (data.fired) all = all.concat(data.fired.slice(0, 3));
+
+    // Shuffle spawn positions
+    var spawns = SPAWN_TILES.slice();
+    for (var i = spawns.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = spawns[i]; spawns[i] = spawns[j]; spawns[j] = tmp;
+    }
+
+    all.forEach(function(p, i) {
+      var spawnIdx = i % spawns.length;
+      var st = spawns[spawnIdx];
+      var n = new NPC(p, st[0], st[1]);
+      n.pickNewDir(null);
+      npcs.push(n);
+    });
+
+    startLoop();
+  })
+  .catch(function(err) {
+    document.getElementById('load-error').textContent = 'Could not load personas: ' + err.message;
+    // Still start with hardcoded fallback NPCs
+    var fallbacks = [
+      {name:'hiring-manager', display_name:'Ibrahim the Immovable', color:'#8B1A1A', role:'Hiring Manager', avatar_url:''},
+      {name:'critic',         display_name:'Pippi the Pitiless',    color:'#f87171', role:'Critic',          avatar_url:''},
+      {name:'architect',      display_name:'Kwame the Constructor', color:'#f59e0b', role:'Architect',        avatar_url:''},
+      {name:'ux',             display_name:'Yuki the Yielding',     color:'#60a5fa', role:'UX',               avatar_url:''},
+    ];
+    var spawns = SPAWN_TILES.slice(0, 4);
+    fallbacks.forEach(function(p, i) {
+      var n = new NPC(p, spawns[i][0], spawns[i][1]);
+      n.pickNewDir(null);
+      npcs.push(n);
+    });
+    startLoop();
+  });
+
+// ── Game loop ─────────────────────────────────────────────────────────────────
+var loopStarted = false;
+function startLoop() {
+  if (loopStarted) return;
+  loopStarted = true;
+  requestAnimationFrame(loop);
+}
+
+function loop() {
+  // Update all NPCs
+  for (var i = 0; i < npcs.length; i++) {
+    npcs[i].update(npcs);
+  }
+
+  // Draw map (cached)
+  ctx.drawImage(mapCache, 0, 0);
+
+  // Sort NPCs by y position (painter's algorithm)
+  var sorted = npcs.slice().sort(function(a,b) { return a.py - b.py; });
+  for (var i = 0; i < sorted.length; i++) {
+    sorted[i].draw();
+  }
+
+  // "The Commons" title overlay (pixel-ish style)
+  ctx.save();
+  ctx.font = 'bold 18px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#00000088';
+  ctx.fillText('The Commons', W/2 + 1, 22);
+  ctx.fillStyle = '#4ecca3';
+  ctx.fillText('The Commons', W/2, 21);
+  ctx.restore();
+
+  requestAnimationFrame(loop);
+}
+
+})();
+</script>
+</body>
+</html>
