@@ -1330,6 +1330,291 @@
       border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
       background: color-mix(in srgb, var(--accent) 10%, transparent);
     }
+
+    /* ── Personas tab nav ── */
+    .page-tab-bar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      border-bottom: 1px solid var(--panel-border);
+      padding: 0 8px;
+      background: var(--panel-bg);
+      flex-shrink: 0;
+      align-self: stretch;
+      box-sizing: border-box;
+    }
+    .page-tab {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 9px 16px 8px;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.12s, border-color 0.12s;
+    }
+    .page-tab:hover { color: var(--text); }
+    .page-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── Personas tab content (fullscreen center col overlay) ── */
+    #personasTab {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+      max-width: 960px;
+      padding: 20px 16px 40px;
+      box-sizing: border-box;
+      gap: 14px;
+    }
+    #personasTab.visible { display: flex; }
+
+    .personas-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .personas-toolbar-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      text-shadow: 0 0 6px var(--accent);
+    }
+
+    /* ── Personas table ── */
+    .personas-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.72rem;
+    }
+    .personas-table thead tr {
+      border-bottom: 1px solid var(--panel-border);
+    }
+    .personas-table th {
+      text-align: left;
+      padding: 6px 10px;
+      font-size: 0.58rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .personas-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--panel-border);
+      vertical-align: middle;
+    }
+    .personas-table tbody tr:hover td {
+      background: color-mix(in srgb, var(--accent) 5%, transparent);
+    }
+    .pt-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .pt-avatar-emoji {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .pt-name { font-weight: 700; }
+    .pt-model-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.5rem;
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .pt-status-pill {
+      font-size: 0.5rem;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      white-space: nowrap;
+    }
+    .pt-status-pill.active {
+      background: color-mix(in srgb, var(--teal) 15%, transparent);
+      color: var(--teal);
+      border: 1px solid color-mix(in srgb, var(--teal) 50%, transparent);
+    }
+    .pt-status-pill.fired {
+      background: color-mix(in srgb, var(--accent) 15%, transparent);
+      color: var(--accent);
+      border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+    }
+    .pt-verdict-chip {
+      font-size: 0.5rem;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+    .pt-verdict-chip.RETAIN { color: var(--text-muted); border: 1px solid var(--card-border); opacity: 0.6; }
+    .pt-verdict-chip.EVOLVE { color: var(--teal); border: 1px solid var(--teal); background: color-mix(in srgb, var(--teal) 10%, transparent); }
+    .pt-verdict-chip.FIRE { color: var(--accent); border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+    .pt-actions { display: flex; gap: 5px; align-items: center; }
+    .pt-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem;
+      padding: 3px 9px;
+      border-radius: 3px;
+      cursor: pointer;
+      border: 1px solid var(--btn-border);
+      background: var(--btn-bg);
+      color: var(--text-muted);
+      transition: color 0.12s, border-color 0.12s;
+      white-space: nowrap;
+    }
+    .pt-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .pt-btn.fire-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .pt-btn.restore-btn:hover { color: var(--teal); border-color: var(--teal); }
+    .pt-btn.danger:hover { color: #f87171; border-color: #f87171; }
+
+    /* ── Persona edit/create modal ── */
+    .persona-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 500;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 30px 16px;
+      overflow-y: auto;
+    }
+    .persona-modal-overlay.open { display: flex; }
+    .persona-modal {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 24px 26px;
+      width: 100%;
+      max-width: 660px;
+      position: relative;
+      box-sizing: border-box;
+    }
+    .persona-modal-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 18px;
+      text-shadow: 0 0 6px var(--accent);
+    }
+    .persona-modal-close {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 2px 7px;
+      border-radius: 3px;
+      font-family: 'JetBrains Mono', monospace;
+      transition: color 0.12s, border-color 0.12s;
+    }
+    .persona-modal-close:hover { color: var(--accent); border-color: var(--accent); }
+    .pf-row {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 13px;
+      flex-wrap: wrap;
+    }
+    .pf-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1 1 180px;
+      min-width: 0;
+    }
+    .pf-field.full { flex: 1 1 100%; }
+    .pf-label {
+      font-size: 0.58rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+    .pf-input, .pf-select {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      padding: 6px 9px;
+      border-radius: 3px;
+      outline: none;
+      transition: border-color 0.12s;
+    }
+    .pf-input:focus, .pf-select:focus { border-color: var(--accent); }
+    .pf-textarea {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      padding: 8px 10px;
+      border-radius: 3px;
+      outline: none;
+      resize: vertical;
+      min-height: 260px;
+      line-height: 1.55;
+      transition: border-color 0.12s;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .pf-textarea:focus { border-color: var(--accent); }
+    .pf-checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .pf-checkbox-row input[type="checkbox"] {
+      width: 14px; height: 14px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .persona-modal-actions {
+      display: flex;
+      gap: 9px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .persona-modal-status-msg {
+      font-size: 0.68rem;
+      margin-top: 10px;
+      padding: 6px 10px;
+      border-radius: 3px;
+      display: none;
+    }
+    .persona-modal-status-msg.ok { display: block; background: #102820; border: 1px solid var(--teal); color: var(--teal); }
+    .persona-modal-status-msg.err { display: block; background: #200d10; border: 1px solid var(--accent); color: var(--accent); }
   </style>
 </head>
 <body>
@@ -1341,6 +1626,79 @@
     <button class="topic-modal-close" id="topicModalClose">✕</button>
     <div class="topic-modal-label">topic</div>
     <div class="topic-modal-text" id="topicModalText"></div>
+  </div>
+</div>
+
+<!-- Persona edit/create modal -->
+<div class="persona-modal-overlay" id="personaModal">
+  <div class="persona-modal">
+    <button class="persona-modal-close" id="personaModalClose">✕</button>
+    <div class="persona-modal-title" id="personaModalTitle">Edit Persona</div>
+    <div class="pf-row">
+      <div class="pf-field" id="pf-name-field" style="display:none">
+        <label class="pf-label" for="pf-name">Slug / Name</label>
+        <input class="pf-input" type="text" id="pf-name" placeholder="e.g. skeptic" autocomplete="off">
+      </div>
+      <div class="pf-field">
+        <label class="pf-label" for="pf-display-name">Display Name</label>
+        <input class="pf-input" type="text" id="pf-display-name" placeholder="e.g. Vera the Skeptic" autocomplete="off">
+      </div>
+    </div>
+    <div class="pf-row">
+      <div class="pf-field">
+        <label class="pf-label" for="pf-model">Model</label>
+        <input class="pf-input" list="pf-model-list" type="text" id="pf-model" placeholder="e.g. claude-sonnet-4-6" autocomplete="off">
+        <datalist id="pf-model-list">
+          <option value="claude-sonnet-4-6">
+          <option value="claude-opus-4-5">
+          <option value="claude-haiku-3-5">
+          <option value="grok-3">
+          <option value="grok-3-fast">
+          <option value="grok-3-mini">
+          <option value="grok-3-mini-fast">
+          <option value="gemini-2.5-pro">
+          <option value="gemini-2.0-flash">
+          <option value="claude">
+        </datalist>
+      </div>
+      <div class="pf-field">
+        <label class="pf-label" for="pf-role">Role</label>
+        <input class="pf-input" type="text" id="pf-role" placeholder="e.g. critic" autocomplete="off">
+      </div>
+      <div class="pf-field">
+        <label class="pf-label" for="pf-sex">Sex</label>
+        <input class="pf-input" type="text" id="pf-sex" placeholder="e.g. f / m" autocomplete="off">
+      </div>
+    </div>
+    <div class="pf-row">
+      <div class="pf-field">
+        <label class="pf-label" for="pf-status">Status</label>
+        <select class="pf-select" id="pf-status">
+          <option value="active">active</option>
+          <option value="fired">fired (severance)</option>
+        </select>
+      </div>
+      <div class="pf-field" style="justify-content:flex-end;gap:10px;flex-direction:row;align-items:flex-end;">
+        <label class="pf-checkbox-row">
+          <input type="checkbox" id="pf-congress"> congress
+        </label>
+        <label class="pf-checkbox-row">
+          <input type="checkbox" id="pf-evolves"> evolves
+        </label>
+      </div>
+    </div>
+    <div class="pf-row">
+      <div class="pf-field full">
+        <label class="pf-label" for="pf-prompt">System Prompt</label>
+        <textarea class="pf-textarea" id="pf-prompt" placeholder="Full persona system prompt body (markdown prose, no frontmatter)..."></textarea>
+      </div>
+    </div>
+    <div class="persona-modal-actions">
+      <button class="btn" id="personaModalSave">Save</button>
+      <button class="btn btn-secondary" id="personaModalCancel">Cancel</button>
+      <button class="btn btn-secondary danger" id="personaModalDelete" style="margin-left:auto;display:none">Delete</button>
+    </div>
+    <div class="persona-modal-status-msg" id="personaModalStatus"></div>
   </div>
 </div>
 
@@ -1366,6 +1724,15 @@
 
   <!-- CENTER: Arena -->
   <div class="arena-col">
+    <!-- Tab nav bar -->
+    <div class="page-tab-bar">
+      <button class="page-tab active" id="tabSessions" onclick="switchTab('sessions')">Sessions</button>
+      <button class="page-tab" id="tabPersonas" onclick="switchTab('personas')">Personas</button>
+    </div>
+
+    <!-- Session view wrapper -->
+    <div id="sessionsView" style="display:contents;">
+
     <!-- Session hint banner (shown when viewing a session) -->
     <div class="session-hint" id="sessionHint"></div>
 
@@ -1428,6 +1795,20 @@
       <div class="review-label">HIRING MANAGER — synthesis</div>
       <div class="review-synthesis" id="reviewSynthesis"></div>
     </div>
+
+    </div><!-- end #sessionsView -->
+
+    <!-- Personas tab -->
+    <div id="personasTab">
+      <div class="personas-toolbar">
+        <div class="personas-toolbar-title">Personas</div>
+        <button class="btn" style="font-size:0.7rem;padding:6px 14px;" onclick="openPersonaModalCreate()">+ New Persona</button>
+      </div>
+      <div id="personasTableWrap">
+        <div style="font-size:0.72rem;color:var(--text-muted);opacity:0.6;">Loading personas…</div>
+      </div>
+    </div>
+
   </div>
 
   <!-- RIGHT: Roster (Active + Severance) -->
@@ -3111,6 +3492,355 @@
       _origSetCenterDeliberating(active);
     }
   };
+
+  // ── Tab switching ───────────────────────────────────────────────────────────
+  window.switchTab = function(tab) {
+    const sessionsView = document.getElementById('sessionsView');
+    const personasTab = document.getElementById('personasTab');
+    const tabSessions = document.getElementById('tabSessions');
+    const tabPersonas = document.getElementById('tabPersonas');
+
+    if (tab === 'personas') {
+      sessionsView.style.display = 'none';
+      personasTab.classList.add('visible');
+      tabSessions.classList.remove('active');
+      tabPersonas.classList.add('active');
+      loadPersonasTable();
+    } else {
+      sessionsView.style.display = 'contents';
+      personasTab.classList.remove('visible');
+      tabSessions.classList.add('active');
+      tabPersonas.classList.remove('active');
+    }
+  };
+
+  // ── Personas tab logic ──────────────────────────────────────────────────────
+  let _personaEditName = null;  // null = create mode, string = edit mode
+
+  async function loadPersonasTable() {
+    const wrap = document.getElementById('personasTableWrap');
+    wrap.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);opacity:0.6;">Loading…</div>';
+    try {
+      const res = await fetch('/api/personas');
+      if (!res.ok) {
+        if (res.status === 403) {
+          wrap.innerHTML = '<div style="font-size:0.72rem;color:var(--accent);">Not authorised — <a href="/auth/github?next=/congress" style="color:var(--teal)">log in via GitHub</a></div>';
+          return;
+        }
+        throw new Error('HTTP ' + res.status);
+      }
+      const data = await res.json();
+      const personas = data.personas || [];
+      renderPersonasTable(personas, wrap);
+    } catch (e) {
+      wrap.innerHTML = '<div style="font-size:0.72rem;color:var(--accent);">Could not load personas: ' + e.message + '</div>';
+    }
+  }
+
+  function renderPersonasTable(personas, wrap) {
+    if (personas.length === 0) {
+      wrap.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);opacity:0.55;padding:18px 0;">No personas yet.</div>';
+      return;
+    }
+    const table = document.createElement('table');
+    table.className = 'personas-table';
+    table.innerHTML = `<thead><tr>
+      <th></th>
+      <th>Name</th>
+      <th>Model</th>
+      <th>Role</th>
+      <th>Status</th>
+      <th>Congress #</th>
+      <th>Last Verdict</th>
+      <th>Actions</th>
+    </tr></thead>`;
+    const tbody = document.createElement('tbody');
+    personas.forEach(p => {
+      const tr = document.createElement('tr');
+      const status = p.status || 'active';
+      const lastVerdict = p.last_verdict || '';
+      const totalCongresses = p.total_congresses || 0;
+
+      // Avatar cell
+      const tdAvatar = document.createElement('td');
+      if (p.avatar_url) {
+        const img = document.createElement('img');
+        img.className = 'pt-avatar';
+        img.src = p.avatar_url;
+        img.alt = p.display_name || p.name;
+        tdAvatar.appendChild(img);
+      } else {
+        const emo = document.createElement('div');
+        emo.className = 'pt-avatar-emoji';
+        emo.textContent = p.emoji || '🤖';
+        tdAvatar.appendChild(emo);
+      }
+      tr.appendChild(tdAvatar);
+
+      // Name
+      const tdName = document.createElement('td');
+      const nameEl = document.createElement('div');
+      nameEl.className = 'pt-name';
+      nameEl.textContent = p.display_name || p.name;
+      const slugEl = document.createElement('div');
+      slugEl.style.cssText = 'font-size:0.58rem;color:var(--text-muted);margin-top:1px;opacity:0.65;';
+      slugEl.textContent = p.name;
+      tdName.appendChild(nameEl);
+      tdName.appendChild(slugEl);
+      tr.appendChild(tdName);
+
+      // Model
+      const tdModel = document.createElement('td');
+      if (p.model) {
+        const badge = document.createElement('span');
+        badge.className = 'pt-model-badge';
+        badge.textContent = shortenModel(p.model);
+        badge.title = p.model;
+        tdModel.appendChild(badge);
+      }
+      tr.appendChild(tdModel);
+
+      // Role
+      const tdRole = document.createElement('td');
+      tdRole.style.cssText = 'font-size:0.68rem;color:var(--text-muted);';
+      tdRole.textContent = p.role || p.title || '';
+      tr.appendChild(tdRole);
+
+      // Status pill
+      const tdStatus = document.createElement('td');
+      const pill = document.createElement('span');
+      pill.className = 'pt-status-pill ' + (status === 'active' ? 'active' : 'fired');
+      pill.textContent = status === 'active' ? 'active' : 'severance';
+      tdStatus.appendChild(pill);
+      tr.appendChild(tdStatus);
+
+      // Congress count
+      const tdCount = document.createElement('td');
+      tdCount.style.cssText = 'font-size:0.72rem;text-align:center;';
+      tdCount.textContent = totalCongresses || '—';
+      tr.appendChild(tdCount);
+
+      // Last verdict
+      const tdVerdict = document.createElement('td');
+      if (lastVerdict) {
+        const chip = document.createElement('span');
+        chip.className = 'pt-verdict-chip ' + lastVerdict;
+        chip.textContent = lastVerdict;
+        tdVerdict.appendChild(chip);
+      } else {
+        tdVerdict.style.cssText = 'color:var(--text-muted);font-size:0.65rem;opacity:0.4;';
+        tdVerdict.textContent = '—';
+      }
+      tr.appendChild(tdVerdict);
+
+      // Actions
+      const tdActions = document.createElement('td');
+      tdActions.className = 'pt-actions';
+
+      const editBtn = document.createElement('button');
+      editBtn.className = 'pt-btn';
+      editBtn.textContent = 'Edit';
+      editBtn.onclick = () => openPersonaModalEdit(p.name);
+      tdActions.appendChild(editBtn);
+
+      if (status === 'active') {
+        const fireBtn = document.createElement('button');
+        fireBtn.className = 'pt-btn fire-btn';
+        fireBtn.textContent = 'Fire';
+        fireBtn.title = 'Move to severance';
+        fireBtn.onclick = () => quickStatusChange(p.name, 'fired');
+        tdActions.appendChild(fireBtn);
+      } else {
+        const restoreBtn = document.createElement('button');
+        restoreBtn.className = 'pt-btn restore-btn';
+        restoreBtn.textContent = 'Restore';
+        restoreBtn.title = 'Move back to active';
+        restoreBtn.onclick = () => quickStatusChange(p.name, 'active');
+        tdActions.appendChild(restoreBtn);
+      }
+
+      tr.appendChild(tdActions);
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.innerHTML = '';
+    wrap.appendChild(table);
+  }
+
+  async function quickStatusChange(name, newStatus) {
+    const label = newStatus === 'fired' ? 'Fire' : 'Restore';
+    if (!confirm(label + ' persona "' + name + '"?')) return;
+    try {
+      const res = await fetch('/api/personas/' + name, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        alert('Error: ' + (e.error || res.status));
+        return;
+      }
+      loadPersonasTable();
+    } catch (e) {
+      alert('Request failed: ' + e.message);
+    }
+  }
+
+  async function openPersonaModalEdit(name) {
+    _personaEditName = name;
+    const overlay = document.getElementById('personaModal');
+    const title = document.getElementById('personaModalTitle');
+    const statusMsg = document.getElementById('personaModalStatus');
+    const nameField = document.getElementById('pf-name-field');
+    const deleteBtn = document.getElementById('personaModalDelete');
+
+    title.textContent = 'Edit Persona';
+    statusMsg.className = 'persona-modal-status-msg';
+    statusMsg.textContent = '';
+    nameField.style.display = 'none';
+    deleteBtn.style.display = '';
+
+    // Load full persona detail
+    try {
+      const res = await fetch('/api/personas/' + name);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const p = data.persona;
+      fillPersonaForm(p);
+      overlay.classList.add('open');
+    } catch (e) {
+      alert('Could not load persona: ' + e.message);
+    }
+  }
+
+  window.openPersonaModalCreate = function() {
+    _personaEditName = null;
+    const overlay = document.getElementById('personaModal');
+    const title = document.getElementById('personaModalTitle');
+    const statusMsg = document.getElementById('personaModalStatus');
+    const nameField = document.getElementById('pf-name-field');
+    const deleteBtn = document.getElementById('personaModalDelete');
+
+    title.textContent = 'New Persona';
+    statusMsg.className = 'persona-modal-status-msg';
+    statusMsg.textContent = '';
+    nameField.style.display = '';
+    deleteBtn.style.display = 'none';
+
+    // Clear form
+    fillPersonaForm({
+      name: '',
+      display_name: '',
+      model: 'claude-sonnet-4-6',
+      role: '',
+      sex: '',
+      congress: true,
+      evolves: true,
+      status: 'active',
+      prompt: '',
+    });
+    overlay.classList.add('open');
+  };
+
+  function fillPersonaForm(p) {
+    document.getElementById('pf-name').value = p.name || '';
+    document.getElementById('pf-display-name').value = p.display_name || '';
+    document.getElementById('pf-model').value = p.model || 'claude-sonnet-4-6';
+    document.getElementById('pf-role').value = p.role || '';
+    document.getElementById('pf-sex').value = p.sex || '';
+    document.getElementById('pf-congress').checked = p.congress !== false;
+    document.getElementById('pf-evolves').checked = p.evolves !== false;
+    document.getElementById('pf-status').value = (p.status === 'fired' ? 'fired' : 'active');
+    document.getElementById('pf-prompt').value = p.prompt || '';
+  }
+
+  function closePersonaModal() {
+    document.getElementById('personaModal').classList.remove('open');
+    _personaEditName = null;
+  }
+
+  async function savePersona() {
+    const statusMsg = document.getElementById('personaModalStatus');
+    statusMsg.className = 'persona-modal-status-msg';
+    statusMsg.textContent = '';
+
+    const payload = {
+      display_name: document.getElementById('pf-display-name').value.trim(),
+      model: document.getElementById('pf-model').value.trim(),
+      role: document.getElementById('pf-role').value.trim(),
+      sex: document.getElementById('pf-sex').value.trim(),
+      congress: document.getElementById('pf-congress').checked,
+      evolves: document.getElementById('pf-evolves').checked,
+      status: document.getElementById('pf-status').value,
+      prompt: document.getElementById('pf-prompt').value,
+    };
+
+    let url, method;
+    if (_personaEditName) {
+      url = '/api/personas/' + _personaEditName;
+      method = 'PATCH';
+    } else {
+      const nameVal = document.getElementById('pf-name').value.trim();
+      if (!nameVal) {
+        statusMsg.className = 'persona-modal-status-msg err';
+        statusMsg.textContent = 'Slug/Name is required.';
+        return;
+      }
+      payload.name = nameVal;
+      url = '/api/personas';
+      method = 'POST';
+    }
+
+    try {
+      const res = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        statusMsg.className = 'persona-modal-status-msg err';
+        statusMsg.textContent = 'Error: ' + (data.error || res.status);
+        return;
+      }
+      statusMsg.className = 'persona-modal-status-msg ok';
+      statusMsg.textContent = _personaEditName ? 'Saved.' : 'Created.';
+      setTimeout(() => {
+        closePersonaModal();
+        loadPersonasTable();
+      }, 700);
+    } catch (e) {
+      statusMsg.className = 'persona-modal-status-msg err';
+      statusMsg.textContent = 'Request failed: ' + e.message;
+    }
+  }
+
+  async function deletePersona() {
+    if (!_personaEditName) return;
+    if (!confirm('Permanently delete persona "' + _personaEditName + '"? This cannot be undone.')) return;
+    try {
+      const res = await fetch('/api/personas/' + _personaEditName, { method: 'DELETE' });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        alert('Error: ' + (e.error || res.status));
+        return;
+      }
+      closePersonaModal();
+      loadPersonasTable();
+    } catch (e) {
+      alert('Request failed: ' + e.message);
+    }
+  }
+
+  // Wire up modal buttons
+  document.getElementById('personaModalClose').addEventListener('click', closePersonaModal);
+  document.getElementById('personaModalCancel').addEventListener('click', closePersonaModal);
+  document.getElementById('personaModalSave').addEventListener('click', savePersona);
+  document.getElementById('personaModalDelete').addEventListener('click', deletePersona);
+  document.getElementById('personaModal').addEventListener('click', function(e) {
+    if (e.target === this) closePersonaModal();
+  });
 
   init();
 })();
