@@ -490,7 +490,8 @@
           if (!r.ok) throw new Error('HTTP ' + r.status);
           return r.json();
         })
-        .then(function(tasks) {
+        .then(function(data) {
+          var tasks = Array.isArray(data) ? data : (data.tasks || []);
           render(tasks);
         })
         .catch(function(err) {
