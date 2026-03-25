@@ -1473,6 +1473,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                                 "ts": datetime.datetime.utcnow().isoformat() + "Z",
                                 "identity": identity,
                                 "response": response_text,
+                                "model": routed_model,
                             })
                             f.seek(0)
                             f.truncate()
