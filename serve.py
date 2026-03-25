@@ -926,7 +926,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         persona_model = (meta.get('model') or 'claude').strip()
         # Normalize legacy shorthand model names to canonical routing names
         _model_aliases = {
-            'gemini': 'gemini-2.5-flash',
+            'gemini': 'gemini-2.5-pro',
             'grok': 'grok-3-mini',
             'opus': 'claude-opus-4-6',
             'claude': 'claude-haiku-4-5-20251001',
