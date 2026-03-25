@@ -375,15 +375,15 @@ def _call_gemini_cli_with_model(system_prompt, user_message, model=None, on_toke
     if model:
         cmd += ['-m', model]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
-    full_text = ""
+    chunks = []
     for line in proc.stdout:
-        full_text += line
+        chunks.append(line)
         if on_token:
             on_token(line)
     proc.wait()
     if proc.returncode != 0:
         raise RuntimeError(f"gemini CLI exited with code {proc.returncode}")
-    return full_text.strip()
+    return "".join(chunks).strip()
 
 
 def _inc_verdict(vh: dict, display_name: str, verdict_type: str):
@@ -967,13 +967,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         persona_model = (meta.get('model') or 'claude').strip()
         # Normalize legacy shorthand model names to canonical routing names
-        _model_aliases = {
-            'gemini': 'gemini-3-pro-preview',
-            'grok': 'grok-3-mini',
-            'opus': 'claude-opus-4-6',
-            'claude': 'claude-haiku-4-5-20251001',
-        }
-        routed_model = _model_aliases.get(persona_model.lower(), persona_model)
+        routed_model = _MODEL_ALIASES.get(persona_model.lower(), persona_model)
 
         try:
             response_text = _call_llm(routed_model, full_content, user_message, on_token=on_token)
