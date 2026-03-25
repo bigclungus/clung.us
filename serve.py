@@ -87,6 +87,11 @@ def _is_safe_redirect(url: str) -> bool:
         return False
 
 
+def _is_localhost(client_address):
+    """Return True if the request originates from localhost (internal service-to-service calls)."""
+    return client_address[0] in ('127.0.0.1', '::1')
+
+
 def _is_authed(request_headers):
     """Check tauth_github cookie (HMAC-signed) against GITHUB_ALLOWED_USERS. Empty set = any authed user ok."""
     cookie_header = request_headers.get('Cookie', '')
@@ -510,14 +515,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         path = urllib.parse.urlparse(self.path).path
 
         if path == '/api/congress/start':
-            if not _is_authed(self.headers):
+            if not _is_localhost(self.client_address) and not _is_authed(self.headers):
                 self._json_auth_error()
                 return
             self._handle_congress_start()
             return
 
         if path == '/api/congress':
-            if not _is_authed(self.headers):
+            if not _is_localhost(self.client_address) and not _is_authed(self.headers):
                 self._json_auth_error()
                 return
             self._handle_congress_post()
@@ -525,7 +530,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         m = re.match(r'^/api/congress/sessions/(congress-\d+)$', path)
         if m:
-            if not _is_authed(self.headers):
+            if not _is_localhost(self.client_address) and not _is_authed(self.headers):
                 self._json_auth_error()
                 return
             self._handle_congress_session_patch(m.group(1))
@@ -542,7 +547,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         m = re.match(r'^/api/congress/sessions/(congress-\d+)$', path)
         if m:
-            if not _is_authed(self.headers):
+            if not _is_localhost(self.client_address) and not _is_authed(self.headers):
                 self._json_auth_error()
                 return
             self._handle_congress_session_patch(m.group(1))
