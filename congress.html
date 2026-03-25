@@ -1268,6 +1268,68 @@
       color: #f59e0b;
       text-shadow: 0 0 8px #f59e0b;
     }
+
+    /* ── Roster card metadata badges ── */
+    .seat-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 3px;
+      align-items: center;
+    }
+    .seat-model-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.45rem;
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+      opacity: 0.75;
+    }
+    .seat-sex-badge {
+      font-size: 0.45rem;
+      padding: 1px 4px;
+      border-radius: 3px;
+      border: 1px solid var(--panel-border);
+      color: var(--text-muted);
+      opacity: 0.5;
+      text-transform: lowercase;
+      letter-spacing: 0.03em;
+    }
+    .seat-fired-badge {
+      font-size: 0.5rem;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: color-mix(in srgb, var(--accent) 15%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+      color: var(--accent);
+      letter-spacing: 0.02em;
+    }
+    .seat-verdict-badge {
+      font-size: 0.45rem;
+      padding: 1px 5px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+    }
+    .seat-verdict-badge.RETAIN {
+      color: var(--text-muted);
+      border: 1px solid var(--card-border);
+      opacity: 0.55;
+    }
+    .seat-verdict-badge.EVOLVE {
+      color: var(--teal);
+      border: 1px solid color-mix(in srgb, var(--teal) 50%, transparent);
+      background: color-mix(in srgb, var(--teal) 10%, transparent);
+    }
+    .seat-verdict-badge.FIRED {
+      color: var(--accent);
+      border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+    }
   </style>
 </head>
 <body>
@@ -1452,6 +1514,9 @@
             emoji: EMOJI_MAP[d.name] || '🤖',
             color: COLOR_MAP[d.name] || '#888',
             description: d.role || '',
+            title: d.title || '',
+            model: d.model || '',
+            sex: d.sex || '',
           }));
           for (let i = 0; i < SEAT_COUNT; i++) seats[i] = allActivePersonas[i] || null;
           firedPool = [];
@@ -1549,6 +1614,12 @@
             color: p.color || COLOR_MAP[p.name] || '#888888',
             description: p.description || p.role || '',
             role: p.role || '',
+            model: p.model || '',
+            sex: p.sex || '',
+            last_verdict: p.last_verdict || '',
+            stats_retained: p.stats_retained || 0,
+            stats_evolved: p.stats_evolved || 0,
+            stats_fired: p.stats_fired || 0,
             status: p.status,
           }));
         // Also rebuild firedPool from the snapshot for accurate lookups
@@ -1564,6 +1635,12 @@
             color: p.color || COLOR_MAP[p.name] || '#888888',
             description: p.description || p.role || '',
             role: p.role || '',
+            model: p.model || '',
+            sex: p.sex || '',
+            last_verdict: p.last_verdict || '',
+            stats_retained: p.stats_retained || 0,
+            stats_evolved: p.stats_evolved || 0,
+            stats_fired: p.stats_fired || 0,
             status: p.status,
           }));
         // Reset seats from the snapshot active personas
@@ -1861,6 +1938,49 @@
 
   // Build a stats line element for a persona card.
   // Returns an Element if the persona has any non-zero stats, null otherwise.
+  function shortenModel(model) {
+    if (!model) return '';
+    const m = model.toLowerCase();
+    if (m.startsWith('grok-')) return m.replace('grok-', 'grok/').replace('-reasoning', '~r').replace('-non-reasoning', '').replace('-fast', 'f');
+    if (m.startsWith('gemini-')) return m.replace('gemini-', 'gem/');
+    if (m.startsWith('claude-')) return m.replace('claude-', 'cl/').replace('-2025', '').replace('-20251001', '');
+    if (m === 'claude') return 'claude';
+    if (m === 'grok') return 'grok';
+    if (m === 'gemini') return 'gemini';
+    if (m === 'opus') return 'opus';
+    return model.length > 18 ? model.slice(0, 16) + '…' : model;
+  }
+
+  function buildMetaRow(p, isFired) {
+    const model = p.model || '';
+    const sex = p.sex || '';
+    const lastVerdict = p.last_verdict || '';
+    if (!model && !sex && !lastVerdict) return null;
+    const row = document.createElement('div');
+    row.className = 'seat-meta-row';
+    if (model) {
+      const mb = document.createElement('span');
+      mb.className = 'seat-model-badge';
+      mb.textContent = shortenModel(model);
+      mb.title = 'model: ' + model;
+      row.appendChild(mb);
+    }
+    if (sex) {
+      const sb = document.createElement('span');
+      sb.className = 'seat-sex-badge';
+      sb.textContent = sex;
+      row.appendChild(sb);
+    }
+    if (lastVerdict && lastVerdict !== 'FIRED') {
+      const vb = document.createElement('span');
+      vb.className = 'seat-verdict-badge ' + lastVerdict;
+      vb.textContent = lastVerdict;
+      vb.title = 'last evolution verdict';
+      row.appendChild(vb);
+    }
+    return row;
+  }
+
   function buildStatsEl(p) {
     const retained = p.stats_retained || 0;
     const evolved  = p.stats_evolved  || 0;
@@ -1939,6 +2059,8 @@
           desc.textContent = p.title || p.description || p.role || '';
           info.appendChild(desc);
         }
+        const metaRow = buildMetaRow(p, false);
+        if (metaRow) info.appendChild(metaRow);
         const statsEl = buildStatsEl(p);
         if (statsEl) info.appendChild(statsEl);
         card.appendChild(info);
@@ -1995,10 +2117,17 @@
 
         const info = document.createElement('div');
         info.className = 'seat-info';
-        const name = document.createElement('div');
-        name.className = 'seat-name';
-        name.textContent = p.display_name || p.name;
-        info.appendChild(name);
+        const nameRow = document.createElement('div');
+        nameRow.style.cssText = 'display:flex;align-items:center;gap:5px;';
+        const nameEl2 = document.createElement('div');
+        nameEl2.className = 'seat-name';
+        nameEl2.textContent = p.display_name || p.name;
+        nameRow.appendChild(nameEl2);
+        const fireBadge = document.createElement('span');
+        fireBadge.className = 'seat-fired-badge';
+        fireBadge.textContent = '🔥 severance';
+        nameRow.appendChild(fireBadge);
+        info.appendChild(nameRow);
         if (p.title || p.role) {
           const desc = document.createElement('div');
           desc.className = 'seat-desc';
@@ -2011,6 +2140,8 @@
           reason.textContent = '"' + p.fired_reason + '"';
           info.appendChild(reason);
         }
+        const firedMetaRow = buildMetaRow(p, true);
+        if (firedMetaRow) info.appendChild(firedMetaRow);
         const firedStatsEl = buildStatsEl(p);
         if (firedStatsEl) info.appendChild(firedStatsEl);
         card.appendChild(info);
@@ -2054,8 +2185,9 @@
       const avatarHtml = p && p.avatar_url
         ? `<img class="node-avatar" src="${p.avatar_url}" alt="${p.display_name || p.name}" />`
         : `<div class="node-emoji">${p ? (p.emoji || '🤖') : '○'}</div>`;
-      const modelLabel = p ? (p.model ? p.model.charAt(0).toUpperCase() + p.model.slice(1) : 'Claude') : '';
-      const modelBadge = p ? `<div class="node-model-badge">${modelLabel}</div>` : '';
+      const modelFull = p ? (p.model || 'claude') : '';
+      const modelLabel = modelFull ? shortenModel(modelFull) : '';
+      const modelBadge = p ? `<div class="node-model-badge" title="${modelFull}">${modelLabel}</div>` : '';
       const titleHtml = p && p.title ? `<div class="node-title">${p.title}</div>` : '';
       const displayNameHtml = p
         ? `<div class="node-display-name">${p.display_name || p.name}</div>${titleHtml}${modelBadge}`
@@ -2423,7 +2555,8 @@
 
     // Build a map of persona info by identity id
     const personaMap = {};
-    seats.forEach(p => { if (p) personaMap[p.id] = p; });
+    firedPool.forEach(p => { if (p) personaMap[p.id || p.name] = p; });
+    seats.forEach(p => { if (p) personaMap[p.id] = p; }); // seats override fired entries
 
     // Seat order for consistent per-column ordering (hiring-manager excluded from seats)
     const debaterOrder = seats.filter(Boolean).map(s => s.id || s.name);
@@ -2715,11 +2848,13 @@
     header.appendChild(nameEl);
 
     // Model badge in feed header
-    const modelLabel = p ? (p.model ? p.model.charAt(0).toUpperCase() + p.model.slice(1) : 'Claude') : (isSynthesis ? 'Claude' : '');
+    const modelFull2 = p ? (p.model || 'claude') : (isSynthesis ? 'claude' : '');
+    const modelLabel = modelFull2 ? shortenModel(modelFull2) : '';
     if (modelLabel) {
       const modelBadge = document.createElement('div');
       modelBadge.className = 'feed-entry-model-badge';
       modelBadge.textContent = modelLabel;
+      modelBadge.title = modelFull2;
       header.appendChild(modelBadge);
     }
 

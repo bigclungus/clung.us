@@ -255,12 +255,6 @@ def _call_claude_cli(system_prompt, user_message, on_token=None, model=None):
     return result
 
 
-def _call_gemini_cli(system_prompt, user_message, on_token=None):
-    """Call Gemini via the gemini CLI (OAuth auth, no API key needed).
-    Uses the CLI's configured default model. For explicit model selection use _call_gemini_cli_with_model.
-    """
-    return _call_gemini_cli_with_model(system_prompt, user_message, model=None, on_token=on_token)
-
 
 def _call_grok(system_prompt: str, user_message: str, on_token=None, model: str = "grok-3-mini") -> str:
     """Call xAI Grok via OpenAI-compatible API using XAI_API_KEY (streaming)."""
@@ -330,13 +324,22 @@ def _call_claude(system_prompt, user_message, on_token=None, model=None):
         return _call_claude_cli(system_prompt, user_message, on_token=on_token, model=model)
 
 
+_MODEL_ALIASES = {
+    'gemini': 'gemini-3-pro-preview',
+    'grok': 'grok-3-mini',
+    'opus': 'claude-opus-4-6',
+    'claude': 'claude-haiku-4-5-20251001',
+}
+
+
 def _call_llm(model: str, system_prompt: str, user_message: str, on_token=None) -> str:
     """Unified LLM dispatch layer. Routes to the appropriate backend based on model name.
 
     Routing rules:
       - grok-* or xai/* → xAI API via _call_grok
-      - gemini-* or google/* → Gemini CLI via _call_gemini_cli
-      - claude-* or anything else → Anthropic via _call_claude
+      - gemini-* or google/* → Gemini CLI via _call_gemini_cli_with_model
+      - claude-* → Anthropic via _call_claude
+      - anything else → RuntimeError
 
     Raises a RuntimeError with model name and cause on failure — never swallows errors silently.
     """
@@ -354,10 +357,11 @@ def _call_llm(model: str, system_prompt: str, user_message: str, on_token=None) 
             gemini_model = model_lower[len('google/'):] if model_lower.startswith('google/') else model_lower
             return _call_gemini_cli_with_model(system_prompt, user_message, model=gemini_model, on_token=on_token)
 
+        elif model_lower.startswith('claude-'):
+            return _call_claude(system_prompt, user_message, on_token=on_token, model=model_lower)
+
         else:
-            # claude-* or any unknown model → Claude
-            claude_model = model_lower if model_lower.startswith('claude-') else None
-            return _call_claude(system_prompt, user_message, on_token=on_token, model=claude_model)
+            raise RuntimeError(f"Unknown model: {model!r}")
 
     except Exception as e:
         raise RuntimeError(f"[{model}] {type(e).__name__}: {e}") from e
