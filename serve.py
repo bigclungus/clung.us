@@ -774,7 +774,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             existing = conn.execute('SELECT name FROM personas WHERE name=?', (name,)).fetchone()
             congress_val = 1 if meta.get('congress', True) else 0
             evolves_val = 1 if meta.get('evolves', True) else 0
-            now = datetime.datetime.utcnow().isoformat() + '+00:00'
+            now = datetime.datetime.now(datetime.timezone.utc).isoformat()
             if existing:
                 conn.execute('''
                     UPDATE personas SET
@@ -1034,7 +1034,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
 
         verdict = (data.get('verdict') or '').strip().upper()
-        date_str = (data.get('date') or datetime.datetime.utcnow().strftime('%Y-%m-%d')).strip()
+        date_str = (data.get('date') or datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d')).strip()
 
         if verdict not in ('FIRE', 'EVOLVE', 'RETAIN'):
             self._json_error(400, "Invalid verdict — must be FIRE, EVOLVE, or RETAIN")
@@ -1048,7 +1048,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self._json_error(404, f"Persona '{name}' not found")
                 return
 
-            now_iso = datetime.datetime.utcnow().isoformat() + '+00:00'
+            now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
             if verdict == 'FIRE':
                 conn.execute('''
@@ -1322,7 +1322,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             "session_number": num,
             "topic": topic,
             "discord_user": discord_user or None,
-            "started_at": datetime.datetime.utcnow().isoformat() + "Z",
+            "started_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "status": "deliberating",
             "rounds": [],
             "verdict": None,
@@ -1502,7 +1502,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         try:
                             session = json.load(f)
                             session.setdefault('rounds', []).append({
-                                "ts": datetime.datetime.utcnow().isoformat() + "Z",
+                                "ts": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                                 "identity": identity,
                                 "response": response_text,
                                 "model": routed_model,
@@ -1518,7 +1518,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         # Increment total_congresses for this persona in personas.db
         if identity and identity != 'hiring-manager':
             try:
-                now_iso = datetime.datetime.utcnow().isoformat() + '+00:00'
+                now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
                 conn = _get_personas_db()
                 try:
                     conn.execute(
