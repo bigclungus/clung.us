@@ -256,23 +256,10 @@ def _call_claude_cli(system_prompt, user_message, on_token=None, model=None):
 
 
 def _call_gemini_cli(system_prompt, user_message, on_token=None):
-    """Call Gemini via the gemini CLI (OAuth auth, no API key needed)."""
-    # Strip YAML frontmatter (---\n...\n---\n) from system_prompt — gemini CLI fails if
-    # the prompt passed via -p starts with '---'.
-    _, system_prompt_body = _parse_frontmatter(system_prompt)
-    # Combine system prompt body + user message as the full prompt; gemini -p appends to stdin
-    full_prompt = system_prompt_body + "\n\n" + user_message
-    proc = subprocess.Popen(
-        ['/usr/local/bin/gemini', '--yolo', '-p', full_prompt],
-        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True
-    )
-    full_text = ""
-    for line in proc.stdout:
-        full_text += line
-        if on_token:
-            on_token(line)
-    proc.wait()
-    return full_text.strip()
+    """Call Gemini via the gemini CLI (OAuth auth, no API key needed).
+    Uses the CLI's configured default model. For explicit model selection use _call_gemini_cli_with_model.
+    """
+    return _call_gemini_cli_with_model(system_prompt, user_message, model=None, on_token=on_token)
 
 
 def _call_grok(system_prompt: str, user_message: str, on_token=None, model: str = "grok-3-mini") -> str:
@@ -341,6 +328,58 @@ def _call_claude(system_prompt, user_message, on_token=None, model=None):
         return full_text
     else:
         return _call_claude_cli(system_prompt, user_message, on_token=on_token, model=model)
+
+
+def _call_llm(model: str, system_prompt: str, user_message: str, on_token=None) -> str:
+    """Unified LLM dispatch layer. Routes to the appropriate backend based on model name.
+
+    Routing rules:
+      - grok-* or xai/* → xAI API via _call_grok
+      - gemini-* or google/* → Gemini CLI via _call_gemini_cli
+      - claude-* or anything else → Anthropic via _call_claude
+
+    Raises a RuntimeError with model name and cause on failure — never swallows errors silently.
+    """
+    model_lower = (model or '').lower().strip()
+
+    try:
+        if model_lower.startswith('grok-') or model_lower.startswith('xai/'):
+            # Normalize xai/ prefix to plain grok model name
+            grok_model = model_lower[len('xai/'):] if model_lower.startswith('xai/') else model_lower
+            return _call_grok(system_prompt, user_message, on_token=on_token, model=grok_model)
+
+        elif model_lower.startswith('gemini-') or model_lower.startswith('google/'):
+            # Gemini uses CLI (OAuth auth), ignore model routing for now — CLI uses its configured default
+            # unless -m flag is passed; pass the model name through
+            gemini_model = model_lower[len('google/'):] if model_lower.startswith('google/') else model_lower
+            return _call_gemini_cli_with_model(system_prompt, user_message, model=gemini_model, on_token=on_token)
+
+        else:
+            # claude-* or any unknown model → Claude
+            claude_model = model_lower if model_lower.startswith('claude-') else None
+            return _call_claude(system_prompt, user_message, on_token=on_token, model=claude_model)
+
+    except Exception as e:
+        raise RuntimeError(f"[{model}] {type(e).__name__}: {e}") from e
+
+
+def _call_gemini_cli_with_model(system_prompt, user_message, model=None, on_token=None):
+    """Call Gemini CLI with an explicit model flag (-m)."""
+    _, system_prompt_body = _parse_frontmatter(system_prompt)
+    full_prompt = system_prompt_body + "\n\n" + user_message
+    cmd = ['/usr/local/bin/gemini', '--yolo', '-p', full_prompt, '--output-format', 'text']
+    if model:
+        cmd += ['-m', model]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    full_text = ""
+    for line in proc.stdout:
+        full_text += line
+        if on_token:
+            on_token(line)
+    proc.wait()
+    if proc.returncode != 0:
+        raise RuntimeError(f"gemini CLI exited with code {proc.returncode}")
+    return full_text.strip()
 
 
 DISCORD_INJECT_URL = 'http://127.0.0.1:9876/inject'
@@ -884,38 +923,33 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     if session_id in _active_streams:
                         _active_streams[session_id]["text"] += chunk
 
-        persona_model = (meta.get('model') or 'claude').lower()
+        persona_model = (meta.get('model') or 'claude').strip()
+        # Normalize legacy shorthand model names to canonical routing names
+        _model_aliases = {
+            'gemini': 'gemini-2.5-flash',
+            'grok': 'grok-3-mini',
+            'opus': 'claude-opus-4-6',
+            'claude': 'claude-haiku-4-5-20251001',
+        }
+        routed_model = _model_aliases.get(persona_model.lower(), persona_model)
+
         try:
-            if persona_model == 'gemini':
-                response_text = _call_gemini_cli(full_content, user_message, on_token=on_token)
-            elif persona_model == 'grok' or persona_model.startswith('grok-'):
-                # Route to xAI Grok; use specific model name if given (e.g. grok-3-mini), else default
-                grok_model = persona_model if persona_model.startswith('grok-') else 'grok-3-mini'
-                try:
-                    response_text = _call_grok(full_content, user_message, on_token=on_token, model=grok_model)
-                except Exception as e:
-                    print(f"Grok error for {identity}: {type(e).__name__}: {e}", flush=True)
-                    print("Grok unavailable, falling back to Claude")
-                    response_text = _call_claude(full_content, user_message, on_token=on_token)
-            elif persona_model == 'opus':
-                response_text = _call_claude(full_content, user_message, on_token=on_token, model='claude-opus-4-6')
-            else:
-                response_text = _call_claude(full_content, user_message, on_token=on_token)
-        except ValueError as e:
-            if session_id:
-                with _streams_lock:
-                    if session_id in _active_streams:
-                        _active_streams[session_id]["done"] = True
-                threading.Timer(60, _active_streams.pop, args=[session_id, None]).start()
-            self._json_error(503, str(e))
-            return
+            response_text = _call_llm(routed_model, full_content, user_message, on_token=on_token)
         except Exception as e:
             if session_id:
                 with _streams_lock:
                     if session_id in _active_streams:
                         _active_streams[session_id]["done"] = True
                 threading.Timer(60, _active_streams.pop, args=[session_id, None]).start()
-            self._json_error(500, f"LLM API error ({persona_model}): {e}")
+            # Extract a short reason from the exception message
+            reason = str(e)
+            print(f"[congress] LLM error for {identity} ({routed_model}): {reason}", flush=True)
+            self._send_json({
+                "error": "Persona failed to respond",
+                "persona": identity,
+                "model": routed_model,
+                "reason": reason,
+            }, code=503)
             return
 
         if session_id:
