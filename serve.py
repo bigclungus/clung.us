@@ -38,7 +38,7 @@ AGENTS_FIRED_DIR = "/home/clungus/work/bigclungus-meta/agents/fired"
 SESSIONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sessions')
 PERSONAS_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'personas.db')
 
-LLM_MAX_TOKENS = 300  # Hard cap per debate response
+LLM_MAX_TOKENS = 600  # Hard cap per debate response (raised to allow Ibrahim's 5-8 sentence synthesis)
 
 EMOJI_MAP = {
     'architect': '🏗️', 'critic': '🔍', 'ux': '🎨',
@@ -1394,11 +1394,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._json_error(404, f"Identity '{identity}' not found")
             return
 
-        user_message = (
-            "Congress is debating the following task/question. "
-            "Respond in 3 sentences maximum. Be direct and sharp — no padding, no hedging, no lists:\n\n"
-            + task
-        )
+        if identity == 'hiring-manager':
+            length_instruction = (
+                "Congress is debating the following task/question. "
+                "Respond in 5-8 sentences maximum. Be direct and authoritative — "
+                "no preamble, no padding, no lists. Deliver your synthesis or judgment plainly:\n\n"
+            )
+        else:
+            length_instruction = (
+                "Congress is debating the following task/question. "
+                "Respond in 3-5 sentences. Be direct. No preamble, no hedging, no lists:\n\n"
+            )
+        user_message = length_instruction + task
 
         display_name = meta.get('display_name', identity)
 
