@@ -497,9 +497,17 @@
         .catch(function(err) {
           var activeEl = document.getElementById('active-list');
           var feedEl   = document.getElementById('feed-list');
-          var msg = 'Could not load task data (' + err.message + ')';
-          activeEl.innerHTML = '<span class="empty-note">' + msg + '</span>';
-          feedEl.innerHTML   = '';
+          var pulseEl  = document.getElementById('last-pulse');
+          if (err.message === 'HTTP 403') {
+            var loginUrl = '/auth/github?next=' + encodeURIComponent(window.location.pathname);
+            activeEl.innerHTML = '<span class="empty-note"><a href="' + loginUrl + '" style="color:var(--accent)">sign in</a> to see task data</span>';
+            if (pulseEl) pulseEl.innerHTML = 'last pulse: <a href="' + loginUrl + '" style="color:var(--accent)">sign in</a>';
+          } else {
+            var msg = 'Could not load task data (' + err.message + ')';
+            activeEl.innerHTML = '<span class="empty-note">' + msg + '</span>';
+            if (pulseEl) pulseEl.textContent = 'last pulse: error';
+          }
+          feedEl.innerHTML = '';
         });
     }
 
