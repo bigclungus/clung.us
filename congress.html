@@ -1853,6 +1853,7 @@
   let allActivePersonas = [];        // full roster of active non-moderator personas (never mutated by session loading)
   let sessionParticipantIds = null;  // Set of identity ids that participated in the current session (null = no session loaded)
   let firedPool = [];                // personas in severance
+  let moderatorPersona = null;       // hiring-manager persona data (excluded from seats, shown in center)
   let round = 0;
   let currentSessionId = null;       // active session id (from URL or newly started)
   let sessionPollTimer = null;
@@ -1880,6 +1881,7 @@
       // Use first SEAT_COUNT for the default circle seats
       for (let i = 0; i < SEAT_COUNT; i++) seats[i] = allActivePersonas[i] || null;
       firedPool = data.fired || [];
+      moderatorPersona = data.moderator || null;
     } catch (e) {
       console.warn('[congress] /api/agents failed, trying fallback:', e);
       // Fallback: load from /api/congress/identities
@@ -2938,6 +2940,7 @@
     const personaMap = {};
     firedPool.forEach(p => { if (p) personaMap[p.id || p.name] = p; });
     seats.forEach(p => { if (p) personaMap[p.id] = p; }); // seats override fired entries
+    if (moderatorPersona) personaMap[moderatorPersona.id || moderatorPersona.name] = moderatorPersona; // Ibrahim in synthesis entries
 
     // Seat order for consistent per-column ordering (hiring-manager excluded from seats)
     const debaterOrder = seats.filter(Boolean).map(s => s.id || s.name);

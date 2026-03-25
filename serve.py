@@ -1185,8 +1185,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         # Separate moderator from debaters
         debaters = [a for a in active if not a.get('is_moderator')]
+        moderator = next((a for a in active if a.get('is_moderator')), None)
 
-        self._send_json({'active': debaters, 'fired': fired})
+        self._send_json({'active': debaters, 'fired': fired, 'moderator': moderator})
 
     def _serve_congress_identities(self):
         identities = []
