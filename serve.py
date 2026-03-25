@@ -134,18 +134,17 @@ def _load_persona_meta() -> dict:
 # Keyed by persona name (e.g. 'critic', 'architect').
 # Use _get_persona_meta() for reads; direct mutation is still fine for
 # write paths that already hold fresh data from the DB.
-import time as _time
 _PERSONA_META: dict = _load_persona_meta()
-_PERSONA_META_LOADED_AT: float = _time.monotonic()
+_PERSONA_META_LOADED_AT: float = time.monotonic()
 _PERSONA_META_TTL: float = 60.0  # seconds
 
 
 def _get_persona_meta() -> dict:
     """Return the persona metadata dict, reloading from DB if the TTL has expired."""
     global _PERSONA_META, _PERSONA_META_LOADED_AT
-    if _time.monotonic() - _PERSONA_META_LOADED_AT > _PERSONA_META_TTL:
+    if time.monotonic() - _PERSONA_META_LOADED_AT > _PERSONA_META_TTL:
         _PERSONA_META = _load_persona_meta()
-        _PERSONA_META_LOADED_AT = _time.monotonic()
+        _PERSONA_META_LOADED_AT = time.monotonic()
     return _PERSONA_META
 
 
@@ -475,14 +474,12 @@ def _start_github_webhook_workflow(params: dict):
         try:
             from temporalio.client import Client
             from temporalio.common import WorkflowIDReusePolicy
-            import time as _time
-
             host = os.environ.get('TEMPORAL_HOST', 'localhost:7233')
             client = await Client.connect(host)
             wf_id = (
                 f"github-webhook-{params.get('event_type','unknown')}-"
                 f"{params.get('repo','').replace('/', '-')}-"
-                f"{params.get('number', 0)}-{int(_time.time())}"
+                f"{params.get('number', 0)}-{int(time.time())}"
             )
             await client.start_workflow(
                 'GitHubWebhookWorkflow',
