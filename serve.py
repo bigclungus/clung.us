@@ -275,11 +275,11 @@ def _call_gemini_cli(system_prompt, user_message, on_token=None):
     return full_text.strip()
 
 
-def _call_grok(system_prompt: str, user_message: str, on_token=None) -> str:
+def _call_grok(system_prompt: str, user_message: str, on_token=None, model: str = "grok-3-mini") -> str:
     """Call xAI Grok via OpenAI-compatible API using XAI_API_KEY (streaming)."""
     api_key = os.environ.get("XAI_API_KEY", "")
     payload = json.dumps({
-        "model": "grok-4.20-0309-reasoning",
+        "model": model,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_message}
@@ -886,9 +886,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         try:
             if persona_model == 'gemini':
                 response_text = _call_gemini_cli(full_content, user_message, on_token=on_token)
-            elif persona_model == 'grok':
+            elif persona_model == 'grok' or persona_model.startswith('grok-'):
+                # Route to xAI Grok; use specific model name if given (e.g. grok-3-mini), else default
+                grok_model = persona_model if persona_model.startswith('grok-') else 'grok-3-mini'
                 try:
-                    response_text = _call_grok(full_content, user_message, on_token=on_token)
+                    response_text = _call_grok(full_content, user_message, on_token=on_token, model=grok_model)
                 except Exception as e:
                     print(f"Grok error for {identity}: {type(e).__name__}: {e}", flush=True)
                     print("Grok unavailable, falling back to Claude")
