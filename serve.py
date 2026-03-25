@@ -59,7 +59,7 @@ GITHUB_CLIENT_ID     = os.environ.get('GITHUB_CLIENT_ID', '')
 GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET', '')
 COOKIE_MAX_AGE = 86400  # 24 hours
 CONGRESS_LOGIN_URL = "https://clung.us/auth/github?next=https://clung.us/congress"
-INTERNAL_TOKEN = os.environ.get('INTERNAL_TOKEN', '')
+INTERNAL_TOKEN = os.environ.get('INTERNAL_TOKEN') or None
 
 
 def _verify_cookie(value: str) -> str:
@@ -137,15 +137,17 @@ def _load_persona_meta() -> dict:
 _PERSONA_META: dict = _load_persona_meta()
 _PERSONA_META_LOADED_AT: float = time.monotonic()
 _PERSONA_META_TTL: float = 60.0  # seconds
+_PERSONA_META_LOCK = threading.Lock()
 
 
 def _get_persona_meta() -> dict:
     """Return the persona metadata dict, reloading from DB if the TTL has expired."""
     global _PERSONA_META, _PERSONA_META_LOADED_AT
-    if time.monotonic() - _PERSONA_META_LOADED_AT > _PERSONA_META_TTL:
-        _PERSONA_META = _load_persona_meta()
-        _PERSONA_META_LOADED_AT = time.monotonic()
-    return _PERSONA_META
+    with _PERSONA_META_LOCK:
+        if time.monotonic() - _PERSONA_META_LOADED_AT > _PERSONA_META_TTL:
+            _PERSONA_META = _load_persona_meta()
+            _PERSONA_META_LOADED_AT = time.monotonic()
+        return _PERSONA_META
 
 
 def _is_authed(request_headers, client_address=None):
@@ -155,7 +157,6 @@ def _is_authed(request_headers, client_address=None):
     Token path: X-Internal-Token header must match INTERNAL_TOKEN and request must be from localhost.
     Empty GITHUB_ALLOWED_USERS set = any authed user ok.
     """
-    # Internal service-to-service auth via X-Internal-Token (localhost only)
     if INTERNAL_TOKEN and client_address is not None and _is_localhost(client_address):
         token_header = request_headers.get('X-Internal-Token', '')
         if token_header and hmac.compare_digest(token_header, INTERNAL_TOKEN):
@@ -1377,7 +1378,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return
 
         # Only allow updating specific fields
-        ALLOWED = {'verdict', 'status', 'finished_at', 'evolution', 'thread_id'}
+        ALLOWED = {'verdict', 'status', 'finished_at', 'evolution', 'thread_id', 'task_titles'}
         try:
             with open(fpath, 'r') as f:
                 session = json.load(f)
