@@ -10,6 +10,7 @@ import datetime
 import subprocess
 import fcntl
 import secrets
+import sqlite3
 import time
 import urllib.parse
 import urllib.request
@@ -35,6 +36,7 @@ TASKS_DIR = "/home/clungus/work/bigclungus-meta/tasks"
 AGENTS_ACTIVE_DIR = "/home/clungus/work/bigclungus-meta/agents/active"
 AGENTS_FIRED_DIR = "/home/clungus/work/bigclungus-meta/agents/fired"
 SESSIONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sessions')
+PERSONAS_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'personas.db')
 
 LLM_MAX_TOKENS = 300  # Hard cap per debate response
 
@@ -93,6 +95,41 @@ _LOCALHOST_ADDRS = frozenset(('127.0.0.1', '::1'))
 def _is_localhost(client_address):
     """Return True if the request originates from localhost (internal service-to-service calls)."""
     return client_address[0] in _LOCALHOST_ADDRS
+
+
+# ── Persona metadata DB ────────────────────────────────────────────────────────
+
+def _get_personas_db() -> sqlite3.Connection:
+    """Open and return a sqlite3 connection to personas.db (row_factory set)."""
+    conn = sqlite3.connect(PERSONAS_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _load_persona_meta() -> dict:
+    """
+    Load all persona rows from personas.db into a dict keyed by name.
+    Returns an empty dict if the DB doesn't exist yet (graceful degradation).
+    Each value is a plain dict of column→value.
+    """
+    if not os.path.isfile(PERSONAS_DB_PATH):
+        import logging
+        logging.warning("personas.db not found at %s — persona meta unavailable", PERSONAS_DB_PATH)
+        return {}
+    try:
+        conn = _get_personas_db()
+        rows = conn.execute("SELECT * FROM personas").fetchall()
+        conn.close()
+        return {row['name']: dict(row) for row in rows}
+    except Exception as e:
+        import logging
+        logging.warning("Failed to load personas.db: %s", e)
+        return {}
+
+
+# Module-level persona metadata cache — loaded once at startup.
+# Keyed by persona name (e.g. 'critic', 'architect').
+_PERSONA_META: dict = _load_persona_meta()
 
 
 def _is_authed(request_headers):
@@ -496,7 +533,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', 'https://clung.us')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
         self.end_headers()
 
@@ -543,6 +580,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         if path == '/api/agents':
             self._serve_agents()
+            return
+
+        if path == '/api/personas':
+            if not _is_localhost(self.client_address):
+                self._json_auth_error()
+                return
+            self._serve_personas_list()
+            return
+
+        m = re.match(r'^/api/personas/([\w-]+)$', path)
+        if m:
+            if not _is_localhost(self.client_address):
+                self._json_auth_error()
+                return
+            self._serve_persona_detail(m.group(1))
             return
 
         if path == '/api/wallet/balance':
@@ -596,6 +648,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._handle_github_webhook()
             return
 
+        if path == '/api/personas':
+            if not _is_localhost(self.client_address):
+                self._json_auth_error()
+                return
+            self._handle_persona_create()
+            return
+
         self.send_error(404)
 
     def do_PATCH(self):
@@ -609,7 +668,311 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self._handle_congress_session_patch(m.group(1))
             return
 
+        m = re.match(r'^/api/personas/([\w-]+)$', path)
+        if m:
+            if not _is_localhost(self.client_address):
+                self._json_auth_error()
+                return
+            self._handle_persona_update(m.group(1))
+            return
+
         self.send_error(404)
+
+    def do_DELETE(self):
+        path = urllib.parse.urlparse(self.path).path
+
+        m = re.match(r'^/api/personas/([\w-]+)$', path)
+        if m:
+            if not _is_localhost(self.client_address):
+                self._json_auth_error()
+                return
+            self._handle_persona_delete(m.group(1))
+            return
+
+        self.send_error(404)
+
+    # ── Personas CRUD ─────────────────────────────────────────────────────────
+
+    def _persona_md_path(self, name, status='active'):
+        """Return the md file path for a persona given its status."""
+        dirpath = AGENTS_ACTIVE_DIR if status == 'active' else AGENTS_FIRED_DIR
+        return os.path.join(dirpath, f'{name}.md')
+
+    def _find_persona_md_path(self, name):
+        """Find existing md file for persona name, checking active then fired. Returns (path, status) or (None, None)."""
+        for status, dirpath in (('active', AGENTS_ACTIVE_DIR), ('fired', AGENTS_FIRED_DIR)):
+            fpath = os.path.join(dirpath, f'{name}.md')
+            if os.path.isfile(fpath):
+                return fpath, status
+        return None, None
+
+    def _write_persona_md(self, fpath, meta, prompt):
+        """Write a persona md file given frontmatter dict and prose prompt body."""
+        lines = ['---']
+        for key, val in meta.items():
+            if isinstance(val, bool):
+                lines.append(f'{key}: {str(val).lower()}')
+            elif isinstance(val, list):
+                items = ', '.join(str(v) for v in val)
+                lines.append(f'{key}: [{items}]')
+            elif val is None:
+                pass  # skip None fields
+            else:
+                lines.append(f'{key}: {val}')
+        lines.append('---')
+        lines.append('')
+        lines.append(prompt.strip() if prompt else '')
+        content = '\n'.join(lines) + '\n'
+        with open(fpath, 'w') as f:
+            f.write(content)
+
+    def _sync_persona_to_db(self, name, meta, status, md_path):
+        """Upsert a single persona row in personas.db and refresh _PERSONA_META cache."""
+        global _PERSONA_META
+        conn = _get_personas_db()
+        try:
+            existing = conn.execute('SELECT name FROM personas WHERE name=?', (name,)).fetchone()
+            congress_val = 1 if meta.get('congress', True) else 0
+            evolves_val = 1 if meta.get('evolves', True) else 0
+            now = datetime.datetime.utcnow().isoformat() + '+00:00'
+            if existing:
+                conn.execute('''
+                    UPDATE personas SET
+                        display_name=?, model=?, role=?, title=?, sex=?,
+                        congress=?, evolves=?, status=?, md_path=?, avatar_url=?,
+                        updated_at=?
+                    WHERE name=?
+                ''', (
+                    meta.get('display_name', name),
+                    meta.get('model', 'claude'),
+                    meta.get('role', ''),
+                    meta.get('title') or None,
+                    meta.get('sex') or None,
+                    congress_val,
+                    evolves_val,
+                    status,
+                    md_path,
+                    meta.get('avatar_url') or None,
+                    now,
+                    name,
+                ))
+            else:
+                conn.execute('''
+                    INSERT INTO personas
+                        (name, display_name, model, role, title, sex, congress, evolves,
+                         special_seat, stakeholder_only, status, md_path, avatar_url,
+                         prompt_hash, total_congresses, times_evolved, times_fired,
+                         times_reinstated, last_verdict, last_verdict_date, updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,0,0,?,?,?,NULL,0,0,0,0,NULL,NULL,?)
+                ''', (
+                    name,
+                    meta.get('display_name', name),
+                    meta.get('model', 'claude'),
+                    meta.get('role', ''),
+                    meta.get('title') or None,
+                    meta.get('sex') or None,
+                    congress_val,
+                    evolves_val,
+                    status,
+                    md_path,
+                    meta.get('avatar_url') or None,
+                    now,
+                ))
+            conn.commit()
+            # Refresh cache entry
+            row = conn.execute('SELECT * FROM personas WHERE name=?', (name,)).fetchone()
+            if row:
+                _PERSONA_META[name] = dict(row)
+        finally:
+            conn.close()
+
+    def _serve_personas_list(self):
+        """GET /api/personas — return all personas from DB."""
+        conn = _get_personas_db()
+        try:
+            rows = conn.execute('SELECT * FROM personas ORDER BY name').fetchall()
+            personas = [dict(r) for r in rows]
+        finally:
+            conn.close()
+        self._send_json({'personas': personas})
+
+    def _serve_persona_detail(self, name):
+        """GET /api/personas/{name} — return one persona plus prompt body."""
+        conn = _get_personas_db()
+        try:
+            row = conn.execute('SELECT * FROM personas WHERE name=?', (name,)).fetchone()
+        finally:
+            conn.close()
+
+        if not row:
+            self._json_error(404, f"Persona '{name}' not found")
+            return
+
+        persona = dict(row)
+
+        # Read the prompt body from the md file
+        fpath, _ = self._find_persona_md_path(name)
+        prompt = ''
+        if fpath and os.path.isfile(fpath):
+            with open(fpath, 'r') as f:
+                content = f.read()
+            _, prompt = _parse_frontmatter(content)
+
+        persona['prompt'] = prompt
+        self._send_json({'persona': persona})
+
+    def _handle_persona_create(self):
+        """POST /api/personas — create a new persona."""
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+            raw = self.rfile.read(length)
+            data = json.loads(raw) if raw else {}
+        except Exception as e:
+            self._json_error(400, f'Invalid JSON: {e}')
+            return
+
+        name = (data.get('name') or '').strip()
+        if not name or not re.match(r'^[\w-]+$', name):
+            self._json_error(400, "Missing or invalid 'name' field (alphanumeric + dash/underscore only)")
+            return
+
+        # Check for existing
+        fpath_existing, _ = self._find_persona_md_path(name)
+        if fpath_existing:
+            self._json_error(409, f"Persona '{name}' already exists")
+            return
+
+        prompt = data.get('prompt', '')
+        meta = {
+            'name': name,
+            'display_name': data.get('display_name', name),
+            'model': data.get('model', 'claude-sonnet-4-6'),
+            'role': data.get('role', ''),
+            'title': data.get('title') or None,
+            'sex': data.get('sex') or None,
+            'congress': data.get('congress', True),
+            'evolves': data.get('evolves', True),
+            'avatar_url': data.get('avatar_url') or None,
+        }
+
+        fpath = self._persona_md_path(name, 'active')
+        try:
+            self._write_persona_md(fpath, meta, prompt)
+        except Exception as e:
+            self._json_error(500, f'Failed to write md file: {e}')
+            return
+
+        try:
+            self._sync_persona_to_db(name, meta, 'active', fpath)
+        except Exception as e:
+            self._json_error(500, f'Failed to sync to DB: {e}')
+            return
+
+        conn = _get_personas_db()
+        try:
+            row = conn.execute('SELECT * FROM personas WHERE name=?', (name,)).fetchone()
+            persona = dict(row) if row else {}
+        finally:
+            conn.close()
+        persona['prompt'] = prompt
+
+        self._send_json({'persona': persona}, code=201)
+
+    def _handle_persona_update(self, name):
+        """PATCH /api/personas/{name} — update fields on an existing persona."""
+        fpath, current_status = self._find_persona_md_path(name)
+        if not fpath:
+            self._json_error(404, f"Persona '{name}' not found")
+            return
+
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+            raw = self.rfile.read(length)
+            updates = json.loads(raw) if raw else {}
+        except Exception as e:
+            self._json_error(400, f'Invalid JSON: {e}')
+            return
+
+        # Read current md
+        with open(fpath, 'r') as f:
+            content = f.read()
+        meta, current_prompt = _parse_frontmatter(content)
+
+        # Apply frontmatter updates
+        frontmatter_fields = {'model', 'role', 'title', 'sex', 'congress', 'evolves',
+                               'avatar_url', 'display_name'}
+        for field in frontmatter_fields:
+            if field in updates:
+                meta[field] = updates[field]
+
+        prompt = updates.get('prompt', current_prompt)
+
+        # Handle status change (file move)
+        new_status = updates.get('status', current_status)
+        if new_status not in ('active', 'fired'):
+            self._json_error(400, f"Invalid status '{new_status}' — must be 'active' or 'fired'")
+            return
+
+        new_fpath = self._persona_md_path(name, new_status)
+
+        try:
+            if new_status != current_status:
+                # Move the file
+                os.makedirs(os.path.dirname(new_fpath), exist_ok=True)
+                self._write_persona_md(new_fpath, meta, prompt)
+                os.remove(fpath)
+            else:
+                self._write_persona_md(fpath, meta, prompt)
+        except Exception as e:
+            self._json_error(500, f'Failed to write md file: {e}')
+            return
+
+        try:
+            self._sync_persona_to_db(name, meta, new_status, new_fpath)
+        except Exception as e:
+            self._json_error(500, f'Failed to sync to DB: {e}')
+            return
+
+        conn = _get_personas_db()
+        try:
+            row = conn.execute('SELECT * FROM personas WHERE name=?', (name,)).fetchone()
+            persona = dict(row) if row else {}
+        finally:
+            conn.close()
+        persona['prompt'] = prompt
+
+        self._send_json({'persona': persona})
+
+    def _handle_persona_delete(self, name):
+        """DELETE /api/personas/{name} — remove md file and db row."""
+        global _PERSONA_META
+
+        fpath, _ = self._find_persona_md_path(name)
+        if not fpath:
+            self._json_error(404, f"Persona '{name}' not found")
+            return
+
+        try:
+            os.remove(fpath)
+        except Exception as e:
+            self._json_error(500, f'Failed to remove md file: {e}')
+            return
+
+        conn = _get_personas_db()
+        try:
+            conn.execute('DELETE FROM personas WHERE name=?', (name,))
+            conn.commit()
+        except Exception as e:
+            conn.close()
+            self._json_error(500, f'Failed to remove from DB: {e}')
+            return
+        conn.close()
+
+        _PERSONA_META.pop(name, None)
+
+        self._send_json({'ok': True, 'deleted': name})
+
+    # ── Tasks ─────────────────────────────────────────────────────────────────
 
     def _serve_tasks(self):
         tasks = []
@@ -966,7 +1329,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     if session_id in _active_streams:
                         _active_streams[session_id]["text"] += chunk
 
-        persona_model = (meta.get('model') or 'claude').strip()
+        # Model lookup: prefer personas.db (single authoritative source), fall
+        # back to YAML frontmatter meta if the DB entry is missing.
+        _db_entry = _PERSONA_META.get(identity)
+        if _db_entry:
+            persona_model = (_db_entry.get('model') or 'claude').strip()
+        else:
+            persona_model = (meta.get('model') or 'claude').strip()
         # Normalize legacy shorthand model names to canonical routing names
         routed_model = _MODEL_ALIASES.get(persona_model.lower(), persona_model)
 
