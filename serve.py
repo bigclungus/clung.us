@@ -715,6 +715,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if not topic:
             self._json_error(400, "Missing 'topic' field")
             return
+        discord_user = data.get('discord_user', '') or ''
 
         num = self._next_session_number()
         session_id = f"congress-{num:04d}"
@@ -754,6 +755,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             "session_id": session_id,
             "session_number": num,
             "topic": topic,
+            "discord_user": discord_user or None,
             "started_at": datetime.datetime.utcnow().isoformat() + "Z",
             "status": "deliberating",
             "rounds": [],
