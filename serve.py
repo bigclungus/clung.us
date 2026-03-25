@@ -87,9 +87,12 @@ def _is_safe_redirect(url: str) -> bool:
         return False
 
 
+_LOCALHOST_ADDRS = frozenset(('127.0.0.1', '::1'))
+
+
 def _is_localhost(client_address):
     """Return True if the request originates from localhost (internal service-to-service calls)."""
-    return client_address[0] in ('127.0.0.1', '::1')
+    return client_address[0] in _LOCALHOST_ADDRS
 
 
 def _is_authed(request_headers):
