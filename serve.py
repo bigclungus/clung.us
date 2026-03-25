@@ -59,6 +59,7 @@ GITHUB_CLIENT_ID     = os.environ.get('GITHUB_CLIENT_ID', '')
 GITHUB_CLIENT_SECRET = os.environ.get('GITHUB_CLIENT_SECRET', '')
 COOKIE_MAX_AGE = 86400  # 24 hours
 CONGRESS_LOGIN_URL = "https://clung.us/auth/github?next=https://clung.us/congress"
+INTERNAL_TOKEN = os.environ.get('INTERNAL_TOKEN', '')
 
 
 def _verify_cookie(value: str) -> str:
@@ -129,9 +130,23 @@ def _load_persona_meta() -> dict:
         return {}
 
 
-# Module-level persona metadata cache — loaded once at startup.
+# Module-level persona metadata cache with 60-second TTL.
 # Keyed by persona name (e.g. 'critic', 'architect').
+# Use _get_persona_meta() for reads; direct mutation is still fine for
+# write paths that already hold fresh data from the DB.
+import time as _time
 _PERSONA_META: dict = _load_persona_meta()
+_PERSONA_META_LOADED_AT: float = _time.monotonic()
+_PERSONA_META_TTL: float = 60.0  # seconds
+
+
+def _get_persona_meta() -> dict:
+    """Return the persona metadata dict, reloading from DB if the TTL has expired."""
+    global _PERSONA_META, _PERSONA_META_LOADED_AT
+    if _time.monotonic() - _PERSONA_META_LOADED_AT > _PERSONA_META_TTL:
+        _PERSONA_META = _load_persona_meta()
+        _PERSONA_META_LOADED_AT = _time.monotonic()
+    return _PERSONA_META
 
 
 def _is_authed(request_headers):
@@ -1435,7 +1450,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         # Model lookup: prefer personas.db (single authoritative source), fall
         # back to YAML frontmatter meta if the DB entry is missing.
-        _db_entry = _PERSONA_META.get(identity)
+        _db_entry = _get_persona_meta().get(identity)
         if _db_entry:
             persona_model = (_db_entry.get('model') or 'claude').strip()
         else:
