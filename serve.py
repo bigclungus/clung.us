@@ -38,7 +38,7 @@ AGENTS_FIRED_DIR = "/home/clungus/work/bigclungus-meta/agents/fired"
 SESSIONS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'sessions')
 PERSONAS_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'personas.db')
 
-LLM_MAX_TOKENS = 600  # Hard cap per debate response (raised to allow Ibrahim's 5-8 sentence synthesis)
+LLM_MAX_TOKENS = 300  # Hard cap per debate response
 
 EMOJI_MAP = {
     'architect': '🏗️', 'critic': '🔍', 'ux': '🎨',
@@ -1404,7 +1404,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         else:
             length_instruction = (
                 "Congress is debating the following task/question. "
-                "Respond in 3-5 sentences. Be direct. No preamble, no hedging, no lists:\n\n"
+                "Be concise — 3-4 sentences maximum. No preamble, no hedging, just your position:\n\n"
             )
         user_message = length_instruction + task
 
