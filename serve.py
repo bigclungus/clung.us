@@ -43,10 +43,12 @@ LLM_MAX_TOKENS = 300  # Hard cap per debate response
 EMOJI_MAP = {
     'architect': '🏗️', 'critic': '🔍', 'ux': '🎨',
     'otto': '🌪️', 'spengler': '🕰️', 'hiring-manager': '⚖️',
+    'wolf': '🐺', 'hume': '🔬', 'adelbert': '🗡️', 'nemesis': '⚡',
 }
 COLOR_MAP = {
     'architect': '#f59e0b', 'critic': '#f87171', 'ux': '#60a5fa',
     'otto': '#a78bfa', 'spengler': '#94a3b8',
+    'wolf': '#f97316', 'hume': '#38bdf8', 'adelbert': '#e879f9', 'nemesis': '#f43f5e',
 }
 
 # ── GitHub auth ────────────────────────────────────────────────────────────────
@@ -612,6 +614,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         if path in ('/congress', '/congress.html', '/congress/'):
             pass  # public page — fall through to static serve
+
+        if path in ('/personas', '/personas/'):
+            self.send_response(302)
+            self.send_header('Location', '/congress#personas')
+            self.end_headers()
+            return
 
         if '.' not in path.split('/')[-1]:
             candidate = os.path.join(SERVE_DIR, path.lstrip('/') + '.html')
