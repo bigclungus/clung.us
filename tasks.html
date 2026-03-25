@@ -577,13 +577,17 @@
     }
 
     // Build age pill HTML based on seconds since last activity
-    function makeAgePill(ts) {
+    // Terminal statuses (done/failed/cancelled) always use neutral color regardless of age
+    var TERMINAL_STATUSES = { done: true, failed: true, cancelled: true };
+    function makeAgePill(ts, status) {
       if (!ts) return '';
       var secs = secsSince(ts);
       var rel = timeAgo(ts);
       var abs = new Date(ts).toLocaleString();
       var cls;
-      if (secs < 300) {
+      if (TERMINAL_STATUSES[status]) {
+        cls = 'age-fresh';
+      } else if (secs < 300) {
         cls = 'age-fresh';
       } else if (secs < 3600) {
         cls = 'age-amber';
@@ -708,23 +712,37 @@
       '</div>';
     }
 
-    function updateSummary(tasks) {
+    function updateSummary(tasks, serverTotals) {
       var bar = document.getElementById('tasks-summary');
       if (!tasks || tasks.length === 0) { bar.style.display = 'none'; return; }
 
-      var inProgress = 0, done = 0, stale = 0, failed = 0, bg = 0, fg = 0;
+      // Use server-provided totals (full dataset) when available; fall back to counting local page
+      var inProgress, done, stale, failed, bg, fg, totalCount;
+      if (serverTotals && serverTotals.total != null) {
+        totalCount = serverTotals.total;
+        inProgress = serverTotals.in_progress || 0;
+        done       = serverTotals.done        || 0;
+        stale      = serverTotals.stale       || 0;
+        failed     = serverTotals.failed      || 0;
+        bg         = serverTotals.background  || 0;
+        fg         = serverTotals.foreground  || 0;
+      } else {
+        inProgress = 0; done = 0; stale = 0; failed = 0; bg = 0; fg = 0;
+        tasks.forEach(function(t) {
+          var s = t.status;
+          if (s === 'in_progress') inProgress++;
+          else if (s === 'done') done++;
+          else if (s === 'failed') failed++;
+          else stale++;
+          if (t.run_in_background === true) bg++;
+          else if (t.run_in_background === false) fg++;
+        });
+        totalCount = (_lastMeta && _lastMeta.total != null && _lastMeta.total > 0) ? _lastMeta.total : tasks.length;
+      }
+
+      // Find newest task on the current page for "last:" display
       var newest = null;
-
       tasks.forEach(function(t) {
-        var s = t.status;
-        if (s === 'in_progress') inProgress++;
-        else if (s === 'done') done++;
-        else if (s === 'failed') failed++;
-        else stale++;
-
-        if (t.run_in_background === true) bg++;
-        else if (t.run_in_background === false) fg++;
-
         if (t.started_at) {
           if (!newest || new Date(t.started_at) > new Date(newest.started_at)) newest = t;
         }
@@ -742,7 +760,6 @@
           '</span>';
       }
 
-      var totalCount = (_lastMeta && _lastMeta.total != null && _lastMeta.total > 0) ? _lastMeta.total : tasks.length;
       bar.innerHTML =
         '<span class="sum-pill filterable" data-filter=""><span>total</span><span class="sum-val">' + totalCount + '</span></span>' +
         '<span class="sum-pill pill-inprogress filterable" data-filter="in_progress"><span>&#9889;</span><span class="sum-val">' + inProgress + '</span><span>in progress</span></span>' +
@@ -802,7 +819,7 @@
       fetchTasks();
     }
 
-    function render(tasks, meta) {
+    function render(tasks, meta, totals) {
       _lastTasks = tasks;
       tasks = tasks.filter(function(t) { return t.status !== 'milestone'; });
 
@@ -824,7 +841,7 @@
         return (new Date(lastActivityTs(b) || 0)) - (new Date(lastActivityTs(a) || 0));
       });
 
-      updateSummary(tasks);
+      updateSummary(tasks, totals);
       updatePagination(meta);
 
       var container = document.getElementById('task-list');
@@ -888,11 +905,11 @@
         })
         .then(function(data) {
           document.getElementById('error-banner').style.display = 'none';
-          // Handle both paginated response {tasks, total, page, limit, pages} and legacy array
+          // Handle both paginated response {tasks, total, page, limit, pages, totals} and legacy array
           if (Array.isArray(data)) {
-            render(data, null);
+            render(data, null, null);
           } else {
-            render(data.tasks || [], { total: data.total, page: data.page, limit: data.limit, pages: data.pages });
+            render(data.tasks || [], { total: data.total, page: data.page, limit: data.limit, pages: data.pages }, data.totals || null);
           }
         })
         .catch(function(err) {
