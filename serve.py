@@ -382,6 +382,16 @@ def _call_gemini_cli_with_model(system_prompt, user_message, model=None, on_toke
     return full_text.strip()
 
 
+def _inc_verdict(vh: dict, display_name: str, verdict_type: str):
+    """Increment verdict counters for a persona identified by display_name."""
+    if not display_name:
+        return
+    if display_name not in vh:
+        vh[display_name] = {'retained': 0, 'evolved': 0, 'fired': 0, 'last_verdict': ''}
+    vh[display_name][verdict_type] = vh[display_name].get(verdict_type, 0) + 1
+    vh[display_name]['last_verdict'] = verdict_type.upper()
+
+
 DISCORD_INJECT_URL = 'http://127.0.0.1:9876/inject'
 DISCORD_MAIN_CHAT_ID = '1485343472952148008'
 
@@ -659,6 +669,26 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         active = []
         fired = []
 
+        # Pre-compute verdict history from session files so the UI can show last verdict per persona
+        verdict_history = {}  # name -> {retained: int, evolved: int, fired: int, last_verdict: str}
+        try:
+            for sfpath in glob.glob(os.path.join(SESSIONS_DIR, 'congress-*.json')):
+                try:
+                    with open(sfpath, 'r') as sf:
+                        sdata = json.load(sf)
+                    evo = sdata.get('evolution') or {}
+                    for pname in evo.get('retained', []):
+                        # retained is a list of display_names — match by display_name
+                        _inc_verdict(verdict_history, pname, 'retained')
+                    for item in evo.get('evolved', []):
+                        _inc_verdict(verdict_history, item.get('display_name', ''), 'evolved')
+                    for item in evo.get('fired', []):
+                        _inc_verdict(verdict_history, item.get('display_name', ''), 'fired')
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         def load_agent_dir(dirpath, dest_list):
             try:
                 for fpath in sorted(glob.glob(os.path.join(dirpath, '*.md'))):
@@ -669,6 +699,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         name = meta.get('name', '')
                         if not name:
                             continue
+                        dname = meta.get('display_name', '') or name
+                        vh = verdict_history.get(dname, {})
                         dest_list.append({
                             'id': name,
                             'name': name,
@@ -679,9 +711,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             'traits': meta.get('traits', []),
                             'is_moderator': meta.get('name') == 'hiring-manager',
                             'model': meta.get('model', 'claude'),
-                            'display_name': meta.get('display_name', ''),
+                            'display_name': dname,
                             'avatar_url': meta.get('avatar_url', ''),
                             'title': meta.get('title', ''),
+                            'sex': meta.get('sex', ''),
+                            'stats_retained': vh.get('retained', 0),
+                            'stats_evolved': vh.get('evolved', 0),
+                            'stats_fired': vh.get('fired', 0),
+                            'last_verdict': vh.get('last_verdict', ''),
                         })
                     except Exception:
                         pass
@@ -719,6 +756,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                                 'display_name': meta.get('display_name', ''),
                                 'avatar_url': meta.get('avatar_url', ''),
                                 'title': meta.get('title', ''),
+                                'sex': meta.get('sex', ''),
                                 'status': status,
                             })
                     except Exception:
@@ -926,7 +964,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         persona_model = (meta.get('model') or 'claude').strip()
         # Normalize legacy shorthand model names to canonical routing names
         _model_aliases = {
-            'gemini': 'gemini-2.5-pro',
+            'gemini': 'gemini-3-pro-preview',
             'grok': 'grok-3-mini',
             'opus': 'claude-opus-4-6',
             'claude': 'claude-haiku-4-5-20251001',
