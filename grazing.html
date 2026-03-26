@@ -2416,31 +2416,23 @@ function drawWarthog(wx, wy, facing, seats) {
   ctx.restore();
 }
 
-function sendWarthogUpdate() {
+function sendWarthogInput(dx, dy) {
   if (!commonsWs || commonsWs.readyState !== WebSocket.OPEN) return;
   commonsWs.send(JSON.stringify({
-    type: 'warthog_update',
-    x: warthog.x, y: warthog.y,
-    vx: warthog.vx, vy: warthog.vy,
-    facing: warthog.facing,
+    type: 'warthog_input',
+    dx: dx,
+    dy: dy,
   }));
 }
 
-function sendWarthogJoin(seatIndex) {
+function sendWarthogJoin() {
   if (!commonsWs || commonsWs.readyState !== WebSocket.OPEN) return;
-  commonsWs.send(JSON.stringify({
-    type: 'warthog_join',
-    seatIndex: seatIndex,
-    playerName: localPlayer.name,
-    playerColor: localPlayer.color,
-  }));
+  commonsWs.send(JSON.stringify({ type: 'warthog_join' }));
 }
 
 function sendWarthogLeave() {
   if (!commonsWs || commonsWs.readyState !== WebSocket.OPEN) return;
-  commonsWs.send(JSON.stringify({
-    type: 'warthog_leave',
-  }));
+  commonsWs.send(JSON.stringify({ type: 'warthog_leave' }));
 }
 
 document.addEventListener('keydown', function(e) {
@@ -2469,14 +2461,15 @@ document.addEventListener('keydown', function(e) {
       var dx = localPlayer.px - wcx;
       var dy = localPlayer.py - wcy;
       if (Math.sqrt(dx * dx + dy * dy) < WARTHOG_BOARD_DIST) {
-        // Find first empty seat
+        // Find first empty seat (server assigns seat; we'll learn our index from next tick)
+        var hasEmptySeat = false;
         for (var si = 0; si < warthog.seats.length; si++) {
-          if (!warthog.seats[si]) {
-            inVehicle = true;
-            localSeatIndex = si;
-            sendWarthogJoin(si);
-            break;
-          }
+          if (!warthog.seats[si]) { hasEmptySeat = true; break; }
+        }
+        if (hasEmptySeat) {
+          inVehicle = true;
+          localSeatIndex = 0; // tentative; corrected on next tick
+          sendWarthogJoin();
         }
       }
     }
@@ -2520,6 +2513,10 @@ function updateLocalPlayer() {
     if (keysDown['ArrowUp']    || keysDown['w'] || keysDown['W']) inputDy = -1;
     if (keysDown['ArrowDown']  || keysDown['s'] || keysDown['S']) inputDy = 1;
 
+    // Send input to server; server is authoritative for warthog position
+    sendWarthogInput(inputDx, inputDy);
+
+    // Apply local prediction for smooth rendering (server will correct on next tick)
     if (inputDx !== 0 && inputDy !== 0) {
       warthog.vx = (inputDx / DIAGONAL_NORM) * WARTHOG_SPEED;
       warthog.vy = (inputDy / DIAGONAL_NORM) * WARTHOG_SPEED;
@@ -2543,10 +2540,7 @@ function updateLocalPlayer() {
     localPlayer.ty = Math.floor(localPlayer.py / TILE);
     localPlayer.facing = warthog.facing;
 
-    if (warthog.vx !== 0 || warthog.vy !== 0) {
-      sendWarthogUpdate();
-      sendPlayerMove();
-    }
+    sendPlayerMove();
     return;
   }
 
@@ -2774,15 +2768,19 @@ function drawRemotePlayers() {
   for (var j = 0; j < toDelete.length; j++) delete remotePlayers[toDelete[j]];
 }
 
-// ── WebSocket connection ──────────────────────────────────────────────────────
+// ── WebSocket connection (commons-server via /commons-ws proxy) ───────────────
 var commonsWs = null;
 var wsReconnectTimer = null;
+var wsMoveSeq = 0; // monotonic input sequence number
 
 function connectCommonsWs() {
   if (commonsWs && (commonsWs.readyState === WebSocket.OPEN || commonsWs.readyState === WebSocket.CONNECTING)) return;
 
   var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  var url = proto + '//' + location.host + '/api/commons/ws';
+  var params = 'userId=' + encodeURIComponent(localPlayer.name) +
+               '&name=' + encodeURIComponent(localPlayer.name) +
+               '&color=' + encodeURIComponent(localPlayer.color);
+  var url = proto + '//' + location.host + '/commons-ws?' + params;
   commonsWs = new WebSocket(url);
 
   commonsWs.onopen = function() {
@@ -2793,28 +2791,34 @@ function connectCommonsWs() {
   commonsWs.onmessage = function(e) {
     var msg;
     try { msg = JSON.parse(e.data); } catch { return; }
-    if (msg.type === 'welcome') {
-      localPlayer.socketId = msg.socket_id;
-    } else if (msg.type === 'players') {
+
+    // commons-server sends 'tick' messages containing players, npcs?, warthog?, congress?
+    if (msg.type === 'tick') {
+      // --- Players ---
       var prevRemote = remotePlayers;
       remotePlayers = {};
       for (var id in msg.players) {
         var p = msg.players[id];
-        // Prefer pixel coords from server; fall back to tile-center calculation
-        var targetX = (typeof p.px === 'number') ? p.px : (p.x * TILE + TILE / 2);
-        var targetY = (typeof p.py === 'number') ? p.py : (p.y * TILE + TILE / 2);
-        // Preserve existing hopFrame and renderX/renderY if already tracked; snap on first receive
-        var existingHop = (prevRemote[id] && prevRemote[id].hopFrame) || 0;
+        // Identify our own socketId by matching name (server assigns socketId)
+        if (p.name === localPlayer.name && !localPlayer.socketId) {
+          localPlayer.socketId = p.socketId || id;
+        }
+        // Skip rendering ourselves as a remote player
+        if (p.socketId === localPlayer.socketId || (p.name === localPlayer.name && id === localPlayer.socketId)) continue;
+        // Tile coords from server; convert to pixel center
+        var targetX = p.x * TILE + TILE / 2;
+        var targetY = p.y * TILE + TILE / 2;
+        var existingHop = (prevRemote[id] && prevRemote[id].hopFrame) || p.hopFrame || 0;
         var renderX = (prevRemote[id] && prevRemote[id].renderX !== undefined) ? prevRemote[id].renderX : targetX;
         var renderY = (prevRemote[id] && prevRemote[id].renderY !== undefined) ? prevRemote[id].renderY : targetY;
         remotePlayers[id] = {
           x: p.x, y: p.y, name: p.name, color: p.color,
           facing: p.facing || 'right',
-          socket_id: p.socket_id || id,
+          socket_id: p.socketId || id,
           hopFrame: existingHop,
-          ts: p.ts,
-          chunkX: (p.chunkX !== undefined ? p.chunkX : 0),
-          chunkY: (p.chunkY !== undefined ? p.chunkY : 0),
+          ts: p.lastSeen || Date.now(),
+          chunkX: p.chunkX !== undefined ? p.chunkX : 0,
+          chunkY: p.chunkY !== undefined ? p.chunkY : 0,
           targetX: targetX,
           targetY: targetY,
           renderX: renderX,
@@ -2822,47 +2826,8 @@ function connectCommonsWs() {
           isAway: p.isAway || false,
         };
       }
-    } else if (msg.type === 'chunk_change') {
-      // Another player changed chunks — update their stored chunk coords
-      for (var id in remotePlayers) {
-        if (remotePlayers[id].name === msg.playerName) {
-          remotePlayers[id].chunkX = msg.chunkX;
-          remotePlayers[id].chunkY = msg.chunkY;
-          break;
-        }
-      }
-    } else if (msg.type === 'player_hop') {
-      // Set hopFrame on the remote player that hopped
-      for (var id in remotePlayers) {
-        if (remotePlayers[id].socket_id === msg.socket_id) {
-          remotePlayers[id].hopFrame = 12;
-          break;
-        }
-      }
-    } else if (msg.type === 'warthog_state') {
-      var wsData = msg.warthog;
-      if (wsData) {
-        // Keep local inVehicle state if local player is in it (don't overwrite with server)
-        if (!inVehicle) {
-          warthog.x = wsData.x;
-          warthog.y = wsData.y;
-        } else if (localSeatIndex !== warthog.driverSeat) {
-          // Passenger: follow server position
-          warthog.x = wsData.x;
-          warthog.y = wsData.y;
-        }
-        warthog.vx = wsData.vx;
-        warthog.vy = wsData.vy;
-        warthog.facing = wsData.facing;
-        // Update seats, but preserve local player seat reference
-        for (var si2 = 0; si2 < wsData.seats.length; si2++) {
-          if (!(inVehicle && si2 === localSeatIndex)) {
-            warthog.seats[si2] = wsData.seats[si2];
-          }
-        }
-      }
-    } else if (msg.type === 'npc_update') {
-      // Update NPC positions from server (lerp handled in NPC draw/update)
+
+      // --- NPCs (delta: only present when changed) ---
       if (msg.npcs && npcs.length > 0) {
         for (var ni = 0; ni < msg.npcs.length; ni++) {
           var npcData = msg.npcs[ni];
@@ -2874,6 +2839,51 @@ function connectCommonsWs() {
               break;
             }
           }
+        }
+      }
+
+      // --- Congress state (delta: only present when changed) ---
+      if (msg.congress !== undefined) {
+        var wasActive = congressState.active;
+        congressState.active = !!msg.congress.active;
+        if (congressState.active && !wasActive) showCongressModal();
+        else if (!congressState.active && wasActive) hideCongressModal();
+      }
+
+      // --- Warthog (delta: only present when changed) ---
+      if (msg.warthog) {
+        var wsData = msg.warthog;
+        // Driver keeps local position authority; passengers follow server
+        if (!inVehicle) {
+          warthog.x = wsData.x;
+          warthog.y = wsData.y;
+        } else if (localSeatIndex !== warthog.driverSeat) {
+          warthog.x = wsData.x;
+          warthog.y = wsData.y;
+        }
+        warthog.vx = wsData.vx;
+        warthog.vy = wsData.vy;
+        warthog.facing = wsData.facing;
+        // seats are now socketId strings (or null); update all except local seat
+        for (var si2 = 0; si2 < wsData.seats.length; si2++) {
+          if (!(inVehicle && si2 === localSeatIndex)) {
+            // Convert socketId to a seat object with color looked up from remote players
+            var seatId = wsData.seats[si2];
+            if (seatId) {
+              var seatColor = (remotePlayers[seatId] && remotePlayers[seatId].color) ||
+                              (seatId === localPlayer.socketId ? localPlayer.color : '#ffffff');
+              var seatName = (remotePlayers[seatId] && remotePlayers[seatId].name) ||
+                             (seatId === localPlayer.socketId ? localPlayer.name : '?');
+              warthog.seats[si2] = { name: seatName, socketId: seatId, color: seatColor };
+            } else {
+              warthog.seats[si2] = null;
+            }
+          }
+        }
+        // Update localSeatIndex if our socketId appears in seats
+        if (localPlayer.socketId && inVehicle) {
+          var newSeatIdx = wsData.seats.indexOf(localPlayer.socketId);
+          if (newSeatIdx >= 0) localSeatIndex = newSeatIdx;
         }
       }
     }
@@ -2896,14 +2906,10 @@ function sendPlayerMove() {
   if (!commonsWs || commonsWs.readyState !== WebSocket.OPEN) return;
   commonsWs.send(JSON.stringify({
     type: 'move',
+    seq: ++wsMoveSeq,
     x: localPlayer.tx,
     y: localPlayer.ty,
-    px: localPlayer.px,
-    py: localPlayer.py,
-    name: localPlayer.name,
-    color: localPlayer.color,
     facing: localPlayer.facing,
-    socket_id: localPlayer.socketId,
     chunkX: chunkX,
     chunkY: chunkY,
   }));
@@ -2911,28 +2917,23 @@ function sendPlayerMove() {
 
 function sendPlayerHop() {
   if (!commonsWs || commonsWs.readyState !== WebSocket.OPEN) return;
-  commonsWs.send(JSON.stringify({
-    type: 'hop',
-    socket_id: localPlayer.socketId,
-  }));
+  commonsWs.send(JSON.stringify({ type: 'hop' }));
 }
 
 function sendChunkChange(cx, cy) {
   if (!commonsWs || commonsWs.readyState !== WebSocket.OPEN) return;
   commonsWs.send(JSON.stringify({
-    type: 'chunk_change',
+    type: 'chunk',
     chunkX: cx,
     chunkY: cy,
-    playerName: localPlayer.name,
   }));
 }
 
 function sendPlayerStatus(status) {
   if (!commonsWs || commonsWs.readyState !== WebSocket.OPEN) return;
   commonsWs.send(JSON.stringify({
-    type: 'player_status',
-    status: status,
-    socket_id: localPlayer.socketId,
+    type: 'status',
+    away: status === 'away',
   }));
 }
 
