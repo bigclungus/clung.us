@@ -3035,6 +3035,10 @@ function drawForegroundTiles() {
       if (tileCenterY <= wCenterY) continue;
 
       var x = tx * TILE, y = ty * TILE;
+      // Fill tile with grass first — tree/rock sprites have transparent pixels
+      // and without this fill the warthog bleeds through the gaps
+      ctx.fillStyle = grassColor(tx, ty);
+      ctx.fillRect(x, y, TILE, TILE);
       if (t === 4) {
         // tree
         ctx.fillStyle = '#4a2c0a';
