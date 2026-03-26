@@ -2319,6 +2319,7 @@ localPlayer.px = localPlayer.tx * TILE + TILE / 2;
 localPlayer.py = localPlayer.ty * TILE + TILE / 2;
 
 var PLAYER_SPEED = 1.8; // pixels per frame (smooth, similar to NPC pace)
+var DIAGONAL_NORM = Math.sqrt(2); // normalise diagonal movement to unit speed
 
 var remotePlayers = {}; // id -> {x, y, name, color, facing, hopFrame, ts}
 var keysDown = {};
@@ -2520,9 +2521,8 @@ function updateLocalPlayer() {
     if (keysDown['ArrowDown']  || keysDown['s'] || keysDown['S']) inputDy = 1;
 
     if (inputDx !== 0 && inputDy !== 0) {
-      var dlen = Math.sqrt(2);
-      warthog.vx = (inputDx / dlen) * WARTHOG_SPEED;
-      warthog.vy = (inputDy / dlen) * WARTHOG_SPEED;
+      warthog.vx = (inputDx / DIAGONAL_NORM) * WARTHOG_SPEED;
+      warthog.vy = (inputDy / DIAGONAL_NORM) * WARTHOG_SPEED;
     } else {
       warthog.vx = inputDx * WARTHOG_SPEED;
       warthog.vy = inputDy * WARTHOG_SPEED;
@@ -2567,9 +2567,8 @@ function updateLocalPlayer() {
 
   // Normalise diagonal
   if (inputDx !== 0 && inputDy !== 0) {
-    var diagLen = Math.sqrt(2);
-    localPlayer.vx = (inputDx / diagLen) * PLAYER_SPEED;
-    localPlayer.vy = (inputDy / diagLen) * PLAYER_SPEED;
+    localPlayer.vx = (inputDx / DIAGONAL_NORM) * PLAYER_SPEED;
+    localPlayer.vy = (inputDy / DIAGONAL_NORM) * PLAYER_SPEED;
   } else {
     localPlayer.vx = inputDx * PLAYER_SPEED;
     localPlayer.vy = inputDy * PLAYER_SPEED;
