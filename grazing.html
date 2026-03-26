@@ -1777,8 +1777,7 @@ var remotePlayers = {}; // id -> {x, y, name, color, ts}
 var keysDown = {};
 
 document.addEventListener('keydown', function(e) {
-  var overlay = document.querySelector('#congress-modal-overlay');
-  if (overlay && overlay.style.display !== 'none') return;
+  if (congressModalOpen) return;
   keysDown[e.key] = true;
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
 });
