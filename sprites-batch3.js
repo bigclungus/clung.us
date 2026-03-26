@@ -1180,264 +1180,270 @@ function drawSprite_morgan_C(ctx, cx, cy) {
 // ─── THE-KID — #facc15 ───────────────────────────────────────────────────────
 
 function drawSprite_the_kid_A(ctx, cx, cy) {
-  // Speed Demon — running pose (leaning forward), blur lines, backwards cap, sneakers
+  // Skater — mid-kickflip, board sideways in air, arms spread wide for balance
   const x = Math.floor(cx - 10);
   const y = Math.floor(cy - 40);
 
-  // Motion blur lines (behind the figure)
-  ctx.fillStyle = '#facc15';
-  ctx.globalAlpha = 0.3;
-  ctx.fillRect(x - 8, y + 16, 6, 1);
-  ctx.fillRect(x - 10, y + 19, 8, 1);
-  ctx.fillRect(x - 8, y + 22, 6, 1);
-  ctx.fillRect(x - 6, y + 25, 5, 1);
-  ctx.globalAlpha = 1.0;
+  // Skateboard (sideways in kickflip, tilted)
+  ctx.fillStyle = '#8b4513';
+  ctx.fillRect(x + 2, y + 28, 16, 3);  // board deck
+  ctx.fillStyle = '#c0c0c0';
+  ctx.fillRect(x + 3, y + 31, 3, 2);   // truck left
+  ctx.fillRect(x + 14, y + 31, 3, 2);  // truck right
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(x + 4, y + 33, 2, 2);   // wheel left
+  ctx.fillRect(x + 14, y + 33, 2, 2);  // wheel right
+  // grip tape pattern
+  ctx.fillStyle = '#2a2a2a';
+  ctx.fillRect(x + 5, y + 28, 2, 1);
+  ctx.fillRect(x + 9, y + 28, 2, 1);
+  ctx.fillRect(x + 13, y + 28, 2, 1);
 
-  // Sneakers (mid-run)
-  ctx.fillStyle = '#f0f0f0';
-  ctx.fillRect(x + 12, y + 34, 6, 4);  // forward foot
-  ctx.fillRect(x + 2, y + 36, 5, 3);   // back foot lifted
-  // sneaker details
-  ctx.fillStyle = '#facc15';
-  ctx.fillRect(x + 13, y + 36, 4, 1);
-  ctx.fillRect(x + 2, y + 37, 3, 1);
+  // Legs (tucked up, mid-air)
+  ctx.fillStyle = '#1a1a3a';  // dark jeans
+  ctx.fillRect(x + 5, y + 20, 4, 9);   // left leg bent
+  ctx.fillRect(x + 11, y + 18, 4, 8);  // right leg more extended
 
-  // Legs — in running stride
-  ctx.fillStyle = '#2a2a4a';  // dark shorts/tights
-  ctx.fillRect(x + 11, y + 26, 4, 9);  // forward leg
-  ctx.fillRect(x + 4, y + 24, 4, 8);   // back leg
+  // Baggy jeans cuffs
+  ctx.fillStyle = '#2a2a5a';
+  ctx.fillRect(x + 4, y + 27, 5, 2);
+  ctx.fillRect(x + 10, y + 25, 5, 2);
 
-  // Shorts
-  ctx.fillStyle = '#facc15';
-  ctx.fillRect(x + 4, y + 22, 12, 6);
+  // Sneakers
+  ctx.fillStyle = '#e8e8e8';
+  ctx.fillRect(x + 4, y + 29, 5, 3);   // left shoe
+  ctx.fillRect(x + 10, y + 27, 6, 3);  // right shoe (front, slightly higher)
+  ctx.fillStyle = '#ff4444';
+  ctx.fillRect(x + 5, y + 30, 3, 1);   // red stripe left
+  ctx.fillRect(x + 11, y + 28, 4, 1);  // red stripe right
 
-  // Body — leaning forward ~15 degrees
-  ctx.fillStyle = '#e07810';  // orange/warm shirt
-  ctx.fillRect(x + 5, y + 13, 11, 11);
+  // Baggy hoodie body (teal/cyan)
+  ctx.fillStyle = '#1a9a8a';
+  ctx.fillRect(x + 4, y + 12, 12, 10);
 
-  // Leaning forward — chest out
-  ctx.fillStyle = '#c05808';
-  ctx.fillRect(x + 5, y + 13, 2, 5); // shading left edge
+  // Hoodie pocket
+  ctx.fillStyle = '#158070';
+  ctx.fillRect(x + 6, y + 17, 8, 4);
+  ctx.fillRect(x + 7, y + 18, 3, 3);   // left pocket side
+  ctx.fillRect(x + 10, y + 18, 3, 3);  // right pocket side
+
+  // Arms spread wide (balance)
+  ctx.fillStyle = '#1a9a8a';
+  ctx.fillRect(x - 4, y + 12, 5, 4);   // left arm out far
+  ctx.fillRect(x + 19, y + 12, 5, 4);  // right arm out far
+  ctx.fillRect(x - 5, y + 14, 3, 4);   // left forearm down
+  ctx.fillRect(x + 22, y + 14, 3, 4);  // right forearm down
+  // hands
+  ctx.fillStyle = '#e0b870';
+  ctx.fillRect(x - 6, y + 17, 3, 3);
+  ctx.fillRect(x + 23, y + 17, 3, 3);
 
   // Neck
   ctx.fillStyle = '#e0b870';
-  ctx.fillRect(x + 8, y + 10, 4, 4);
+  ctx.fillRect(x + 8, y + 9, 4, 4);
 
-  // Head (slightly forward-tilted)
+  // Head
   ctx.fillStyle = '#f0c870';
-  ctx.fillRect(x + 7, y + 4, 8, 7);
+  ctx.fillRect(x + 6, y + 3, 9, 7);
 
-  // Backwards cap
-  ctx.fillStyle = '#facc15';
-  ctx.fillRect(x + 6, y + 4, 9, 2);   // cap body
-  ctx.fillRect(x + 6, y + 6, 8, 1);   // brim hint
-  ctx.fillRect(x + 5, y + 3, 3, 2);   // brim sticking backwards (left side)
+  // Beanie hat (dark green, folded cuff)
+  ctx.fillStyle = '#1a4a20';
+  ctx.fillRect(x + 5, y + 1, 11, 5);
+  ctx.fillStyle = '#2a6a30';
+  ctx.fillRect(x + 5, y + 4, 11, 2);   // cuff fold
+  ctx.fillRect(x + 9, y + 0, 4, 2);    // top pom hint
 
-  // Eyes — focused, squinting
-  ctx.fillStyle = '#3a2010';
-  ctx.fillRect(x + 8, y + 7, 2, 1);
-  ctx.fillRect(x + 11, y + 7, 2, 1);
+  // Eyes (concentrated squint)
+  ctx.fillStyle = '#2a1808';
+  ctx.fillRect(x + 7, y + 6, 3, 1);
+  ctx.fillRect(x + 11, y + 6, 3, 1);
 
-  // Grin — excited speed grin
-  ctx.fillStyle = '#8a5020';
-  ctx.fillRect(x + 8, y + 10, 5, 1);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(x + 9, y + 10, 3, 1);
-
-  // Arms pumping
-  ctx.fillStyle = '#e07810';
-  ctx.fillRect(x + 2, y + 14, 3, 7);   // back arm (behind)
-  ctx.fillRect(x + 16, y + 14, 3, 6);  // front arm (ahead)
-  ctx.fillRect(x + 17, y + 19, 4, 3);  // forearm forward
-  // Hands
-  ctx.fillStyle = '#e0b870';
-  ctx.fillRect(x + 1, y + 21, 3, 2);
-  ctx.fillRect(x + 19, y + 21, 3, 2);
+  // Focused lips (slight smirk)
+  ctx.fillStyle = '#9a5020';
+  ctx.fillRect(x + 8, y + 8, 5, 1);
+  ctx.fillStyle = '#c07040';
+  ctx.fillRect(x + 10, y + 8, 2, 1);
 }
 
 function drawSprite_the_kid_B(ctx, cx, cy) {
-  // Racer — helmet, racing suit, crouched starting-block pose, checkerboard stripe
+  // Parkour kid — wall-jump pose, one foot pushing off a wall, arms reaching up
   const x = Math.floor(cx - 10);
   const y = Math.floor(cy - 40);
 
-  // Starting blocks (simple rects)
-  ctx.fillStyle = '#4a4a5a';
-  ctx.fillRect(x + 2, y + 32, 6, 3);
-  ctx.fillRect(x + 10, y + 35, 8, 3);
-  // block feet anchors
-  ctx.fillStyle = '#3a3a4a';
-  ctx.fillRect(x + 4, y + 35, 2, 5);
-  ctx.fillRect(x + 8, y + 35, 2, 3);
-
-  // Crouched legs (deep crouch/start pose)
-  ctx.fillStyle = '#facc15';  // racing suit legs
-  ctx.fillRect(x + 3, y + 25, 5, 8);  // back leg crouched
-  ctx.fillRect(x + 11, y + 28, 6, 5); // front leg pushing
-
-  // Racing shoes
-  ctx.fillStyle = '#f0f0f0';
-  ctx.fillRect(x + 3, y + 33, 5, 3);
-  ctx.fillRect(x + 12, y + 33, 5, 3);
-  ctx.fillStyle = '#facc15';
-  ctx.fillRect(x + 4, y + 35, 3, 1);
-  ctx.fillRect(x + 13, y + 35, 3, 1);
-
-  // Racing suit body (yellow with checkerboard stripe)
-  ctx.fillStyle = '#facc15';
-  ctx.fillRect(x + 3, y + 14, 14, 12);
-
-  // Checkerboard stripe across chest
-  const stripeY = y + 18;
-  for (let i = 0; i < 7; i++) {
-    ctx.fillStyle = i % 2 === 0 ? '#1a1a1a' : '#facc15';
-    ctx.fillRect(x + 3 + (i * 2), stripeY, 2, 3);
-  }
-
-  // Racing gloves (black)
-  ctx.fillStyle = '#1a1a1a';
-  ctx.fillRect(x + 0, y + 20, 3, 4);   // back hand on block
-  ctx.fillRect(x + 17, y + 20, 3, 4);  // front hand on block
-
-  // Arms reaching forward in start crouch
-  ctx.fillStyle = '#facc15';
-  ctx.fillRect(x + 0, y + 16, 3, 6);
-  ctx.fillRect(x + 17, y + 16, 3, 6);
-
-  // Neck
-  ctx.fillStyle = '#e0b870';
-  ctx.fillRect(x + 8, y + 11, 4, 4);
-
-  // Racing helmet (full head coverage)
-  ctx.fillStyle = '#facc15';
-  ctx.fillRect(x + 5, y + 3, 10, 10);  // helmet main
-  ctx.fillRect(x + 4, y + 5, 12, 7);   // helmet wide band
-
-  // Helmet visor (dark tinted)
-  ctx.fillStyle = '#1a1a2a';
-  ctx.fillRect(x + 5, y + 7, 10, 4);
-  ctx.fillStyle = '#3a3a5a';
-  ctx.fillRect(x + 6, y + 7, 8, 2);    // visor glare
-
-  // Helmet checkerboard stripe
-  for (let i = 0; i < 5; i++) {
-    ctx.fillStyle = i % 2 === 0 ? '#1a1a1a' : '#facc15';
-    ctx.fillRect(x + 5 + (i * 2), y + 3, 2, 2);
-  }
-
-  // Helmet chin guard
-  ctx.fillStyle = '#e0c000';
-  ctx.fillRect(x + 6, y + 12, 8, 2);
-}
-
-function drawSprite_the_kid_C(ctx, cx, cy) {
-  // Chaos Kid — wild hair everywhere, arms raised in excitement, big eyes, energy lines
-  const x = Math.floor(cx - 10);
-  const y = Math.floor(cy - 40);
-
-  // Energy/excitement lines radiating out
-  ctx.fillStyle = '#facc15';
-  ctx.globalAlpha = 0.5;
-  // radial burst lines
-  ctx.fillRect(x - 4, y + 5, 3, 1);   // left
-  ctx.fillRect(x + 21, y + 5, 3, 1);  // right
-  ctx.fillRect(x + 8, y - 2, 1, 3);   // top center
-  ctx.fillRect(x - 3, y + 12, 3, 1);
-  ctx.fillRect(x + 20, y + 12, 3, 1);
-  ctx.fillRect(x - 2, y + 2, 2, 1);
-  ctx.fillRect(x + 20, y + 2, 2, 1);
-  ctx.globalAlpha = 1.0;
+  // Wall (left side, brick texture)
+  ctx.fillStyle = '#8a5a3a';
+  ctx.fillRect(x - 2, y + 0, 5, 40);   // wall slab
+  ctx.fillStyle = '#7a4a2a';
+  ctx.fillRect(x - 2, y + 6, 5, 1);    // mortar line
+  ctx.fillRect(x - 2, y + 12, 5, 1);
+  ctx.fillRect(x - 2, y + 18, 5, 1);
+  ctx.fillRect(x - 2, y + 24, 5, 1);
+  ctx.fillRect(x - 2, y + 30, 5, 1);
+  ctx.fillStyle = '#9a6a4a';
+  ctx.fillRect(x + 0, y + 3, 1, 5);    // vertical mortar
+  ctx.fillRect(x + 0, y + 9, 1, 5);
+  ctx.fillRect(x + 0, y + 15, 1, 5);
+  ctx.fillRect(x + 0, y + 21, 1, 5);
+  ctx.fillRect(x + 0, y + 27, 1, 5);
 
   // Shoes
   ctx.fillStyle = '#f0f0f0';
-  ctx.fillRect(x + 3, y + 36, 5, 4);
-  ctx.fillRect(x + 12, y + 36, 5, 4);
+  ctx.fillRect(x + 3, y + 33, 5, 4);   // lower foot (planted on wall stub)
+  ctx.fillRect(x + 13, y + 25, 6, 4);  // upper foot (pushing off)
+  ctx.fillStyle = '#222299';
+  ctx.fillRect(x + 4, y + 35, 3, 1);   // blue stripe lower shoe
+  ctx.fillRect(x + 14, y + 26, 4, 1);  // blue stripe upper shoe
 
-  // Legs (springy stance — feet apart)
-  ctx.fillStyle = '#3a3a5a';
-  ctx.fillRect(x + 4, y + 28, 4, 8);
-  ctx.fillRect(x + 12, y + 28, 4, 8);
+  // Legs (one extended down, one bent up pushing)
+  ctx.fillStyle = '#333355';  // dark tracksuit
+  ctx.fillRect(x + 4, y + 25, 4, 9);   // lower leg extending down
+  ctx.fillRect(x + 12, y + 18, 4, 8);  // upper leg bent at knee pushing wall
 
-  // Shorts
-  ctx.fillStyle = '#facc15';
-  ctx.fillRect(x + 3, y + 24, 14, 6);
+  // Tracksuit body (dark navy)
+  ctx.fillStyle = '#222244';
+  ctx.fillRect(x + 4, y + 12, 12, 14);
 
-  // Body — bright t-shirt
-  ctx.fillStyle = '#f59e0b';
-  ctx.fillRect(x + 4, y + 14, 12, 12);
+  // White racing stripe on side
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(x + 4, y + 12, 2, 14);
 
-  // Exclamation mark on shirt
-  ctx.fillStyle = '#1a1a1a';
-  ctx.fillRect(x + 9, y + 16, 2, 5);
-  ctx.fillRect(x + 9, y + 22, 2, 2);
+  // Both arms reaching up (grabbing ledge)
+  ctx.fillStyle = '#222244';
+  ctx.fillRect(x + 5, y + 5, 3, 8);    // left arm reaching up
+  ctx.fillRect(x + 12, y + 3, 3, 10);  // right arm reaching higher
+  // hands gripping (bent)
+  ctx.fillStyle = '#e0b870';
+  ctx.fillRect(x + 4, y + 2, 4, 4);    // left hand
+  ctx.fillRect(x + 11, y + 0, 5, 4);   // right hand (higher)
 
   // Neck
+  ctx.fillStyle = '#e0b870';
+  ctx.fillRect(x + 8, y + 9, 4, 4);
+
+  // Head (looking up toward ledge)
   ctx.fillStyle = '#f0c870';
-  ctx.fillRect(x + 8, y + 11, 4, 4);
+  ctx.fillRect(x + 6, y + 4, 8, 6);
 
-  // Head (round, energetic)
-  ctx.fillStyle = '#fce0a0';
-  ctx.fillRect(x + 5, y + 4, 10, 9);
+  // Short hair (dark, tousled)
+  ctx.fillStyle = '#1a0a00';
+  ctx.fillRect(x + 6, y + 3, 8, 3);
+  ctx.fillRect(x + 5, y + 4, 2, 3);
+  ctx.fillRect(x + 14, y + 4, 2, 2);
 
-  // Wild hair (spiky points in all directions)
+  // Eyes (looking up, determined)
   ctx.fillStyle = '#2a1808';
-  // top spikes
-  ctx.fillRect(x + 5, y + 2, 2, 3);
-  ctx.fillRect(x + 8, y + 1, 2, 4);
-  ctx.fillRect(x + 11, y + 0, 2, 5);
-  ctx.fillRect(x + 13, y + 2, 2, 3);
-  // side spikes
-  ctx.fillRect(x + 3, y + 4, 3, 2);
-  ctx.fillRect(x + 14, y + 4, 3, 2);
-  ctx.fillRect(x + 2, y + 7, 3, 2);
-  ctx.fillRect(x + 15, y + 6, 3, 2);
-  // hair base
-  ctx.fillRect(x + 5, y + 4, 10, 2);
-  ctx.fillRect(x + 5, y + 6, 1, 3);
-  ctx.fillRect(x + 14, y + 6, 1, 3);
-
-  // BIG eyes (wide, excited circles)
+  ctx.fillRect(x + 7, y + 6, 2, 2);
+  ctx.fillRect(x + 11, y + 6, 2, 2);
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(x + 5, y + 7, 4, 4);
-  ctx.fillRect(x + 11, y + 7, 4, 4);
-  ctx.fillStyle = '#3a2010';
-  ctx.fillRect(x + 6, y + 8, 2, 2);
-  ctx.fillRect(x + 12, y + 8, 2, 2);
-  // pupils
+  ctx.fillRect(x + 7, y + 6, 1, 1);
+  ctx.fillRect(x + 11, y + 6, 1, 1);
+
+  // Gritted teeth (effort)
+  ctx.fillStyle = '#5a2a10';
+  ctx.fillRect(x + 7, y + 9, 6, 1);
+  ctx.fillStyle = '#f0f0e0';
+  ctx.fillRect(x + 7, y + 9, 2, 1);
+  ctx.fillRect(x + 10, y + 9, 2, 1);
+
+  // Scuff marks on wall from shoe
+  ctx.fillStyle = '#6a4a2a';
+  ctx.globalAlpha = 0.6;
+  ctx.fillRect(x + 2, y + 26, 3, 1);
+  ctx.fillRect(x + 1, y + 28, 4, 1);
+  ctx.globalAlpha = 1.0;
+}
+
+function drawSprite_the_kid_C(ctx, cx, cy) {
+  // Lightning sprint — static electricity crackling off body, mid-dash, hair standing up
+  const x = Math.floor(cx - 10);
+  const y = Math.floor(cy - 40);
+
+  // Ground speed trail (motion lines under feet)
+  ctx.fillStyle = '#aaddff';
+  ctx.globalAlpha = 0.4;
+  ctx.fillRect(x - 12, y + 37, 10, 1);
+  ctx.fillRect(x - 14, y + 35, 8, 1);
+  ctx.fillRect(x - 10, y + 33, 7, 1);
+  ctx.globalAlpha = 1.0;
+
+  // Electric sparks radiating from body
+  ctx.fillStyle = '#88eeff';
+  ctx.fillRect(x - 3, y + 14, 2, 1);
+  ctx.fillRect(x - 5, y + 17, 3, 1);
+  ctx.fillRect(x + 22, y + 13, 2, 1);
+  ctx.fillRect(x + 21, y + 18, 3, 1);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(x - 4, y + 15, 1, 1);
+  ctx.fillRect(x + 23, y + 14, 1, 1);
+  ctx.fillRect(x + 9, y - 1, 1, 1);
+  ctx.fillRect(x + 14, y + 1, 1, 1);
+
+  // Sneakers (one planted, one pushing off)
+  ctx.fillStyle = '#101010';  // black sneakers
+  ctx.fillRect(x + 13, y + 34, 7, 4);  // front foot flat
+  ctx.fillRect(x + 2, y + 35, 5, 3);   // back foot on toe
+  // neon trim
+  ctx.fillStyle = '#00ffcc';
+  ctx.fillRect(x + 14, y + 36, 5, 1);
+  ctx.fillRect(x + 3, y + 36, 3, 1);
+
+  // Legs (sprint stride, powerful push)
+  ctx.fillStyle = '#111122';  // black tights
+  ctx.fillRect(x + 12, y + 25, 5, 10);  // front leg extended
+  ctx.fillRect(x + 3, y + 23, 4, 9);    // back leg pushing
+
+  // Shorts (bright red, short)
+  ctx.fillStyle = '#dd1111';
+  ctx.fillRect(x + 3, y + 21, 14, 5);
+
+  // Body — black compression shirt
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(x + 4, y + 12, 12, 11);
+
+  // Neon lightning bolt on chest
+  ctx.fillStyle = '#ffee00';
+  ctx.fillRect(x + 9, y + 13, 3, 3);   // bolt top
+  ctx.fillRect(x + 8, y + 15, 5, 2);   // bolt middle cross
+  ctx.fillRect(x + 7, y + 17, 3, 3);   // bolt bottom
+
+  // Neck
+  ctx.fillStyle = '#e0b870';
+  ctx.fillRect(x + 8, y + 9, 4, 4);
+
+  // Head (leaning into sprint)
+  ctx.fillStyle = '#f0c870';
+  ctx.fillRect(x + 7, y + 3, 8, 7);
+
+  // Hair — standing straight up from static electricity
+  ctx.fillStyle = '#331100';
+  ctx.fillRect(x + 7, y + 0, 2, 4);    // left hair spike up
+  ctx.fillRect(x + 10, y - 1, 2, 5);   // center spike tallest
+  ctx.fillRect(x + 13, y + 0, 2, 4);   // right spike
+  ctx.fillRect(x + 8, y + 0, 1, 3);    // filler
+  ctx.fillRect(x + 12, y + 0, 1, 3);
+
+  // Glowing hair tips (static discharge)
+  ctx.fillStyle = '#88eeff';
+  ctx.fillRect(x + 7, y - 1, 2, 1);
+  ctx.fillRect(x + 10, y - 2, 2, 1);
+  ctx.fillRect(x + 13, y - 1, 2, 1);
+
+  // Eyes (fierce, narrow, lit from below by bolt)
+  ctx.fillStyle = '#ffee00';
+  ctx.fillRect(x + 8, y + 6, 2, 1);    // left eye glow
+  ctx.fillRect(x + 12, y + 6, 2, 1);   // right eye glow
   ctx.fillStyle = '#1a0808';
-  ctx.fillRect(x + 7, y + 8, 1, 1);
-  ctx.fillRect(x + 13, y + 8, 1, 1);
-  // eye shines
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(x + 6, y + 7, 1, 1);
-  ctx.fillRect(x + 12, y + 7, 1, 1);
+  ctx.fillRect(x + 8, y + 6, 2, 1);
+  ctx.fillRect(x + 12, y + 6, 2, 1);
 
-  // Big excited open mouth / grin
-  ctx.fillStyle = '#3a1808';
-  ctx.fillRect(x + 6, y + 11, 8, 2);
-  ctx.fillStyle = '#f0a0a0';
-  ctx.fillRect(x + 7, y + 11, 6, 2);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(x + 7, y + 11, 2, 1);
-  ctx.fillRect(x + 11, y + 11, 2, 1);
-
-  // Both arms raised high in excitement
-  // Left arm
-  ctx.fillStyle = '#f59e0b';
-  ctx.fillRect(x + 1, y + 15, 3, 6);   // upper arm
-  ctx.fillRect(x - 2, y + 9, 3, 8);    // forearm raised
-  ctx.fillStyle = '#f0c870';
-  ctx.fillRect(x - 3, y + 7, 4, 3);   // hand
-
-  // Right arm
-  ctx.fillStyle = '#f59e0b';
-  ctx.fillRect(x + 16, y + 15, 3, 6);  // upper arm
-  ctx.fillRect(x + 19, y + 9, 3, 8);   // forearm raised
-  ctx.fillStyle = '#f0c870';
-  ctx.fillRect(x + 19, y + 7, 4, 3);   // hand
-
-  // Extra energy sparks
-  ctx.fillStyle = '#fffb70';
-  ctx.fillRect(x - 4, y + 8, 1, 1);
-  ctx.fillRect(x + 23, y + 8, 1, 1);
-  ctx.fillRect(x + 10, y - 2, 1, 1);
+  // Arms pumping hard
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(x + 1, y + 13, 3, 8);   // back arm pumping behind
+  ctx.fillRect(x + 16, y + 12, 3, 7);  // front arm driving forward
+  ctx.fillRect(x + 0, y + 19, 3, 4);   // back forearm
+  ctx.fillRect(x + 17, y + 18, 4, 3);  // front forearm
+  // hands (fists)
+  ctx.fillStyle = '#e0b870';
+  ctx.fillRect(x - 1, y + 22, 3, 3);
+  ctx.fillRect(x + 18, y + 20, 3, 3);
 }
