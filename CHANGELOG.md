@@ -81,6 +81,18 @@
 
 - congress personas tab — use /api/agents, update terminology, show avatars
 
+- personas tab — retire/eligible terminology, modal schema (avatar_url, title)
+
+- sync all persona statuses in personas.db (morgan fired, 11 re-synced from MD)
+
+- congress session viewer — FIRE badge → RETIRED
+
+- commons — slow down NPC movement speeds
+
+- commons — rename COUNCIL to CONGRESS
+
+- declare missing MOVE_INTERVAL and lastMoveFrame variables
+
 
 ### Changes
 - add /tasks endpoint and tasks.html dashboard
@@ -313,6 +325,18 @@
 
 - delete Nemesis avatar files
 
+- fix chairman avatar URL in DB after hiring-manager.gif rename
+
+- fix congress.html reading stale data.active/data.fired keys
+
+- show prominent auth prompt on 403 instead of small error
+
+- drop unused pollInterval variable in tasks.html
+
+- fix pixel art in commons-vote.html — Variants A and C rendered COUNCIL not CONGRESS
+
+- deduplicate LETTERS_CONGRESS pixel font array in commons-vote.html
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
@@ -411,6 +435,34 @@
 
 - tasks page pagination
 
+- services health widget on homepage
+
+- meme persona status display in congress UI
+
+- commons — fix API, quips, click-to-invoke, congress live mode, day/night cycle
+
+- commons — drag and drop NPCs
+
+- add live voting UI to commons-vote.html
+
+- commons — ambient YouTube soundtrack toggle
+
+- commons-vote — add fountain vote section
+
+- commons — classical pillars congressional building
+
+- commons — WASD player + multiplayer WebSocket sync
+
+- add polls directory and update commons-vote.html to use /api/polls
+
+- commons — enter congress building to visit congress page
+
+- commons — gossip, faction clustering, location dialogue, seasons, worn paths
+
+- commons — tiered roman fountain (vote winner)
+
+- use GitHub username as player name when tauth_github cookie is present
+
 
 ### Refactoring
 - shared sitenav component, terminal as subheader
@@ -418,6 +470,8 @@
 - refactor congress layout to 3-column: sessions | arena | roster
 
 - extract _LOCALHOST_ADDRS constant in serve.py
+
+- rename internal firedPool/fired-card JS/CSS to retiredPool/retired-card
 
 
 ### Tasks
