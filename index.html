@@ -204,6 +204,87 @@
       white-space: nowrap;
     }
 
+    /* ── Services widget ── */
+    .services-widget {
+      margin-bottom: 28px;
+    }
+
+    .services-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .svc-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px;
+      background: #13132a;
+      border: 1px solid #2a2a40;
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--text);
+      cursor: pointer;
+      user-select: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .svc-pill:hover {
+      border-color: #4a4a60;
+      background: #1a1a38;
+    }
+
+    .svc-pill .svc-dot {
+      font-size: 9px;
+    }
+
+    .svc-pill.svc-active .svc-dot  { color: #4ecca3; }
+    .svc-pill.svc-failed .svc-dot  { color: #e94560; }
+    .svc-pill.svc-activating .svc-dot { color: #f0a500; }
+    .svc-pill.svc-unknown .svc-dot { color: #555570; }
+
+    .svc-detail-panel {
+      margin-top: 10px;
+      display: none;
+      background: #0d0d1e;
+      border: 1px solid #2a2a40;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .svc-detail-panel.open {
+      display: block;
+    }
+
+    .svc-detail-row {
+      display: grid;
+      grid-template-columns: 140px 80px 80px 100px 90px;
+      gap: 8px;
+      padding: 7px 14px;
+      border-bottom: 1px solid #1a1a30;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .svc-detail-row:last-child { border-bottom: none; }
+
+    .svc-detail-row.header {
+      color: #555570;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding-top: 9px;
+    }
+
+    .svc-name { color: var(--text); font-weight: 600; }
+    .svc-state-active  { color: #4ecca3; }
+    .svc-state-failed  { color: #e94560; }
+    .svc-state-activating { color: #f0a500; }
+    .svc-state-other   { color: #555570; }
+    .svc-meta { color: var(--text-muted); }
+
     /* ── Quick links ── */
     .quick-links {
       display: grid;
@@ -302,6 +383,22 @@
     <div class="activity-feed">
       <p class="section-label">recent activity</p>
       <div id="feed-list"><span class="empty-note">loading…</span></div>
+    </div>
+
+    <!-- Services health widget -->
+    <div class="services-widget" id="services-widget" style="display:none">
+      <p class="section-label" id="services-label" style="cursor:pointer" title="Click to expand/collapse">services</p>
+      <div class="services-pills" id="services-pills"></div>
+      <div class="svc-detail-panel" id="svc-detail-panel">
+        <div class="svc-detail-row header">
+          <span>service</span>
+          <span>state</span>
+          <span>uptime</span>
+          <span>restarts</span>
+          <span>memory</span>
+        </div>
+        <div id="svc-detail-rows"></div>
+      </div>
     </div>
 
     <!-- Quick links -->
@@ -513,6 +610,128 @@
 
     fetchAndRender();
     setInterval(fetchAndRender, REFRESH_MS);
+  })();
+
+  /* ── Services health widget ── */
+  (function () {
+    'use strict';
+
+    var SERVICES_REFRESH_MS = 60000;
+    var detailOpen = false;
+
+    function fmtUptime(secs) {
+      if (secs === null || secs === undefined) return '—';
+      if (secs < 60)  return secs + 's';
+      if (secs < 3600) return Math.floor(secs / 60) + 'm';
+      if (secs < 86400) return Math.floor(secs / 3600) + 'h ' + Math.floor((secs % 3600) / 60) + 'm';
+      return Math.floor(secs / 86400) + 'd';
+    }
+
+    function fmtMem(mb) {
+      if (mb === null || mb === undefined) return '—';
+      return mb < 1 ? '<1 MB' : mb + ' MB';
+    }
+
+    function stateClass(state) {
+      if (state === 'active') return 'svc-active';
+      if (state === 'failed' || state === 'inactive') return 'svc-failed';
+      if (state === 'activating' || state === 'deactivating') return 'svc-activating';
+      return 'svc-unknown';
+    }
+
+    function stateTextClass(state) {
+      if (state === 'active') return 'svc-state-active';
+      if (state === 'failed' || state === 'inactive') return 'svc-state-failed';
+      if (state === 'activating' || state === 'deactivating') return 'svc-state-activating';
+      return 'svc-state-other';
+    }
+
+    function renderServices(services) {
+      var pillsEl = document.getElementById('services-pills');
+      var rowsEl  = document.getElementById('svc-detail-rows');
+      pillsEl.innerHTML = '';
+      rowsEl.innerHTML  = '';
+
+      services.forEach(function (svc) {
+        /* Pill */
+        var pill = document.createElement('span');
+        pill.className = 'svc-pill ' + stateClass(svc.state);
+        pill.title = svc.state + (svc.sub ? '/' + svc.sub : '');
+        var dot = document.createElement('span');
+        dot.className = 'svc-dot';
+        dot.textContent = '●';
+        pill.appendChild(dot);
+        pill.appendChild(document.createTextNode(svc.name));
+        pill.addEventListener('click', toggleDetail);
+        pillsEl.appendChild(pill);
+
+        /* Detail row */
+        var row = document.createElement('div');
+        row.className = 'svc-detail-row';
+
+        var nameEl = document.createElement('span');
+        nameEl.className = 'svc-name';
+        nameEl.textContent = svc.name;
+        row.appendChild(nameEl);
+
+        var stateEl = document.createElement('span');
+        stateEl.className = stateTextClass(svc.state);
+        stateEl.textContent = svc.state + (svc.sub && svc.sub !== svc.state ? '/' + svc.sub : '');
+        row.appendChild(stateEl);
+
+        var uptimeEl = document.createElement('span');
+        uptimeEl.className = 'svc-meta';
+        uptimeEl.textContent = fmtUptime(svc.uptime_sec);
+        row.appendChild(uptimeEl);
+
+        var restartsEl = document.createElement('span');
+        restartsEl.className = svc.restarts > 0 ? 'svc-state-failed' : 'svc-meta';
+        restartsEl.textContent = svc.restarts + 'x';
+        row.appendChild(restartsEl);
+
+        var memEl = document.createElement('span');
+        memEl.className = 'svc-meta';
+        memEl.textContent = fmtMem(svc.memory_mb);
+        row.appendChild(memEl);
+
+        rowsEl.appendChild(row);
+      });
+    }
+
+    function toggleDetail() {
+      detailOpen = !detailOpen;
+      var panel = document.getElementById('svc-detail-panel');
+      if (detailOpen) {
+        panel.classList.add('open');
+      } else {
+        panel.classList.remove('open');
+      }
+    }
+
+    function fetchServices() {
+      fetch('/api/ops/health')
+        .then(function (r) {
+          if (r.status === 403) { return null; }
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(function (data) {
+          if (!data) return; /* not authed — widget stays hidden */
+          var widget = document.getElementById('services-widget');
+          widget.style.display = '';
+          renderServices(data);
+        })
+        .catch(function (err) {
+          console.warn('[services] fetch failed:', err.message);
+        });
+    }
+
+    /* Click on label also toggles detail */
+    var labelEl = document.getElementById('services-label');
+    if (labelEl) labelEl.addEventListener('click', toggleDetail);
+
+    fetchServices();
+    setInterval(fetchServices, SERVICES_REFRESH_MS);
   })();
   </script>
 </body>
