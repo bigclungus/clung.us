@@ -487,7 +487,6 @@ auditionKeepBtn.addEventListener('click', function() {
       // Remove from local list
       auditionWalkers = auditionWalkers.filter(function(w) { return w.id !== id; });
       auditionHoveredId = null;
-      console.log('[audition] kept:', d.name);
     })
     .catch(function(err) { console.error('[audition] keep failed:', err); });
 });
