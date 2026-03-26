@@ -3108,6 +3108,9 @@ function loop() {
   // Update local player (keyboard movement)
   updateLocalPlayer();
 
+  // Clear canvas fully each frame so warthog (and other sprites) don't ghost
+  ctx.clearRect(0, 0, W, H);
+
   // Draw map (cached)
   ctx.drawImage(mapCache, 0, 0);
 
