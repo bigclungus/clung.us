@@ -79,11 +79,10 @@
       z-index: 200;
       background: rgba(0,0,0,0.75);
     }
-    #invoke-overlay.active { display: flex; align-items: stretch; }
+    #invoke-overlay.active { display: flex; align-items: center; justify-content: center; gap: 20px; }
     #invoke-portrait-col {
       display: flex;
-      align-items: flex-end;
-      padding: 0 0 0 30px;
+      align-items: center;
       flex-shrink: 0;
     }
     #npc-portrait {
@@ -91,18 +90,17 @@
       display: block;
     }
     #invoke-dialog-col {
-      flex: 1;
       display: flex;
       align-items: center;
-      padding: 0 20px 0 20px;
+      flex-shrink: 0;
     }
     #invoke-box {
       background: #0a0f1a;
       border: 2px solid #00ffaa;
       border-radius: 8px;
       padding: 18px 20px 16px;
-      width: 100%;
-      max-width: 600px;
+      width: 420px;
+      max-width: 90vw;
       box-shadow: 0 0 24px #00ffaa22;
     }
     #invoke-title {
@@ -324,7 +322,7 @@
   <!-- Click-to-invoke overlay -->
   <div id="invoke-overlay">
     <div id="invoke-portrait-col">
-      <canvas id="npc-portrait" width="200" height="400"></canvas>
+      <canvas id="npc-portrait" width="160" height="320"></canvas>
     </div>
     <div id="invoke-dialog-col">
       <div id="invoke-box">
@@ -1858,8 +1856,8 @@ var npcPortraitCanvas = document.getElementById('npc-portrait');
 var npcPortraitCtx = npcPortraitCanvas.getContext('2d');
 
 function drawNpcPortrait(npc) {
-  var pw = npcPortraitCanvas.width;   // 200
-  var ph = npcPortraitCanvas.height;  // 400
+  var pw = npcPortraitCanvas.width;   // 160
+  var ph = npcPortraitCanvas.height;  // 320
   npcPortraitCtx.clearRect(0, 0, pw, ph);
 
   // Determine sprite function
