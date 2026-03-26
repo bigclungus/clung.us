@@ -293,7 +293,7 @@ function fetchSpriteWinners() {
   var slugs = Object.keys(SPRITE_SLUG_MAP);
   slugs.forEach(function(name) {
     var info = SPRITE_SLUG_MAP[name];
-    fetch('/api/vote/results?poll_id=' + encodeURIComponent('sprite-' + info.pollSlug))
+    fetch('/api/vote/sprite-' + encodeURIComponent(info.pollSlug))
       .then(function(r) { return r.ok ? r.json() : null; })
       .then(function(d) {
         if (d && d.winner) {
