@@ -68,6 +68,63 @@
       font-size: 12px;
       margin-top: 10px;
     }
+    /* ── Invoke overlay ──────────────────────────────────────────────── */
+    #invoke-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0,0,0,0.55);
+      align-items: center;
+      justify-content: center;
+    }
+    #invoke-overlay.active { display: flex; }
+    #invoke-box {
+      background: #0d0d1a;
+      border: 1px solid #4ecca3;
+      border-radius: 6px;
+      padding: 18px 20px 16px;
+      width: 340px;
+      max-width: 92vw;
+      box-shadow: 0 0 24px #4ecca344;
+    }
+    #invoke-title {
+      color: #4ecca3;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      margin-bottom: 10px;
+    }
+    #invoke-input {
+      width: 100%;
+      box-sizing: border-box;
+      background: #11111f;
+      border: 1px solid #2a2a40;
+      border-radius: 4px;
+      color: #e0e0ff;
+      font-family: inherit;
+      font-size: 12px;
+      padding: 7px 9px;
+      outline: none;
+      resize: none;
+    }
+    #invoke-input:focus { border-color: #4ecca3; }
+    #invoke-hint {
+      color: #444460;
+      font-size: 10px;
+      margin-top: 6px;
+    }
+    #invoke-cancel {
+      background: none;
+      border: none;
+      color: #555570;
+      font-family: inherit;
+      font-size: 10px;
+      cursor: pointer;
+      margin-top: 8px;
+      padding: 0;
+    }
+    #invoke-cancel:hover { color: #e94560; }
   </style>
 </head>
 <body>
@@ -83,6 +140,16 @@
     <div class="tt-role" id="tt-role"></div>
   </div>
 
+  <!-- Click-to-invoke overlay -->
+  <div id="invoke-overlay">
+    <div id="invoke-box">
+      <div id="invoke-title">speak to <span id="invoke-persona-label"></span></div>
+      <textarea id="invoke-input" rows="3" placeholder="ask something..."></textarea>
+      <div id="invoke-hint">Enter to send · Shift+Enter for newline</div>
+      <button id="invoke-cancel">cancel</button>
+    </div>
+  </div>
+
 <script>
 (function () {
 'use strict';
@@ -96,17 +163,23 @@ var ROWS = Math.floor(H / TILE); // 35
 // ── Persona quips ──────────────────────────────────────────────────────────────
 var QUIPS = {
   'chairman': ["Order.", "The gavel is patient.", "...", "Retained.", "The record stands.", "Deliberate."],
-  'critic':         ["That's wrong.", "Prove it works.", "No.", "Show your data.", "Unacceptable.", "Rejected."],
-  'architect':      ["Consider the load.", "What scales here?", "Draw the diagram.", "Single source.", "Decouple this.", "The foundation matters."],
-  'ux':             ["Is this usable?", "Who's the user?", "Friction is failure.", "Test with humans.", "Accessibility first.", "Can my gran do it?"],
-  'wolf':           ["*awoo*", "rewrite it in Rust", "*grr*", "FASTER", "*howls*", "Ship. Now."],
-  'galactus':       ["I HUNGER.", "YOUR SYSTEMS WILL FEED ME.", "INCONSEQUENTIAL.", "I HAVE SEEN BILLIONS OF STACKS.", "MORTAL CODE.", "FEED ME YOUR DATA."],
-  'designer':       ["Aesthetically, no.", "More contrast.", "Wrong font.", "The kerning is off.", "Iterate the palette.", "Beauty is function."],
-  'the-kid':        ["FAST", "GO GO GO", "*zooms*", "CAN'T STOP", "SPEEEEED", "AAAA"],
-  'uncle-bob':      ["Clean this up.", "SOLID.", "One responsibility.", "Extract that method.", "No comments needed.", "Meaningful names."],
-  'adelbert':       ["I know what you did.", "Classic Yuki move.", "Interesting choice.", "I remember.", "Some of us are watching.", "As expected."],
-  'spengler':       ["Doomed.", "We had a good run.", "The entropy is winning.", "I called it.", "Everything decays.", "*sighs*"],
-  'otto':           ["Chaos is order.", "I see patterns.", "Everything connects.", "The vortex knows.", "Cycles within cycles.", "Observe the flow."],
+  'critic':     ["That's wrong.", "Prove it works.", "No.", "Show your data.", "Unacceptable.", "Rejected."],
+  'architect':  ["Consider the load.", "What scales here?", "Draw the diagram.", "Single source.", "Decouple this.", "The foundation matters."],
+  'ux':         ["Is this usable?", "Who's the user?", "Friction is failure.", "Test with humans.", "Accessibility first.", "Can my gran do it?"],
+  'wolf':       ["*awoo*", "rewrite it in Rust", "*grr*", "FASTER", "*howls*", "Ship. Now."],
+  'galactus':   ["I HUNGER.", "YOUR SYSTEMS WILL FEED ME.", "INCONSEQUENTIAL.", "I HAVE SEEN BILLIONS OF STACKS.", "MORTAL CODE.", "FEED ME YOUR DATA."],
+  'designer':   ["Aesthetically, no.", "More contrast.", "Wrong font.", "The kerning is off.", "Iterate the palette.", "Beauty is function."],
+  'the-kid':    ["FAST", "GO GO GO", "*zooms*", "CAN'T STOP", "SPEEEEED", "AAAA"],
+  'uncle-bob':  ["Clean this up.", "SOLID.", "One responsibility.", "Extract that method.", "No comments needed.", "Meaningful names."],
+  'adelbert':   ["I know what you did.", "Classic Yuki move.", "Interesting choice.", "I remember.", "Some of us are watching.", "As expected."],
+  'spengler':   ["Doomed.", "We had a good run.", "The entropy is winning.", "I called it.", "Everything decays.", "*sighs*"],
+  'otto':       ["Chaos is order.", "I see patterns.", "Everything connects.", "The vortex knows.", "Cycles within cycles.", "Observe the flow."],
+  'hume':       ["Where's the evidence?", "Show me the data.", "That's speculation.", "Observation first.", "Prove it empirically.", "I reject the a priori."],
+  'bloodfeast': ["OVERWHELMING FORCE.", "Half measures lose wars.", "Commit or go home.", "I've seen weak plans fail.", "No phased rollout. Deploy.", "The Soviets wouldn't phase."],
+  'pm':         ["Does this move the needle?", "Cut scope.", "Ship something.", "What's the outcome?", "That's not a requirement.", "Validate it first."],
+  'trump':      ["Tremendous.", "Nobody does it better.", "Big. Very big.", "I win. That's what I do.", "They said it couldn't be done.", "Believe me."],
+  'morgan':     ["I need to sit with that.", "That's a lot to unpack.", "I'm not sure I have bandwidth.", "That lands differently for me.", "We should hold space here.", "I felt that."],
+  'jhaddu':     ["As we learned at SVITEMS...", "Simply apply the Factory pattern.", "One more layer of abstraction.", "This is very simple, actually.", "The Enterprise Approach is...", "AbstractRepositoryManagerFactory."],
 };
 
 // Fallback quips for unknown personas
@@ -114,19 +187,68 @@ var DEFAULT_QUIPS = ["...", "hmm.", "processing.", "interesting.", "noted.", "ok
 
 // Per-persona color overrides (fallback to API color)
 var COLOR_OVERRIDES = {
-  'chairman': '#8B1A1A',
-  'critic':         '#f87171',
-  'architect':      '#f59e0b',
-  'ux':             '#60a5fa',
-  'wolf':           '#f97316',
-  'galactus':       '#6366f1',
-  'designer':       '#ec4899',
-  'the-kid':        '#facc15',
-  'uncle-bob':      '#34d399',
-  'adelbert':       '#94a3b8',
-  'spengler':       '#94a3b8',
-  'otto':           '#a78bfa',
+  'chairman':  '#8B1A1A',
+  'critic':    '#f87171',
+  'architect': '#f59e0b',
+  'ux':        '#60a5fa',
+  'wolf':      '#f97316',
+  'galactus':  '#6366f1',
+  'designer':  '#ec4899',
+  'the-kid':   '#facc15',
+  'uncle-bob': '#34d399',
+  'adelbert':  '#94a3b8',
+  'spengler':  '#94a3b8',
+  'otto':      '#a78bfa',
+  'hume':      '#38bdf8',
+  'bloodfeast':'#dc2626',
+  'pm':        '#84cc16',
+  'trump':     '#eab308',
+  'morgan':    '#d946ef',
+  'jhaddu':    '#fb923c',
 };
+
+// ── Congress live state ────────────────────────────────────────────────────────
+var congressState = { active: false, topic: '', debaters: [] };
+
+function pollCongress() {
+  fetch('/api/congress/active')
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(d) { if (d) congressState = d; })
+    .catch(function() {});
+}
+pollCongress();
+setInterval(pollCongress, 10000);
+
+// Council area: top-left building (rows 2-6, cols 2-8) — pixel centers
+var COUNCIL_TILES = [];
+(function() {
+  for (var r = 2; r <= 6; r++) {
+    for (var c = 2; c <= 8; c++) {
+      COUNCIL_TILES.push({ tx: c, ty: r });
+    }
+  }
+})();
+
+// ── Time of day overlay ────────────────────────────────────────────────────────
+function getTimeOverlay() {
+  var h = new Date().getHours() + new Date().getMinutes() / 60;
+  if (h >= 6 && h < 18) return null; // daytime — no tint
+  if (h >= 18 && h < 21) return { r: 255, g: 140, b: 0, a: 0.15, stars: false };
+  if (h >= 21 && h < 24) return { r: 30, g: 0, b: 80, a: 0.25, stars: false };
+  // 00:00-06:00
+  return { r: 0, g: 0, b: 40, a: 0.40, stars: true };
+}
+
+// Pre-generate star positions (seeded deterministically)
+var STAR_POS = [];
+(function() {
+  for (var i = 0; i < 60; i++) {
+    // pseudo-random but deterministic
+    var x = ((i * 137 + 23) * 79) % W;
+    var y = ((i * 53 + 11) * 41) % (H * 0.6); // top 60% of canvas
+    STAR_POS.push({ x: x, y: y });
+  }
+})();
 
 // ── Map definition ──────────────────────────────────────────────────────────────
 // 0=grass, 1=path (dirt), 2=water(pond), 3=wall/building, 4=tree, 5=rock
@@ -341,14 +463,18 @@ function lighten(hex, amt) {
 }
 
 // ── Speech bubble ──────────────────────────────────────────────────────────────
-function drawBubble(cx, cy, text, alpha) {
+function drawBubble(cx, cy, lines, alpha) {
   ctx.save();
   ctx.globalAlpha = alpha;
   var pad = 5;
   ctx.font = '9px monospace';
-  var tw = ctx.measureText(text).width;
-  var bw = tw + pad * 2;
-  var bh = 14;
+  var lineH = 11;
+  // lines can be a string or array
+  var lineArr = Array.isArray(lines) ? lines : [lines];
+  var maxW = 0;
+  lineArr.forEach(function(l) { var w = ctx.measureText(l).width; if (w > maxW) maxW = w; });
+  var bw = maxW + pad * 2;
+  var bh = lineH * lineArr.length + 4;
   var bx = cx - bw / 2;
   var by = cy - bh - 6;
 
@@ -379,7 +505,9 @@ function drawBubble(cx, cy, text, alpha) {
 
   // Text
   ctx.fillStyle = '#111122';
-  ctx.fillText(text, bx + pad, by + bh - 4);
+  lineArr.forEach(function(l, i) {
+    ctx.fillText(l, bx + pad, by + lineH * (i + 1) - 1);
+  });
 
   ctx.restore();
 }
@@ -425,13 +553,20 @@ function NPC(persona, startTx, startTy) {
   this.frame = Math.floor(Math.random() * 60);
 
   // Speech state
-  this.bubble = null; // {text, ttl} null when silent
+  this.bubble = null; // {lines: [], ttl} null when silent
   this.speakCooldown = 120 + Math.floor(Math.random() * 240); // frames before can speak again
   this.quipIndex = Math.floor(Math.random() * this.quips.length);
+
+  // Response bubble (from invoke)
+  this.responseBubble = null; // {lines: [], ttl}
 
   // Target for movement
   this.targetPx = this.px;
   this.targetPy = this.py;
+
+  // Congress target tile
+  this.congressTarget = null;
+  this.inCouncil = false;
 }
 
 NPC.prototype.pickNewDir = function (npcs) {
@@ -511,6 +646,34 @@ NPC.prototype.pickNewDir = function (npcs) {
   this.stepsLeft = 2 + Math.floor(Math.random() * (this.isKid ? 8 : this.isGalactus ? 3 : 5));
 };
 
+// Step toward a target tile (for congress mode)
+NPC.prototype.stepToward = function(targetTx, targetTy) {
+  var ddx = targetTx - this.tx;
+  var ddy = targetTy - this.ty;
+  if (ddx === 0 && ddy === 0) return true; // arrived
+  var candidates = [];
+  if (Math.abs(ddx) >= Math.abs(ddy)) {
+    if (ddx !== 0) candidates.push({dx: Math.sign(ddx), dy: 0});
+    if (ddy !== 0) candidates.push({dx: 0, dy: Math.sign(ddy)});
+  } else {
+    if (ddy !== 0) candidates.push({dx: 0, dy: Math.sign(ddy)});
+    if (ddx !== 0) candidates.push({dx: Math.sign(ddx), dy: 0});
+  }
+  for (var i = 0; i < candidates.length; i++) {
+    var nd = candidates[i];
+    var nx = this.tx + nd.dx, ny = this.ty + nd.dy;
+    if (!isBlocked(nx, ny)) {
+      this.dir = nd;
+      this.tx = nx; this.ty = ny;
+      this.targetPx = nx * TILE + TILE / 2;
+      this.targetPy = ny * TILE + TILE / 2;
+      this.stepsLeft = 0;
+      return false;
+    }
+  }
+  return false; // blocked
+};
+
 NPC.prototype.update = function (npcs) {
   this.frame++;
 
@@ -520,61 +683,81 @@ NPC.prototype.update = function (npcs) {
     this.bubble.ttl--;
     if (this.bubble.ttl <= 0) {
       this.bubble = null;
-      // Reset cooldown after speak
       var baseCD = this.isIbrahim ? 600 : this.isGalactus ? 450 : this.isKid ? 80 : 180;
       this.speakCooldown = baseCD + Math.floor(Math.random() * 200);
     }
   } else if (this.speakCooldown <= 0) {
-    // Chance to speak each frame
     var chance = this.isIbrahim ? 0.002 : this.isKid ? 0.02 : this.isGalactus ? 0.004 : 0.006;
     if (Math.random() < chance) {
       this.bubble = {
-        text: this.quips[this.quipIndex % this.quips.length],
+        lines: [this.quips[this.quipIndex % this.quips.length]],
         ttl: Math.round(2.5 * 60),
       };
       this.quipIndex++;
     }
   }
 
-  // Waiting between moves
-  if (this.waitFrames > 0) {
-    this.waitFrames--;
-    return;
+  // Response bubble TTL
+  if (this.responseBubble) {
+    this.responseBubble.ttl--;
+    if (this.responseBubble.ttl <= 0) this.responseBubble = null;
   }
 
-  // Check if we've reached the target pixel
-  var dx = this.targetPx - this.px;
-  var dy = this.targetPy - this.py;
-  var dist = Math.sqrt(dx*dx + dy*dy);
-
-  if (dist < this.speed + 0.5) {
-    // Snapped to target tile
-    this.px = this.targetPx;
-    this.py = this.targetPy;
-
-    if (this.stepsLeft > 0) {
-      // Take a step in current dir
-      var nx = this.tx + this.dir.dx;
-      var ny = this.ty + this.dir.dy;
-      if (isBlocked(nx, ny)) {
-        this.stepsLeft = 0; // force new dir
-      } else {
-        this.tx = nx;
-        this.ty = ny;
-        this.targetPx = nx * TILE + TILE / 2;
-        this.targetPy = ny * TILE + TILE / 2;
-        this.stepsLeft--;
-      }
-    } else {
-      // Pause, then pick new direction
-      var pause = this.isKid ? 2 : this.isGalactus ? 40 : this.isIbrahim ? 60 : 15 + Math.floor(Math.random() * 30);
-      this.waitFrames = pause;
-      this.pickNewDir(npcs);
+  // Congress mode: if debater, move toward council area
+  var isDebater = congressState.active && congressState.debaters.indexOf(this.name) >= 0;
+  if (isDebater) {
+    // Pick a council tile if we don't have one yet
+    if (!this.congressTarget) {
+      var idx = Math.floor(Math.random() * COUNCIL_TILES.length);
+      this.congressTarget = COUNCIL_TILES[idx];
+    }
+    // Move toward it every few frames (not every frame — pace it)
+    if (this.frame % 20 === 0) {
+      var arrived = this.stepToward(this.congressTarget.tx, this.congressTarget.ty);
+      this.inCouncil = arrived || (Math.abs(this.tx - this.congressTarget.tx) <= 1 && Math.abs(this.ty - this.congressTarget.ty) <= 1);
     }
   } else {
-    // Move toward target
-    this.px += (dx / dist) * this.speed;
-    this.py += (dy / dist) * this.speed;
+    this.congressTarget = null;
+    this.inCouncil = false;
+  }
+
+  // Normal movement when not in council or no congress
+  if (!isDebater || !this.inCouncil) {
+    // Waiting between moves
+    if (this.waitFrames > 0) {
+      this.waitFrames--;
+      return;
+    }
+
+    var dx = this.targetPx - this.px;
+    var dy = this.targetPy - this.py;
+    var dist = Math.sqrt(dx*dx + dy*dy);
+
+    if (dist < this.speed + 0.5) {
+      this.px = this.targetPx;
+      this.py = this.targetPy;
+
+      if (this.stepsLeft > 0) {
+        var nx = this.tx + this.dir.dx;
+        var ny = this.ty + this.dir.dy;
+        if (isBlocked(nx, ny)) {
+          this.stepsLeft = 0;
+        } else {
+          this.tx = nx;
+          this.ty = ny;
+          this.targetPx = nx * TILE + TILE / 2;
+          this.targetPy = ny * TILE + TILE / 2;
+          this.stepsLeft--;
+        }
+      } else {
+        var pause = this.isKid ? 2 : this.isGalactus ? 40 : this.isIbrahim ? 60 : 15 + Math.floor(Math.random() * 30);
+        this.waitFrames = pause;
+        this.pickNewDir(npcs);
+      }
+    } else {
+      this.px += (dx / dist) * this.speed;
+      this.py += (dy / dist) * this.speed;
+    }
   }
 };
 
@@ -584,11 +767,15 @@ NPC.prototype.draw = function () {
 
   drawCharacter(cx, cy, this.color, this.isGalactus ? 1.8 : 1, this.isGalactus);
 
-  // Speech bubble
-  if (this.bubble) {
+  // Response bubble takes priority over quip bubble
+  if (this.responseBubble) {
+    var alpha = this.responseBubble.ttl > 30 ? 1.0 : this.responseBubble.ttl / 30;
+    var headY = cy - 4;
+    drawBubble(cx, headY, this.responseBubble.lines, alpha);
+  } else if (this.bubble) {
     var alpha = this.bubble.ttl > 20 ? 1.0 : this.bubble.ttl / 20;
     var headY = cy - 4;
-    drawBubble(cx, headY, this.bubble.text, alpha);
+    drawBubble(cx, headY, this.bubble.lines, alpha);
   }
 };
 
@@ -635,13 +822,98 @@ canvas.addEventListener('mousemove', function(e) {
     tooltip.style.display = 'block';
     tooltip.style.left = (e.clientX + 14) + 'px';
     tooltip.style.top = (e.clientY - 10) + 'px';
+    canvas.style.cursor = 'pointer';
   } else {
     tooltip.style.display = 'none';
+    canvas.style.cursor = 'default';
   }
 });
 
 canvas.addEventListener('mouseleave', function() {
   tooltip.style.display = 'none';
+  canvas.style.cursor = 'default';
+});
+
+// ── Click to invoke ───────────────────────────────────────────────────────────
+var invokeOverlay = document.getElementById('invoke-overlay');
+var invokeInput = document.getElementById('invoke-input');
+var invokePersonaLabel = document.getElementById('invoke-persona-label');
+var invokeCancel = document.getElementById('invoke-cancel');
+var activeInvokeNPC = null;
+
+canvas.addEventListener('click', function(e) {
+  var rect = canvas.getBoundingClientRect();
+  var scaleX = W / rect.width;
+  var mx = (e.clientX - rect.left) * scaleX;
+  var my = (e.clientY - rect.top) * (H / rect.height);
+
+  var found = null;
+  for (var i = 0; i < npcs.length; i++) {
+    var n = npcs[i];
+    var dx = mx - n.px;
+    var dy = my - (n.py - 8);
+    if (Math.abs(dx) < 14 && Math.abs(dy) < 20) { found = n; break; }
+  }
+
+  if (found) {
+    activeInvokeNPC = found;
+    invokePersonaLabel.textContent = found.displayName;
+    invokeInput.value = '';
+    invokeOverlay.classList.add('active');
+    setTimeout(function() { invokeInput.focus(); }, 50);
+  }
+});
+
+invokeCancel.addEventListener('click', function() {
+  invokeOverlay.classList.remove('active');
+  activeInvokeNPC = null;
+});
+
+invokeOverlay.addEventListener('click', function(e) {
+  if (e.target === invokeOverlay) {
+    invokeOverlay.classList.remove('active');
+    activeInvokeNPC = null;
+  }
+});
+
+invokeInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    var text = invokeInput.value.trim();
+    if (!text || !activeInvokeNPC) return;
+    var npc = activeInvokeNPC;
+    invokeOverlay.classList.remove('active');
+    activeInvokeNPC = null;
+    // Show a "..." bubble while waiting
+    npc.responseBubble = { lines: ['...'], ttl: 600 };
+    fetch('/api/invoke-persona', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: npc.name, prompt: text }),
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var raw = (d.response || d.error || 'no response').trim();
+        // Wrap to ~40 chars per line, max 3 lines
+        var words = raw.split(' ');
+        var lines = [], cur = '';
+        for (var i = 0; i < words.length; i++) {
+          var test = cur ? cur + ' ' + words[i] : words[i];
+          if (test.length > 40) { lines.push(cur); cur = words[i]; }
+          else cur = test;
+        }
+        if (cur) lines.push(cur);
+        if (lines.length > 3) { lines = lines.slice(0, 3); lines[2] = lines[2].slice(0, 37) + '...'; }
+        npc.responseBubble = { lines: lines, ttl: 7 * 60 };
+      })
+      .catch(function(err) {
+        npc.responseBubble = { lines: ['(error: ' + err.message.slice(0,30) + ')'], ttl: 4 * 60 };
+      });
+  }
+  if (e.key === 'Escape') {
+    invokeOverlay.classList.remove('active');
+    activeInvokeNPC = null;
+  }
 });
 
 // ── Load personas and init ────────────────────────────────────────────────────
@@ -653,9 +925,10 @@ fetch('/api/agents')
   .then(function(data) {
     var all = [];
     if (data.moderator) all.push(data.moderator);
-    if (data.active) all = all.concat(data.active);
-    // Include fired personas too (they can still graze)
-    if (data.fired) all = all.concat(data.fired.slice(0, 3));
+    if (data.eligible) all = all.concat(data.eligible);
+    if (data.meme) all = all.concat(data.meme);
+    // Include up to 3 ineligible personas so they can still graze
+    if (data.ineligible) all = all.concat(data.ineligible.slice(0, 3));
 
     // Shuffle spawn positions
     var spawns = SPAWN_TILES.slice();
@@ -679,9 +952,9 @@ fetch('/api/agents')
     // Still start with hardcoded fallback NPCs
     var fallbacks = [
       {name:'chairman', display_name:'Ibrahim the Immovable', color:'#8B1A1A', role:'Chairman', avatar_url:''},
-      {name:'critic',         display_name:'Pippi the Pitiless',    color:'#f87171', role:'Critic',          avatar_url:''},
-      {name:'architect',      display_name:'Kwame the Constructor', color:'#f59e0b', role:'Architect',        avatar_url:''},
-      {name:'ux',             display_name:'Yuki the Yielding',     color:'#60a5fa', role:'UX',               avatar_url:''},
+      {name:'critic',   display_name:'Pippi the Pitiless',    color:'#f87171', role:'Critic',   avatar_url:''},
+      {name:'architect',display_name:'Kwame the Constructor', color:'#f59e0b', role:'Architect', avatar_url:''},
+      {name:'ux',       display_name:'Yuki the Yielding',     color:'#60a5fa', role:'UX',        avatar_url:''},
     ];
     var spawns = SPAWN_TILES.slice(0, 4);
     fallbacks.forEach(function(p, i) {
@@ -713,6 +986,46 @@ function loop() {
   var sorted = npcs.slice().sort(function(a,b) { return a.py - b.py; });
   for (var i = 0; i < sorted.length; i++) {
     sorted[i].draw();
+  }
+
+  // ── Time of day overlay ──────────────────────────────────────────────────
+  var tov = getTimeOverlay();
+  if (tov) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(' + tov.r + ',' + tov.g + ',' + tov.b + ',' + tov.a + ')';
+    ctx.fillRect(0, 0, W, H);
+    if (tov.stars) {
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      for (var si = 0; si < STAR_POS.length; si++) {
+        // Twinkle: show only ~80% each frame
+        if (Math.random() < 0.8) {
+          ctx.fillRect(STAR_POS[si].x, STAR_POS[si].y, 1, 1);
+        }
+      }
+    }
+    ctx.restore();
+  }
+
+  // ── Congress badge ────────────────────────────────────────────────────────
+  if (congressState.active) {
+    ctx.save();
+    var badgeText = '⚖️ in session';
+    ctx.font = 'bold 11px monospace';
+    var bw = ctx.measureText(badgeText).width + 16;
+    var bh = 20;
+    var bx = W - bw - 6;
+    var by = 6;
+    ctx.fillStyle = '#1a0a3a';
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, bh, 4);
+    ctx.fill();
+    ctx.strokeStyle = '#a78bfa';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = '#e0d0ff';
+    ctx.textAlign = 'left';
+    ctx.fillText(badgeText, bx + 8, by + bh - 5);
+    ctx.restore();
   }
 
   // "The Commons" title overlay (pixel-ish style)
