@@ -4,269 +4,393 @@
 // ─── BLOODFEAST (Holden Bloodfeast) — #dc2626 ────────────────────────────────
 
 function drawSprite_bloodfeast_A(ctx, cx, cy) {
-  // Geriatric Hawk — military uniform, medals, gray hair, ramrod posture
-  const x = Math.floor(cx - 10);
-  const y = Math.floor(cy - 40);
+  // Classic Bloodfeast — massive blob in wheelchair, oxygen mask, raised tiny fist
+  // ~1.5x wider than standard sprites: 30px wide, centered on cx
+  const x = Math.floor(cx - 15);
+  const y = Math.floor(cy - 44);
 
-  // Boots
-  ctx.fillStyle = '#1a0a0a';
-  ctx.fillRect(x + 4, y + 36, 4, 4);
-  ctx.fillRect(x + 12, y + 36, 4, 4);
+  // === WHEELCHAIR ===
+  // Big rear wheel (left)
+  ctx.fillStyle = '#555566';
+  ctx.fillRect(x + 0, y + 26, 3, 18);  // left spoke vertical
+  ctx.fillRect(x + 0, y + 26, 14, 3);  // top of wheel arc
+  ctx.fillRect(x + 0, y + 41, 14, 3);  // bottom of wheel arc
+  ctx.fillRect(x + 11, y + 26, 3, 18); // right side of wheel
+  // wheel spokes
+  ctx.fillStyle = '#888899';
+  ctx.fillRect(x + 5, y + 28, 2, 13);
+  ctx.fillRect(x + 1, y + 32, 11, 2);
+  // Big rear wheel (right)
+  ctx.fillStyle = '#555566';
+  ctx.fillRect(x + 17, y + 26, 3, 18);
+  ctx.fillRect(x + 17, y + 26, 13, 3);
+  ctx.fillRect(x + 17, y + 41, 13, 3);
+  ctx.fillRect(x + 27, y + 26, 3, 18);
+  ctx.fillStyle = '#888899';
+  ctx.fillRect(x + 22, y + 28, 2, 13);
+  ctx.fillRect(x + 18, y + 32, 11, 2);
+  // Small front caster wheels
+  ctx.fillStyle = '#444455';
+  ctx.fillRect(x + 11, y + 40, 5, 4);
+  ctx.fillRect(x + 14, y + 40, 5, 4);
+  // Seat frame
+  ctx.fillStyle = '#778899';
+  ctx.fillRect(x + 11, y + 20, 9, 3);  // seat bar
+  ctx.fillRect(x + 11, y + 20, 2, 22); // left frame post
+  ctx.fillRect(x + 18, y + 20, 2, 22); // right frame post
+  // Footrests
+  ctx.fillStyle = '#667788';
+  ctx.fillRect(x + 10, y + 38, 11, 2);
+  ctx.fillRect(x + 11, y + 40, 2, 4);
+  ctx.fillRect(x + 18, y + 40, 2, 4);
 
-  // Legs — dark navy trousers
-  ctx.fillStyle = '#1c2a4a';
-  ctx.fillRect(x + 5, y + 28, 4, 8);
-  ctx.fillRect(x + 11, y + 28, 4, 8);
+  // === OXYGEN TANK (right side of chair) ===
+  ctx.fillStyle = '#c0c8d0';
+  ctx.fillRect(x + 24, y + 18, 5, 18); // tank body
+  ctx.fillStyle = '#a0a8b0';
+  ctx.fillRect(x + 24, y + 18, 5, 3);  // tank top
+  ctx.fillRect(x + 24, y + 33, 5, 3);  // tank bottom
+  // Valve on top
+  ctx.fillStyle = '#667788';
+  ctx.fillRect(x + 26, y + 15, 2, 4);
+  ctx.fillRect(x + 25, y + 16, 4, 2);
+  // Tubing from tank to face (runs left across top)
+  ctx.fillStyle = '#88aa66';
+  ctx.fillRect(x + 25, y + 17, 1, 2);
+  ctx.fillRect(x + 14, y + 16, 12, 2); // horizontal tube
+  ctx.fillRect(x + 14, y + 16, 2, 5);  // drop to face
 
-  // Trouser stripe (gold)
-  ctx.fillStyle = '#c8a020';
-  ctx.fillRect(x + 6, y + 28, 1, 8);
-  ctx.fillRect(x + 13, y + 28, 1, 8);
+  // === MASSIVE BLOB BODY ===
+  ctx.fillStyle = '#d4905a';
+  ctx.fillRect(x + 4, y + 20, 22, 18); // main torso blob
+  ctx.fillRect(x + 2, y + 22, 26, 14); // extra girth sides
+  ctx.fillRect(x + 5, y + 17, 20, 5);  // upper torso bulge
+  // Belly rolls
+  ctx.fillStyle = '#c07848';
+  ctx.fillRect(x + 3, y + 28, 24, 2);
+  ctx.fillRect(x + 3, y + 32, 24, 2);
+  // Shirt / robe (dark maroon, barely fits)
+  ctx.fillStyle = '#6a1a1a';
+  ctx.fillRect(x + 4, y + 20, 22, 8);  // shirt front
+  ctx.fillRect(x + 4, y + 20, 2, 16);  // shirt left side
+  ctx.fillRect(x + 24, y + 20, 2, 16); // shirt right side
 
-  // Body — military green jacket
-  ctx.fillStyle = '#2d4a1e';
-  ctx.fillRect(x + 3, y + 16, 14, 14);
+  // === HEAD (big, round, jowly) ===
+  ctx.fillStyle = '#d4905a';
+  ctx.fillRect(x + 6, y + 6, 18, 13); // head block
+  ctx.fillRect(x + 4, y + 8, 22, 9);  // extra width for jowls
+  ctx.fillRect(x + 7, y + 4, 16, 4);  // top of head
+  // Jowl shading
+  ctx.fillStyle = '#b87040';
+  ctx.fillRect(x + 4, y + 13, 5, 5);
+  ctx.fillRect(x + 21, y + 13, 5, 5);
+  // Chin double
+  ctx.fillStyle = '#c88050';
+  ctx.fillRect(x + 6, y + 17, 18, 3);
 
-  // Collar / shirt (white)
-  ctx.fillStyle = '#d0d0d0';
-  ctx.fillRect(x + 8, y + 16, 4, 3);
+  // === OXYGEN MASK ===
+  ctx.fillStyle = '#88aa88';
+  ctx.fillRect(x + 9, y + 13, 12, 5); // mask body
+  ctx.fillStyle = '#aaccaa';
+  ctx.fillRect(x + 10, y + 14, 10, 3); // mask highlight
+  // Mask straps
+  ctx.fillStyle = '#557755';
+  ctx.fillRect(x + 8, y + 13, 2, 3);
+  ctx.fillRect(x + 20, y + 13, 2, 3);
 
-  // Medals row (three colored dots on chest)
-  ctx.fillStyle = '#c8a020'; // gold
-  ctx.fillRect(x + 4, y + 19, 2, 2);
-  ctx.fillRect(x + 7, y + 19, 2, 2);
-  ctx.fillStyle = '#dc2626'; // red ribbon
-  ctx.fillRect(x + 4, y + 21, 2, 1);
-  ctx.fillRect(x + 7, y + 21, 2, 1);
-  ctx.fillStyle = '#4a90c8'; // blue ribbon
-  ctx.fillRect(x + 10, y + 19, 2, 2);
-  ctx.fillRect(x + 10, y + 21, 2, 1);
+  // === EYES (small, piggy, above mask) ===
+  ctx.fillStyle = '#2a1a0a';
+  ctx.fillRect(x + 10, y + 10, 3, 2);
+  ctx.fillRect(x + 17, y + 10, 3, 2);
+  // Eye gleam
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(x + 10, y + 10, 1, 1);
+  ctx.fillRect(x + 17, y + 10, 1, 1);
+  // Bushy brows
+  ctx.fillStyle = '#6a4020';
+  ctx.fillRect(x + 9, y + 9, 5, 1);
+  ctx.fillRect(x + 16, y + 9, 5, 1);
 
-  // Epaulettes (gold shoulder boards)
-  ctx.fillStyle = '#c8a020';
-  ctx.fillRect(x + 2, y + 16, 3, 2);
-  ctx.fillRect(x + 15, y + 16, 3, 2);
+  // === TINY RAISED FIST (left arm) — approval ===
+  ctx.fillStyle = '#6a1a1a'; // sleeve
+  ctx.fillRect(x + 1, y + 22, 4, 8);
+  ctx.fillRect(x + 0, y + 18, 4, 6); // arm raised up
+  // fist
+  ctx.fillStyle = '#d4905a';
+  ctx.fillRect(x + 0, y + 15, 4, 4);
+  // knuckle lines
+  ctx.fillStyle = '#b87040';
+  ctx.fillRect(x + 0, y + 16, 4, 1);
+  // thumb
+  ctx.fillRect(x - 1, y + 16, 2, 2);
 
-  // Neck
-  ctx.fillStyle = '#b87858';
-  ctx.fillRect(x + 8, y + 12, 4, 5);
-
-  // Head — narrow, stern
-  ctx.fillStyle = '#c49060';
-  ctx.fillRect(x + 6, y + 6, 8, 8);
-
-  // Gray hair (short, cropped)
-  ctx.fillStyle = '#a0a0a8';
-  ctx.fillRect(x + 6, y + 6, 8, 2);
-  ctx.fillRect(x + 6, y + 8, 1, 2);
-  ctx.fillRect(x + 13, y + 8, 1, 2);
-
-  // Eyes — steely, small
-  ctx.fillStyle = '#4a6080';
-  ctx.fillRect(x + 7, y + 10, 2, 1);
-  ctx.fillRect(x + 11, y + 10, 2, 1);
-
-  // Brow ridge (stern)
-  ctx.fillStyle = '#8a6844';
-  ctx.fillRect(x + 7, y + 9, 2, 1);
-  ctx.fillRect(x + 11, y + 9, 2, 1);
-
-  // Thin line mouth (no smile)
-  ctx.fillStyle = '#8a5a3a';
-  ctx.fillRect(x + 8, y + 12, 4, 1);
-
-  // Military cap
-  ctx.fillStyle = '#2d4a1e';
-  ctx.fillRect(x + 5, y + 4, 10, 3);
-  ctx.fillRect(x + 4, y + 5, 12, 2);
-
-  // Cap brim
-  ctx.fillStyle = '#1a2e0e';
-  ctx.fillRect(x + 3, y + 7, 14, 1);
-
-  // Cap insignia (gold)
-  ctx.fillStyle = '#c8a020';
-  ctx.fillRect(x + 9, y + 5, 2, 1);
-
-  // Arms — at sides, rigid
-  ctx.fillStyle = '#2d4a1e';
-  ctx.fillRect(x + 1, y + 17, 3, 10);
-  ctx.fillRect(x + 16, y + 17, 3, 10);
-
-  // Hands
-  ctx.fillStyle = '#c49060';
-  ctx.fillRect(x + 1, y + 27, 3, 2);
-  ctx.fillRect(x + 16, y + 27, 3, 2);
+  // === RIGHT ARM (resting on wheelchair arm) ===
+  ctx.fillStyle = '#6a1a1a';
+  ctx.fillRect(x + 25, y + 22, 4, 8);
+  ctx.fillStyle = '#d4905a';
+  ctx.fillRect(x + 25, y + 29, 4, 3); // hand resting
 }
 
 function drawSprite_bloodfeast_B(ctx, cx, cy) {
-  // Cold War Hawk — 1960s suit, tie, holding red phone, suspicious look
-  const x = Math.floor(cx - 10);
-  const y = Math.floor(cy - 40);
+  // Warmonger Bloodfeast — blob in wheelchair, oxygen tank, waving tiny flag, medals on chest
+  const x = Math.floor(cx - 15);
+  const y = Math.floor(cy - 44);
 
-  // Shoes
-  ctx.fillStyle = '#1a1a1a';
-  ctx.fillRect(x + 4, y + 36, 5, 4);
-  ctx.fillRect(x + 11, y + 36, 5, 4);
+  // === WHEELCHAIR ===
+  ctx.fillStyle = '#555566';
+  ctx.fillRect(x + 0, y + 26, 3, 18);
+  ctx.fillRect(x + 0, y + 26, 14, 3);
+  ctx.fillRect(x + 0, y + 41, 14, 3);
+  ctx.fillRect(x + 11, y + 26, 3, 18);
+  ctx.fillStyle = '#888899';
+  ctx.fillRect(x + 5, y + 28, 2, 13);
+  ctx.fillRect(x + 1, y + 32, 11, 2);
+  ctx.fillStyle = '#555566';
+  ctx.fillRect(x + 17, y + 26, 3, 18);
+  ctx.fillRect(x + 17, y + 26, 13, 3);
+  ctx.fillRect(x + 17, y + 41, 13, 3);
+  ctx.fillRect(x + 27, y + 26, 3, 18);
+  ctx.fillStyle = '#888899';
+  ctx.fillRect(x + 22, y + 28, 2, 13);
+  ctx.fillRect(x + 18, y + 32, 11, 2);
+  ctx.fillStyle = '#444455';
+  ctx.fillRect(x + 11, y + 40, 5, 4);
+  ctx.fillRect(x + 14, y + 40, 5, 4);
+  ctx.fillStyle = '#778899';
+  ctx.fillRect(x + 11, y + 20, 9, 3);
+  ctx.fillRect(x + 11, y + 20, 2, 22);
+  ctx.fillRect(x + 18, y + 20, 2, 22);
+  ctx.fillStyle = '#667788';
+  ctx.fillRect(x + 10, y + 38, 11, 2);
+  ctx.fillRect(x + 11, y + 40, 2, 4);
+  ctx.fillRect(x + 18, y + 40, 2, 4);
 
-  // Trousers (charcoal)
-  ctx.fillStyle = '#3a3a4a';
-  ctx.fillRect(x + 5, y + 26, 4, 10);
-  ctx.fillRect(x + 11, y + 26, 4, 10);
+  // === OXYGEN TANK ===
+  ctx.fillStyle = '#c0c8d0';
+  ctx.fillRect(x + 24, y + 18, 5, 18);
+  ctx.fillStyle = '#a0a8b0';
+  ctx.fillRect(x + 24, y + 18, 5, 3);
+  ctx.fillRect(x + 24, y + 33, 5, 3);
+  ctx.fillStyle = '#667788';
+  ctx.fillRect(x + 26, y + 15, 2, 4);
+  ctx.fillRect(x + 25, y + 16, 4, 2);
+  // Tubing
+  ctx.fillStyle = '#88aa66';
+  ctx.fillRect(x + 25, y + 17, 1, 2);
+  ctx.fillRect(x + 14, y + 16, 12, 2);
+  ctx.fillRect(x + 14, y + 16, 2, 5);
 
-  // Suit jacket (dark charcoal)
-  ctx.fillStyle = '#2a2a3a';
-  ctx.fillRect(x + 3, y + 14, 14, 13);
-
-  // Lapels (lighter charcoal)
-  ctx.fillStyle = '#3c3c50';
-  ctx.fillRect(x + 7, y + 14, 3, 6);
-  ctx.fillRect(x + 10, y + 14, 3, 6);
-
-  // White shirt strip in center
-  ctx.fillStyle = '#e0e0e0';
-  ctx.fillRect(x + 9, y + 14, 2, 4);
-
-  // Tie — red (thin)
+  // === MASSIVE BLOB BODY ===
+  ctx.fillStyle = '#d4905a';
+  ctx.fillRect(x + 4, y + 20, 22, 18);
+  ctx.fillRect(x + 2, y + 22, 26, 14);
+  ctx.fillRect(x + 5, y + 17, 20, 5);
+  ctx.fillStyle = '#c07848';
+  ctx.fillRect(x + 3, y + 28, 24, 2);
+  ctx.fillRect(x + 3, y + 32, 24, 2);
+  // Military dress shirt (olive green, barely fits)
+  ctx.fillStyle = '#4a5a30';
+  ctx.fillRect(x + 4, y + 20, 22, 8);
+  ctx.fillRect(x + 4, y + 20, 2, 16);
+  ctx.fillRect(x + 24, y + 20, 2, 16);
+  // Medals — row of colorful dots
+  ctx.fillStyle = '#c8a020'; // gold
+  ctx.fillRect(x + 7, y + 21, 2, 2);
+  ctx.fillRect(x + 10, y + 21, 2, 2);
+  ctx.fillRect(x + 13, y + 21, 2, 2);
+  ctx.fillRect(x + 16, y + 21, 2, 2);
+  // ribbons under medals
   ctx.fillStyle = '#dc2626';
-  ctx.fillRect(x + 9, y + 14, 2, 7);
-  ctx.fillRect(x + 9, y + 21, 2, 2); // tie knot
-  ctx.fillRect(x + 10, y + 23, 1, 3); // tie tail
+  ctx.fillRect(x + 7, y + 23, 2, 1);
+  ctx.fillRect(x + 13, y + 23, 2, 1);
+  ctx.fillStyle = '#3060c0';
+  ctx.fillRect(x + 10, y + 23, 2, 1);
+  ctx.fillRect(x + 16, y + 23, 2, 1);
 
-  // Neck
-  ctx.fillStyle = '#c49060';
-  ctx.fillRect(x + 8, y + 11, 4, 4);
+  // === HEAD ===
+  ctx.fillStyle = '#d4905a';
+  ctx.fillRect(x + 6, y + 6, 18, 13);
+  ctx.fillRect(x + 4, y + 8, 22, 9);
+  ctx.fillRect(x + 7, y + 4, 16, 4);
+  ctx.fillStyle = '#b87040';
+  ctx.fillRect(x + 4, y + 13, 5, 5);
+  ctx.fillRect(x + 21, y + 13, 5, 5);
+  ctx.fillStyle = '#c88050';
+  ctx.fillRect(x + 6, y + 17, 18, 3);
 
-  // Head (suspicious narrow eyes)
-  ctx.fillStyle = '#c49060';
-  ctx.fillRect(x + 6, y + 5, 8, 8);
+  // === OXYGEN MASK ===
+  ctx.fillStyle = '#88aa88';
+  ctx.fillRect(x + 9, y + 13, 12, 5);
+  ctx.fillStyle = '#aaccaa';
+  ctx.fillRect(x + 10, y + 14, 10, 3);
+  ctx.fillStyle = '#557755';
+  ctx.fillRect(x + 8, y + 13, 2, 3);
+  ctx.fillRect(x + 20, y + 13, 2, 3);
 
-  // Brown hair, slicked
-  ctx.fillStyle = '#5a3a20';
-  ctx.fillRect(x + 6, y + 5, 8, 2);
-  ctx.fillRect(x + 6, y + 7, 1, 1);
-  ctx.fillRect(x + 13, y + 7, 1, 1);
+  // === EYES — excited, wide ===
+  ctx.fillStyle = '#2a1a0a';
+  ctx.fillRect(x + 10, y + 10, 3, 2);
+  ctx.fillRect(x + 17, y + 10, 3, 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(x + 10, y + 10, 1, 1);
+  ctx.fillRect(x + 17, y + 10, 1, 1);
+  ctx.fillStyle = '#6a4020';
+  ctx.fillRect(x + 9, y + 9, 5, 1);
+  ctx.fillRect(x + 16, y + 9, 5, 1);
 
-  // Eyes — narrowed (suspicious)
-  ctx.fillStyle = '#3a3020';
-  ctx.fillRect(x + 7, y + 9, 2, 1);
-  ctx.fillRect(x + 11, y + 9, 2, 1);
-  // shadow under brow
-  ctx.fillStyle = '#9a7050';
-  ctx.fillRect(x + 7, y + 8, 2, 1);
-  ctx.fillRect(x + 11, y + 8, 2, 1);
-
-  // Thin lips pressed
-  ctx.fillStyle = '#8a5a3a';
-  ctx.fillRect(x + 8, y + 11, 4, 1);
-
-  // Left arm (holding phone)
-  ctx.fillStyle = '#2a2a3a';
-  ctx.fillRect(x + 0, y + 15, 3, 9);
-  ctx.fillRect(x + 0, y + 22, 4, 3); // forearm out
-  // Hand
-  ctx.fillStyle = '#c49060';
-  ctx.fillRect(x + 0, y + 24, 3, 3);
-
-  // Red phone (in hand, left side)
+  // === FLAG POLE (right arm raised, waving tiny flag) ===
+  ctx.fillStyle = '#4a5a30'; // sleeve
+  ctx.fillRect(x + 25, y + 22, 4, 8);
+  ctx.fillRect(x + 26, y + 16, 3, 8); // arm raised
+  ctx.fillStyle = '#d4905a'; // hand
+  ctx.fillRect(x + 26, y + 13, 3, 4);
+  // Flag pole
+  ctx.fillStyle = '#8a7050';
+  ctx.fillRect(x + 28, y + 4, 2, 12);
+  // Flag (red, white, blue stripes)
   ctx.fillStyle = '#dc2626';
-  ctx.fillRect(x - 2, y + 22, 4, 6);
-  // phone receiver shape
-  ctx.fillStyle = '#ff4444';
-  ctx.fillRect(x - 2, y + 22, 4, 2);
-  ctx.fillRect(x - 2, y + 26, 4, 2);
-  ctx.fillStyle = '#aa1010';
-  ctx.fillRect(x - 1, y + 24, 2, 2);
+  ctx.fillRect(x + 30, y + 4, 8, 3);
+  ctx.fillStyle = '#e8e8e8';
+  ctx.fillRect(x + 30, y + 7, 8, 2);
+  ctx.fillStyle = '#2a50a0';
+  ctx.fillRect(x + 30, y + 9, 8, 3);
 
-  // Right arm (down at side)
-  ctx.fillStyle = '#2a2a3a';
-  ctx.fillRect(x + 17, y + 15, 3, 11);
-  ctx.fillStyle = '#c49060';
-  ctx.fillRect(x + 17, y + 26, 3, 2);
+  // === LEFT ARM (resting on wheelchair arm) ===
+  ctx.fillStyle = '#4a5a30';
+  ctx.fillRect(x + 1, y + 22, 4, 8);
+  ctx.fillStyle = '#d4905a';
+  ctx.fillRect(x + 1, y + 29, 4, 3);
 }
 
 function drawSprite_bloodfeast_C(ctx, cx, cy) {
-  // Committeeman — congressional seat pose, flag pin on lapel, notes in hand
-  const x = Math.floor(cx - 10);
-  const y = Math.floor(cy - 40);
+  // Scheming Bloodfeast — blob in wheelchair, oxygen tank, leaning forward conspiratorially, monocle
+  const x = Math.floor(cx - 15);
+  const y = Math.floor(cy - 44);
 
-  // Seat base (simple chair suggestion)
-  ctx.fillStyle = '#4a3a28';
-  ctx.fillRect(x + 2, y + 30, 16, 2); // seat surface
-  ctx.fillRect(x + 3, y + 32, 3, 8);  // left leg
-  ctx.fillRect(x + 14, y + 32, 3, 8); // right leg
+  // === WHEELCHAIR (leaned forward slightly) ===
+  ctx.fillStyle = '#555566';
+  ctx.fillRect(x + 0, y + 28, 3, 16);
+  ctx.fillRect(x + 0, y + 28, 14, 3);
+  ctx.fillRect(x + 0, y + 41, 14, 3);
+  ctx.fillRect(x + 11, y + 28, 3, 16);
+  ctx.fillStyle = '#888899';
+  ctx.fillRect(x + 5, y + 30, 2, 11);
+  ctx.fillRect(x + 1, y + 34, 11, 2);
+  ctx.fillStyle = '#555566';
+  ctx.fillRect(x + 17, y + 28, 3, 16);
+  ctx.fillRect(x + 17, y + 28, 13, 3);
+  ctx.fillRect(x + 17, y + 41, 13, 3);
+  ctx.fillRect(x + 27, y + 28, 3, 16);
+  ctx.fillStyle = '#888899';
+  ctx.fillRect(x + 22, y + 30, 2, 11);
+  ctx.fillRect(x + 18, y + 34, 11, 2);
+  ctx.fillStyle = '#444455';
+  ctx.fillRect(x + 11, y + 40, 5, 4);
+  ctx.fillRect(x + 14, y + 40, 5, 4);
+  ctx.fillStyle = '#778899';
+  ctx.fillRect(x + 11, y + 22, 9, 3);
+  ctx.fillRect(x + 11, y + 22, 2, 20);
+  ctx.fillRect(x + 18, y + 22, 2, 20);
+  ctx.fillStyle = '#667788';
+  ctx.fillRect(x + 10, y + 38, 11, 2);
+  ctx.fillRect(x + 11, y + 40, 2, 4);
+  ctx.fillRect(x + 18, y + 40, 2, 4);
 
-  // Chair back
-  ctx.fillStyle = '#5a4a32';
-  ctx.fillRect(x + 2, y + 16, 2, 15);
+  // === OXYGEN TANK ===
+  ctx.fillStyle = '#c0c8d0';
+  ctx.fillRect(x + 24, y + 20, 5, 18);
+  ctx.fillStyle = '#a0a8b0';
+  ctx.fillRect(x + 24, y + 20, 5, 3);
+  ctx.fillRect(x + 24, y + 35, 5, 3);
+  ctx.fillStyle = '#667788';
+  ctx.fillRect(x + 26, y + 17, 2, 4);
+  ctx.fillRect(x + 25, y + 18, 4, 2);
+  ctx.fillStyle = '#88aa66';
+  ctx.fillRect(x + 25, y + 19, 1, 2);
+  ctx.fillRect(x + 13, y + 18, 13, 2);
+  ctx.fillRect(x + 13, y + 18, 2, 6);
 
-  // Trousers
-  ctx.fillStyle = '#1c2a4a';
-  ctx.fillRect(x + 5, y + 26, 5, 5);
-  ctx.fillRect(x + 10, y + 26, 5, 5);
+  // === MASSIVE BLOB BODY (leaning forward) ===
+  ctx.fillStyle = '#d4905a';
+  ctx.fillRect(x + 4, y + 22, 22, 18);
+  ctx.fillRect(x + 2, y + 24, 26, 14);
+  ctx.fillRect(x + 5, y + 19, 20, 5);
+  ctx.fillStyle = '#c07848';
+  ctx.fillRect(x + 3, y + 30, 24, 2);
+  ctx.fillRect(x + 3, y + 34, 24, 2);
+  // Dark waistcoat / vest
+  ctx.fillStyle = '#2a1a3a';
+  ctx.fillRect(x + 5, y + 22, 20, 10);
+  ctx.fillRect(x + 4, y + 22, 2, 16);
+  ctx.fillRect(x + 24, y + 22, 2, 16);
+  // Waistcoat buttons
+  ctx.fillStyle = '#c8a020';
+  ctx.fillRect(x + 14, y + 23, 2, 2);
+  ctx.fillRect(x + 14, y + 26, 2, 2);
+  ctx.fillRect(x + 14, y + 29, 2, 2);
+  // White collar/cravat
+  ctx.fillStyle = '#e8e8e8';
+  ctx.fillRect(x + 12, y + 22, 6, 3);
 
-  // Suit jacket (navy)
-  ctx.fillStyle = '#1c2a4a';
-  ctx.fillRect(x + 4, y + 14, 12, 13);
+  // === HEAD (tilted forward — leaning) ===
+  ctx.fillStyle = '#d4905a';
+  ctx.fillRect(x + 7, y + 8, 18, 13);   // slightly offset right (leaning)
+  ctx.fillRect(x + 5, y + 10, 22, 9);
+  ctx.fillRect(x + 8, y + 6, 16, 4);
+  ctx.fillStyle = '#b87040';
+  ctx.fillRect(x + 5, y + 15, 5, 5);
+  ctx.fillRect(x + 22, y + 15, 5, 5);
+  ctx.fillStyle = '#c88050';
+  ctx.fillRect(x + 7, y + 19, 18, 3);
 
-  // White shirt / collar
-  ctx.fillStyle = '#e0e0e0';
-  ctx.fillRect(x + 8, y + 14, 4, 3);
+  // === OXYGEN MASK ===
+  ctx.fillStyle = '#88aa88';
+  ctx.fillRect(x + 10, y + 15, 12, 5);
+  ctx.fillStyle = '#aaccaa';
+  ctx.fillRect(x + 11, y + 16, 10, 3);
+  ctx.fillStyle = '#557755';
+  ctx.fillRect(x + 9, y + 15, 2, 3);
+  ctx.fillRect(x + 21, y + 15, 2, 3);
 
-  // Lapels
-  ctx.fillStyle = '#253a60';
-  ctx.fillRect(x + 6, y + 14, 3, 5);
-  ctx.fillRect(x + 11, y + 14, 3, 5);
+  // === EYES — scheming, narrowed ===
+  ctx.fillStyle = '#2a1a0a';
+  ctx.fillRect(x + 11, y + 11, 3, 1);  // left eye (narrow slit)
+  ctx.fillRect(x + 18, y + 11, 3, 1);  // right eye (narrow slit)
+  ctx.fillStyle = '#6a4020'; // heavy brows furrowed
+  ctx.fillRect(x + 10, y + 10, 5, 1);
+  ctx.fillRect(x + 17, y + 10, 5, 1);
+  // Brow inner edges angled down (scheming V shape)
+  ctx.fillRect(x + 14, y + 11, 1, 1);
+  ctx.fillRect(x + 17, y + 11, 1, 1);
 
-  // Flag pin (small on left lapel)
-  ctx.fillStyle = '#dc2626';
-  ctx.fillRect(x + 6, y + 17, 2, 1);
-  ctx.fillStyle = '#e0e0e0';
-  ctx.fillRect(x + 6, y + 18, 2, 1);
-  ctx.fillStyle = '#3060c0';
-  ctx.fillRect(x + 6, y + 19, 2, 1);
+  // === MONOCLE (right eye) ===
+  ctx.fillStyle = '#c8a020'; // gold frame
+  ctx.fillRect(x + 17, y + 10, 6, 1);  // top
+  ctx.fillRect(x + 17, y + 13, 6, 1);  // bottom
+  ctx.fillRect(x + 17, y + 10, 1, 4);  // left side
+  ctx.fillRect(x + 22, y + 10, 1, 4);  // right side
+  // Monocle cord
+  ctx.fillRect(x + 22, y + 12, 3, 1);
+  ctx.fillRect(x + 24, y + 12, 1, 5);
 
-  // Neck
-  ctx.fillStyle = '#c49060';
-  ctx.fillRect(x + 8, y + 11, 4, 4);
-
-  // Head
-  ctx.fillStyle = '#c49060';
-  ctx.fillRect(x + 6, y + 4, 8, 8);
-
-  // Gray hair (distinguished)
-  ctx.fillStyle = '#b0b0b8';
-  ctx.fillRect(x + 6, y + 4, 8, 2);
-  ctx.fillRect(x + 6, y + 6, 1, 2);
-  ctx.fillRect(x + 13, y + 6, 1, 2);
-
-  // Eyes — formal, steady
-  ctx.fillStyle = '#4a3820';
-  ctx.fillRect(x + 7, y + 8, 2, 1);
-  ctx.fillRect(x + 11, y + 8, 2, 1);
-
-  // Mouth — neutral
-  ctx.fillStyle = '#8a5a3a';
-  ctx.fillRect(x + 8, y + 11, 4, 1);
-
-  // Right arm extended holding notes
-  ctx.fillStyle = '#1c2a4a';
-  ctx.fillRect(x + 16, y + 16, 3, 8);
-  ctx.fillRect(x + 16, y + 23, 5, 3); // forearm forward
-
-  // Notes (white rectangle in hand)
-  ctx.fillStyle = '#f0f0f0';
-  ctx.fillRect(x + 18, y + 20, 5, 7);
-  // line marks on notes
-  ctx.fillStyle = '#c0c0c0';
-  ctx.fillRect(x + 19, y + 22, 3, 1);
-  ctx.fillRect(x + 19, y + 24, 3, 1);
-
-  // Left arm on table/resting
-  ctx.fillStyle = '#1c2a4a';
-  ctx.fillRect(x + 1, y + 16, 3, 10);
-  ctx.fillStyle = '#c49060';
-  ctx.fillRect(x + 1, y + 26, 3, 2);
+  // === BOTH ARMS LEANING FORWARD ===
+  // Left arm on surface/leaning
+  ctx.fillStyle = '#2a1a3a';
+  ctx.fillRect(x + 1, y + 24, 4, 9);
+  ctx.fillRect(x + 1, y + 31, 8, 3);  // forearm extends forward
+  ctx.fillStyle = '#d4905a';
+  ctx.fillRect(x + 7, y + 31, 4, 4);  // hand clasped
+  // Fingertips
+  ctx.fillStyle = '#c07848';
+  ctx.fillRect(x + 7, y + 33, 4, 2);
+  // Right arm mirrored
+  ctx.fillStyle = '#2a1a3a';
+  ctx.fillRect(x + 25, y + 24, 4, 9);
+  ctx.fillRect(x + 21, y + 31, 8, 3);
+  ctx.fillStyle = '#d4905a';
+  ctx.fillRect(x + 19, y + 31, 4, 4);
+  ctx.fillStyle = '#c07848';
+  ctx.fillRect(x + 19, y + 33, 4, 2);
 }
 
 // ─── ADELBERT (Adelbert Hominem) — #94a3b8 ───────────────────────────────────
