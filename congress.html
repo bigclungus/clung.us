@@ -18,8 +18,8 @@
       --panel-border: #2a2a45;
       --seat-bg: #1e1e38;
       --seat-border: #333355;
-      --fired-bg: #1a1226;
-      --fired-border: #3a2040;
+      --retired-bg: #1a1226;
+      --retired-border: #3a2040;
       --btn-bg: #22223a;
       --btn-border: #444466;
       --node-idle: #22223a;
@@ -38,8 +38,8 @@
       --panel-border: #ccc4a8;
       --seat-bg: #fdf6e3;
       --seat-border: #d0c9b0;
-      --fired-bg: #f5e8f0;
-      --fired-border: #c8a8c0;
+      --retired-bg: #f5e8f0;
+      --retired-border: #c8a8c0;
       --btn-bg: #ede7d4;
       --btn-border: #bbb5a0;
       --node-idle: #f5efe0;
@@ -184,16 +184,16 @@
     }
     .seat-card.bench .seat-name { color: var(--text-muted); }
     /* ── Severance cards in session mode ── */
-    .fired-card.seated {
+    .retired-card.seated {
       border-color: var(--sc, var(--accent));
       box-shadow: 0 0 5px color-mix(in srgb, var(--sc, var(--accent)) 25%, transparent);
     }
-    .fired-card.bench {
+    .retired-card.bench {
       opacity: 0.38;
       border-style: dashed;
       box-shadow: none;
     }
-    .fired-card.bench .seat-name { color: var(--text-muted); }
+    .retired-card.bench .seat-name { color: var(--text-muted); }
 
     .btn-remove {
       background: none;
@@ -210,9 +210,9 @@
     .btn-remove:hover { color: var(--accent); border-color: var(--accent); }
 
     /* ── Fired card (severance) — same layout as seat-card ── */
-    .fired-card {
-      background: var(--fired-bg);
-      border: 1px solid var(--fired-border);
+    .retired-card {
+      background: var(--retired-bg);
+      border: 1px solid var(--retired-border);
       border-radius: 4px;
       padding: 9px 10px;
       display: flex;
@@ -220,9 +220,9 @@
       gap: 9px;
       position: relative;
       min-height: 72px;
-      border-color: color-mix(in srgb, var(--sc, var(--fired-border)) 50%, var(--fired-border));
+      border-color: color-mix(in srgb, var(--sc, var(--retired-border)) 50%, var(--retired-border));
     }
-    .fired-reason { font-size: 0.55rem; color: var(--text-muted); font-style: italic; line-height: 1.4; margin-top: 2px; }
+    .retired-reason { font-size: 0.55rem; color: var(--text-muted); font-style: italic; line-height: 1.4; margin-top: 2px; }
     .seat-stats { font-size: 0.6rem; color: var(--text-muted); line-height: 1.4; margin-top: 2px; letter-spacing: 0.03em; opacity: 0.75; }
 
     .sidebar-empty {
@@ -1868,7 +1868,7 @@
   let seats = [null, null, null, null, null];   // persona | null for each seat (session participants only when session loaded)
   let allActivePersonas = [];        // full roster of active non-moderator personas (never mutated by session loading)
   let sessionParticipantIds = null;  // Set of identity ids that participated in the current session (null = no session loaded)
-  let firedPool = [];                // personas in severance
+  let retiredPool = [];                // personas in severance
   let moderatorPersona = null;       // chairman persona data (excluded from seats, shown in center)
   let round = 0;
   let currentSessionId = null;       // active session id (from URL or newly started)
@@ -1896,7 +1896,7 @@
       allActivePersonas = (data.active || []).filter(p => !p.is_moderator);
       // Use first SEAT_COUNT for the default circle seats
       for (let i = 0; i < SEAT_COUNT; i++) seats[i] = allActivePersonas[i] || null;
-      firedPool = data.fired || [];
+      retiredPool = data.fired || [];
       moderatorPersona = data.moderator || null;
     } catch (e) {
       console.warn('[congress] /api/agents failed, trying fallback:', e);
@@ -1918,7 +1918,7 @@
             sex: d.sex || '',
           }));
           for (let i = 0; i < SEAT_COUNT; i++) seats[i] = allActivePersonas[i] || null;
-          firedPool = [];
+          retiredPool = [];
         }
       } catch (e2) { /* ignore */ }
     }
@@ -2021,8 +2021,8 @@
             stats_fired: p.stats_fired || 0,
             status: p.status,
           }));
-        // Also rebuild firedPool from the snapshot for accurate lookups
-        firedPool = session.roster
+        // Also rebuild retiredPool from the snapshot for accurate lookups
+        retiredPool = session.roster
           .filter(p => p.status === 'severance' || p.status === 'ineligible')
           .map(p => ({
             id: p.id || p.name,
@@ -2081,10 +2081,10 @@
           const seatedIds = new Set(seats.filter(Boolean).map(s => s.id));
           const unseated = [...participantIds].filter(id => !seatedIds.has(id) && id !== 'chairman');
           if (unseated.length > 0) {
-            // Try to get their info from allActivePersonas or firedPool
+            // Try to get their info from allActivePersonas or retiredPool
             unseated.forEach(id => {
               const fromActive = allActivePersonas.find(p => p.id === id || p.name === id);
-              const fromFired = firedPool.find(p => p.id === id || p.name === id);
+              const fromFired = retiredPool.find(p => p.id === id || p.name === id);
               const entry = fromActive || fromFired || { id, name: id, display_name: id, emoji: '🤖', color: '#888' };
               const emptySlot = seats.indexOf(null);
               if (emptySlot !== -1) seats[emptySlot] = entry;
@@ -2403,7 +2403,7 @@
 
     // Severance personas that participated in the current session
     const seatedFired = sessionMode
-      ? firedPool.filter(p => sessionParticipantIds.has(p.id || p.name))
+      ? retiredPool.filter(p => sessionParticipantIds.has(p.id || p.name))
       : [];
 
     const activeSeatedCount = sessionMode
@@ -2482,23 +2482,23 @@
     const leftSeveranceList = document.getElementById('leftSeveranceList');
     leftSeveranceList.innerHTML = '';
 
-    if (firedPool.length === 0) {
+    if (retiredPool.length === 0) {
       leftSeveranceDivider.style.display = 'none';
     } else {
       leftSeveranceDivider.style.display = '';
       const leftSeveranceCount = document.getElementById('leftSeveranceCount');
       if (sessionMode) {
         leftSeveranceCount.textContent = seatedFired.length > 0
-          ? seatedFired.length + ' seated / ' + firedPool.length + ' total'
-          : firedPool.length + ' total';
+          ? seatedFired.length + ' seated / ' + retiredPool.length + ' total'
+          : retiredPool.length + ' total';
       } else {
-        leftSeveranceCount.textContent = firedPool.length;
+        leftSeveranceCount.textContent = retiredPool.length;
       }
 
-      firedPool.forEach(p => {
+      retiredPool.forEach(p => {
         const isSeated = sessionMode ? sessionParticipantIds.has(p.id || p.name) : false;
         const card = document.createElement('div');
-        card.className = 'fired-card' + (sessionMode ? (isSeated ? ' seated' : ' bench') : '');
+        card.className = 'retired-card' + (sessionMode ? (isSeated ? ' seated' : ' bench') : '');
         if (p.color) card.style.setProperty('--sc', p.color);
 
         if (p.avatar_url) {
@@ -2533,10 +2533,10 @@
           desc.textContent = p.title || p.role;
           info.appendChild(desc);
         }
-        if (p.fired_reason) {
+        if (p.retired_reason) {
           const reason = document.createElement('div');
-          reason.className = 'fired-reason';
-          reason.textContent = '"' + p.fired_reason + '"';
+          reason.className = 'retired-reason';
+          reason.textContent = '"' + p.retired_reason + '"';
           info.appendChild(reason);
         }
         const firedMetaRow = buildMetaRow(p, true);
@@ -2609,8 +2609,8 @@
     if (!p) return;
     seats[seatIndex] = null;
     const entry = Object.assign({}, p);
-    if (!entry.fired_reason) entry.fired_reason = 'Removed from active roster.';
-    firedPool.unshift(entry);
+    if (!entry.retired_reason) entry.retired_reason = 'Removed from active roster.';
+    retiredPool.unshift(entry);
     render();
     setStatus((p.display_name || p.name) + ' retired');
   }
@@ -2954,7 +2954,7 @@
 
     // Build a map of persona info by identity id
     const personaMap = {};
-    firedPool.forEach(p => { if (p) personaMap[p.id || p.name] = p; });
+    retiredPool.forEach(p => { if (p) personaMap[p.id || p.name] = p; });
     seats.forEach(p => { if (p) personaMap[p.id] = p; }); // seats override fired entries
     if (moderatorPersona) personaMap[moderatorPersona.id || moderatorPersona.name] = moderatorPersona; // Ibrahim in synthesis entries
 
