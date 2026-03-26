@@ -2677,10 +2677,12 @@ function updateLocalPlayer() {
     sendPlayerMove();
   }
 
-  // Congress building entry: doorway and just inside (chunk 0,0 only)
+  // Congress building entry: trigger modal when player reaches the approach path,
+  // steps, or doorway at tx=5 (chunk 0,0 only). ty=7 is just outside, ty=6 is
+  // the steps row, ty=5 is the doorway interior.
   if (chunkX === 0 && chunkY === 0 &&
-      ((localPlayer.tx === 5 && localPlayer.ty === 5) ||
-       (localPlayer.tx >= 4 && localPlayer.tx <= 6 && localPlayer.ty === 4))) {
+      localPlayer.tx === 5 &&
+      (localPlayer.ty === 5 || localPlayer.ty === 6 || localPlayer.ty === 7)) {
     showCongressModal();
   }
 }
@@ -2850,13 +2852,16 @@ function connectCommonsWs() {
       }
 
       // --- NPCs (delta: only present when changed) ---
+      // Server NPC positions are in pixel space with TILE_SIZE=32; client uses TILE=20.
+      // Convert: server_px / 32 * 20
+      var SERVER_TILE = 32;
       if (msg.npcs && npcs.length > 0) {
         for (var ni = 0; ni < msg.npcs.length; ni++) {
           var npcData = msg.npcs[ni];
           for (var nj = 0; nj < npcs.length; nj++) {
             if (npcs[nj].name === npcData.name) {
-              npcs[nj].serverX = npcData.x;
-              npcs[nj].serverY = npcData.y;
+              npcs[nj].serverX = npcData.x / SERVER_TILE * TILE;
+              npcs[nj].serverY = npcData.y / SERVER_TILE * TILE;
               npcs[nj].serverFacing = npcData.facing;
               break;
             }
