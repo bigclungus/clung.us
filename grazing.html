@@ -379,6 +379,139 @@ var TILE = 20;
 var COLS = Math.floor(W / TILE); // 50
 var ROWS = Math.floor(H / TILE); // 35
 
+// ── Persona audition system ─────────────────────────────────────────────────────
+var AUDITION_URL = 'http://localhost:8110';
+var auditionWalkers = [];
+var auditionLastFetch = 0;
+var auditionHoveredId = null;
+var auditionCardWalkerId = null;
+var auditionWalkerY = 18 * 20 + 10; // pixel y (TILE*18 center)
+
+function fetchAuditionWalkers() {
+  var now = Date.now();
+  if (now - auditionLastFetch < 2000) return;
+  auditionLastFetch = now;
+  fetch(AUDITION_URL + '/api/audition/walkers')
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(data) { if (data) auditionWalkers = data; })
+    .catch(function() {});
+}
+
+function drawAuditionWalkers() {
+  for (var i = 0; i < auditionWalkers.length; i++) {
+    var w = auditionWalkers[i];
+    var wx = Math.round(w.x);
+    var wy = auditionWalkerY;
+    // Simple humanoid silhouette (similar to drawCharacter but more mysterious)
+    var color = w.avatar_color || '#a78bfa';
+    var isHovered = (w.id === auditionHoveredId);
+
+    if (isHovered) {
+      // Glow behind paused walker
+      ctx.save();
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 12;
+    }
+
+    // Shadow
+    ctx.fillStyle = '#00000044';
+    ctx.fillRect(wx - 4 + 2, wy + 12 - 2, 8, 4);
+
+    // Body
+    ctx.fillStyle = color;
+    ctx.fillRect(wx - 4, wy, 8, 12);
+
+    // Head
+    ctx.fillStyle = lighten(color, 20);
+    ctx.fillRect(wx - 3, wy - 6, 6, 6);
+
+    // Eyes
+    ctx.fillStyle = '#00000088';
+    ctx.fillRect(wx - 2, wy - 5, 1, 2);
+    ctx.fillRect(wx + 1, wy - 5, 1, 2);
+
+    if (isHovered) {
+      ctx.restore();
+      // Name + title bubble above
+      var bubLines = [w.name, w.title];
+      drawBubble(wx, wy - 8, bubLines, 1.0);
+    } else {
+      // Subtle "?" indicator above non-paused walkers
+      ctx.save();
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = color + 'aa';
+      ctx.fillText('?', wx, wy - 10);
+      ctx.restore();
+    }
+  }
+}
+
+// Audition card UI elements
+var auditionCard = document.getElementById('audition-card');
+var auditionCardName = document.getElementById('audition-card-name');
+var auditionCardTitle = document.getElementById('audition-card-title');
+var auditionCardTraits = document.getElementById('audition-card-traits');
+var auditionCardDesc = document.getElementById('audition-card-desc');
+var auditionKeepBtn = document.getElementById('audition-keep-btn');
+var auditionDismissBtn = document.getElementById('audition-dismiss-btn');
+
+function showAuditionCard(walker, clientX, clientY) {
+  auditionCardWalkerId = walker.id;
+  auditionCardName.textContent = walker.name;
+  auditionCardTitle.textContent = walker.title;
+  auditionCardTraits.innerHTML = walker.traits.map(function(t) {
+    return '<span class="audition-trait">' + t + '</span>';
+  }).join('');
+  auditionCardDesc.textContent = walker.description;
+  // Position card near walker but ensure it's visible
+  var cardLeft = Math.min(clientX + 20, window.innerWidth - 300);
+  var cardTop = Math.max(clientY - 20, 10);
+  auditionCard.style.left = cardLeft + 'px';
+  auditionCard.style.top = cardTop + 'px';
+  auditionCard.classList.add('active');
+}
+
+function hideAuditionCard() {
+  auditionCard.classList.remove('active');
+  auditionCardWalkerId = null;
+}
+
+auditionKeepBtn.addEventListener('click', function() {
+  var id = auditionCardWalkerId;
+  if (!id) return;
+  hideAuditionCard();
+  fetch(AUDITION_URL + '/api/audition/keep', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: id }),
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      // Remove from local list
+      auditionWalkers = auditionWalkers.filter(function(w) { return w.id !== id; });
+      auditionHoveredId = null;
+      console.log('[audition] kept:', d.name);
+    })
+    .catch(function(err) { console.error('[audition] keep failed:', err); });
+});
+
+auditionDismissBtn.addEventListener('click', function() {
+  var id = auditionCardWalkerId;
+  if (!id) return;
+  hideAuditionCard();
+  fetch(AUDITION_URL + '/api/audition/dismiss', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: id }),
+  })
+    .then(function() {
+      auditionWalkers = auditionWalkers.filter(function(w) { return w.id !== id; });
+      auditionHoveredId = null;
+    })
+    .catch(function(err) { console.error('[audition] dismiss failed:', err); });
+});
+
 // ── Chunk system ───────────────────────────────────────────────────────────────
 var chunkX = 0, chunkY = 0;
 
@@ -1702,6 +1835,17 @@ var ttAvatar = document.getElementById('tt-avatar');
 canvas.addEventListener('mouseleave', function() {
   tooltip.style.display = 'none';
   if (!dragState) canvas.style.cursor = 'default';
+  // Resume any paused audition walker when mouse leaves canvas (unless card is open)
+  if (auditionHoveredId && !auditionCard.classList.contains('active')) {
+    fetch(AUDITION_URL + '/api/audition/resume', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: auditionHoveredId }),
+    }).catch(function() {});
+    for (var ri = 0; ri < auditionWalkers.length; ri++) {
+      if (auditionWalkers[ri].id === auditionHoveredId) auditionWalkers[ri].paused = false;
+    }
+    auditionHoveredId = null;
+  }
 });
 
 // ── Click to invoke ───────────────────────────────────────────────────────────
@@ -1839,6 +1983,48 @@ canvas.addEventListener('mousemove', function(e) {
     } else {
       tooltip.style.display = 'none';
       canvas.style.cursor = dragState ? 'grabbing' : 'default';
+    }
+
+    // Audition walker hover detection
+    var foundWalker = null;
+    for (var ai = 0; ai < auditionWalkers.length; ai++) {
+      var aw = auditionWalkers[ai];
+      var awdx = mx - aw.x;
+      var awdy = my - auditionWalkerY;
+      if (Math.abs(awdx) < 20 && Math.abs(awdy) < 20) { foundWalker = aw; break; }
+    }
+    if (foundWalker) {
+      if (auditionHoveredId !== foundWalker.id) {
+        // New hover: pause previous if any
+        if (auditionHoveredId) {
+          fetch(AUDITION_URL + '/api/audition/resume', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: auditionHoveredId }),
+          }).catch(function() {});
+        }
+        auditionHoveredId = foundWalker.id;
+        // Pause this walker
+        fetch(AUDITION_URL + '/api/audition/pause', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: foundWalker.id }),
+        }).catch(function() {});
+        // Mark paused in local state
+        for (var pi = 0; pi < auditionWalkers.length; pi++) {
+          auditionWalkers[pi].paused = (auditionWalkers[pi].id === foundWalker.id);
+        }
+        showAuditionCard(foundWalker, e.clientX, e.clientY);
+      }
+      canvas.style.cursor = 'pointer';
+    } else if (auditionHoveredId && !auditionCard.classList.contains('active')) {
+      // Mouse left walker and card was closed — resume
+      fetch(AUDITION_URL + '/api/audition/resume', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: auditionHoveredId }),
+      }).catch(function() {});
+      for (var ri = 0; ri < auditionWalkers.length; ri++) {
+        if (auditionWalkers[ri].id === auditionHoveredId) auditionWalkers[ri].paused = false;
+      }
+      auditionHoveredId = null;
     }
   }
 
@@ -2565,6 +2751,10 @@ function loop() {
   for (var i = 0; i < sorted.length; i++) {
     sorted[i].draw();
   }
+
+  // Draw audition walkers (candidates crossing the map)
+  fetchAuditionWalkers();
+  drawAuditionWalkers();
 
   // Draw remote players (other visitors)
   drawRemotePlayers();
