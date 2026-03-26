@@ -230,6 +230,17 @@ var COLOR_OVERRIDES = {
   'jhaddu':    '#fb923c',
 };
 
+// ── Season system (Feature 4) ─────────────────────────────────────────────────
+// Week-of-year mod 4 = 0=spring, 1=summer, 2=autumn, 3=winter
+function getSeason() {
+  var now = new Date();
+  var start = new Date(now.getFullYear(), 0, 1);
+  var weekOfYear = Math.floor((now - start) / (7 * 24 * 3600 * 1000));
+  return weekOfYear % 4; // 0=spring,1=summer,2=autumn,3=winter
+}
+var SEASON = getSeason();
+var SEASON_LABELS = ['🌸 spring', '☀️ summer', '🍂 autumn', '❄️ winter'];
+
 // ── Congress live state ────────────────────────────────────────────────────────
 var congressState = { active: false, topic: '', debaters: [] };
 
@@ -334,6 +345,9 @@ var MAP = (function () {
 
 function isBlocked(tx, ty) {
   if (tx < 0 || tx >= COLS || ty < 0 || ty >= ROWS) return true;
+  // Allow entering congress building through doorway
+  if (tx === 5 && ty === 5) return false; // doorway
+  if (tx === 5 && ty === 6) return false; // steps
   var t = MAP[ty][tx];
   return t === 2 || t === 3 || t === 4 || t === 5;
 }
@@ -343,9 +357,28 @@ var canvas = document.getElementById('map');
 var ctx = canvas.getContext('2d');
 
 // ── Rendering: draw map ────────────────────────────────────────────────────────
-// Grass color variants (seeded by position for variety)
+// Grass color variants (seeded by position for variety, season-aware)
 function grassColor(tx, ty) {
   var h = (tx * 7 + ty * 13 + tx * ty) % 16;
+  if (SEASON === 1) { // summer — brighter
+    if (h < 4) return '#1f501f';
+    if (h < 8) return '#235223';
+    if (h < 12) return '#244d24';
+    return '#1f4a1f';
+  }
+  if (SEASON === 2) { // autumn — brown-tinged
+    if (h < 4) return '#3a2c14';
+    if (h < 8) return '#3d2e18';
+    if (h < 12) return '#3a3018';
+    return '#382c14';
+  }
+  if (SEASON === 3) { // winter — dark snow-gray
+    if (h < 4) return '#28283a';
+    if (h < 8) return '#2c2c3e';
+    if (h < 12) return '#2a2a3c';
+    return '#2a2a3a';
+  }
+  // spring (default)
   if (h < 4) return '#1a3a1a';
   if (h < 8) return '#1d421d';
   if (h < 12) return '#1f3d1f';
@@ -365,6 +398,24 @@ function drawMap() {
           if ((tx * 3 + ty * 5) % 7 === 0) {
             ctx.fillStyle = '#14281480';
             ctx.fillRect(x + 2, y + 6, 2, 6);
+          }
+          // Seasonal decorations
+          if (SEASON === 0 && (tx * 11 + ty * 17) % 50 === 0) {
+            // Spring: white flower pixels (2% chance per tile)
+            ctx.fillStyle = '#ffffffcc';
+            ctx.fillRect(x + 6, y + 5, 2, 2);
+            ctx.fillStyle = '#ffccddcc';
+            ctx.fillRect(x + 5, y + 6, 4, 1);
+          } else if (SEASON === 1 && (tx * 13 + ty * 19) % 50 === 0) {
+            // Summer: yellow wildflowers
+            ctx.fillStyle = '#f0e030cc';
+            ctx.fillRect(x + 6, y + 4, 2, 2);
+            ctx.fillStyle = '#f0e030aa';
+            ctx.fillRect(x + 5, y + 5, 4, 1);
+          } else if (SEASON === 2 && (tx * 7 + ty * 11) % 30 === 0) {
+            // Autumn: fallen leaf pixels
+            ctx.fillStyle = '#c06820aa';
+            ctx.fillRect(x + ((tx * 5) % 8) + 2, y + ((ty * 7) % 8) + 2, 3, 2);
           }
           break;
         case 1: // path/dirt
@@ -456,11 +507,23 @@ function drawMap() {
           // trunk
           ctx.fillStyle = '#4a2c0a';
           ctx.fillRect(x + 6, y + 10, 4, 6);
-          // canopy
-          ctx.fillStyle = '#1a5c1a';
-          ctx.fillRect(x + 2, y + 2, 12, 10);
-          ctx.fillStyle = '#236623';
-          ctx.fillRect(x + 4, y, 8, 6);
+          // canopy — season-aware
+          if (SEASON === 2) { // autumn: orange canopy
+            ctx.fillStyle = '#8b4513';
+            ctx.fillRect(x + 2, y + 2, 12, 10);
+            ctx.fillStyle = '#a0521a';
+            ctx.fillRect(x + 4, y, 8, 6);
+          } else if (SEASON === 3) { // winter: white-gray canopy
+            ctx.fillStyle = '#b0b8c0';
+            ctx.fillRect(x + 2, y + 2, 12, 10);
+            ctx.fillStyle = '#c8d0d8';
+            ctx.fillRect(x + 4, y, 8, 6);
+          } else {
+            ctx.fillStyle = '#1a5c1a';
+            ctx.fillRect(x + 2, y + 2, 12, 10);
+            ctx.fillStyle = '#236623';
+            ctx.fillRect(x + 4, y, 8, 6);
+          }
           break;
         case 5: // rock
           ctx.fillStyle = '#3a3a4a';
@@ -596,6 +659,47 @@ function drawBubble(cx, cy, lines, alpha) {
   ctx.restore();
 }
 
+// ── Worn paths (Feature 5) ─────────────────────────────────────────────────────
+// Track tile visit counts; reset daily via localStorage
+var WORN_TILES = (function() {
+  var DAY_MS = 24 * 3600 * 1000;
+  var now = Date.now();
+  var stored = null;
+  try {
+    var raw = localStorage.getItem('commons_worn_tiles');
+    if (raw) {
+      var obj = JSON.parse(raw);
+      if (now - obj.ts < DAY_MS) stored = obj;
+    }
+  } catch(e) {}
+  if (!stored) {
+    stored = { ts: now, counts: {} };
+    try { localStorage.setItem('commons_worn_tiles', JSON.stringify(stored)); } catch(e) {}
+  }
+  return stored;
+})();
+
+function recordTileVisit(tx, ty) {
+  var key = tx + ',' + ty;
+  WORN_TILES.counts[key] = (WORN_TILES.counts[key] || 0) + 1;
+  // Persist every 30 visits (avoid thrashing localStorage)
+  var total = WORN_TILES.counts[key];
+  if (total % 30 === 0) {
+    try { localStorage.setItem('commons_worn_tiles', JSON.stringify(WORN_TILES)); } catch(e) {}
+  }
+}
+
+function getWornLevel(tx, ty) {
+  var key = tx + ',' + ty;
+  var count = WORN_TILES.counts[key] || 0;
+  if (count >= 30) return 2; // dirt
+  if (count >= 10) return 1; // worn
+  return 0;
+}
+
+// ── NPC Gossip state (Feature 1) ───────────────────────────────────────────────
+// gossipBubble: { lines, ttl } — shown like a thought bubble (yellow/italic style)
+
 // ── NPC class ────────────────────────────────────────────────────────────────
 var DIRS = [{dx:1,dy:0},{dx:-1,dy:0},{dx:0,dy:1},{dx:0,dy:-1}];
 
@@ -654,6 +758,18 @@ function NPC(persona, startTx, startTy) {
 
   // Drag state
   this.held = false;
+
+  // Gossip state (Feature 1)
+  this.gossipBubble = null; // {lines, ttl}
+  this.lastSpokenQuip = '';
+  this.proximityTimers = {}; // npc.name -> frames spent close
+
+  // Faction post-congress (Feature 2)
+  this.factionTarget = null; // NPC to drift toward
+
+  // Last tile (for worn path tracking)
+  this.lastTx = this.tx;
+  this.lastTy = this.ty;
 }
 
 NPC.prototype.pickNewDir = function (npcs) {
@@ -1262,6 +1378,18 @@ document.addEventListener('keyup', function(e) {
 var lastMoveFrame = 0;
 var MOVE_INTERVAL = 8; // frames between moves (at 60fps ~133ms per step)
 
+function triggerAreaTransition(url) {
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;opacity:0;z-index:999;pointer-events:none;transition:opacity 0.5s ease;';
+  document.body.appendChild(overlay);
+  // Force reflow so the transition fires
+  overlay.offsetHeight;
+  overlay.style.opacity = '1';
+  setTimeout(function() {
+    window.location.href = url;
+  }, 500);
+}
+
 function updateLocalPlayer() {
   lastMoveFrame++;
   if (lastMoveFrame < MOVE_INTERVAL) return;
@@ -1283,6 +1411,12 @@ function updateLocalPlayer() {
     localPlayer.px = nx * TILE + TILE / 2;
     localPlayer.py = ny * TILE + TILE / 2;
     sendPlayerMove();
+
+    // Congress building entry: doorway and just inside
+    if ((localPlayer.tx === 5 && localPlayer.ty === 5) ||
+        (localPlayer.tx >= 4 && localPlayer.tx <= 6 && localPlayer.ty === 4)) {
+      triggerAreaTransition('https://clung.us/congress');
+    }
   }
 }
 
