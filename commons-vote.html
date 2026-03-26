@@ -882,31 +882,50 @@
   </script>
 
   <script>
-  const POLL_ID = 'congress-building-v1';
-  const OPTIONS = ['A', 'B', 'C'];
+  // ── Poll state driven by GET /api/polls ────────────────────────────────────
 
-  function updateUI(data) {
-    const counts = data.counts || {};
-    const winner = data.winner || null;
-    const yourVote = data.your_vote || null;
+  // Map poll_id -> { options, prefix } for button/count element id construction
+  const POLL_UI_MAP = {
+    'congress-building-v1': { prefix: 'btn', countPrefix: 'count', options: ['A','B','C'] },
+    'commons-fountain-v1':  { prefix: 'btnF', countPrefix: 'countF', options: ['A','B','C'] },
+  };
 
-    for (const opt of OPTIONS) {
-      const btn = document.getElementById('btn' + opt);
-      const countEl = document.getElementById('count' + opt);
-      const n = counts[opt] || 0;
+  // voter_token is set by backend automatically via Set-Cookie on first vote/GET
+  // We track your_vote per poll_id from individual vote API responses
+  const yourVotes = {};
+
+  function applyPollState(pollId, counts, winner, yourVote) {
+    const ui = POLL_UI_MAP[pollId];
+    if (!ui) return;
+    for (const opt of ui.options) {
+      const btn = document.getElementById(ui.prefix + opt);
+      const countEl = document.getElementById(ui.countPrefix + opt);
+      if (!btn || !countEl) continue;
+      const n = (counts && counts[opt]) || 0;
       countEl.textContent = n + (n === 1 ? ' vote' : ' votes');
-
-      // Reset classes
       btn.classList.remove('voted', 'winner-glow');
       if (yourVote === opt) {
-        btn.textContent = '✓ you voted ' + opt;
+        btn.textContent = '\u2713 you voted ' + opt;
         btn.classList.add('voted');
       } else {
         btn.textContent = 'Vote ' + opt;
       }
-      if (winner === opt) {
+      if (winner && winner === opt) {
         btn.classList.add('winner-glow');
       }
+    }
+  }
+
+  async function refreshAllPolls() {
+    try {
+      const resp = await fetch('/api/polls', { credentials: 'same-origin' });
+      if (!resp.ok) { console.error('polls fetch failed:', resp.status); return; }
+      const data = await resp.json();
+      for (const poll of (data.polls || [])) {
+        applyPollState(poll.poll_id, poll.vote_counts, poll.winner, yourVotes[poll.poll_id] ?? null);
+      }
+    } catch (e) {
+      console.error('polls refresh error:', e);
     }
   }
 
@@ -915,59 +934,14 @@
       const resp = await fetch('/api/vote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ poll_id: POLL_ID, option }),
+        body: JSON.stringify({ poll_id: 'congress-building-v1', option }),
         credentials: 'same-origin',
       });
       if (!resp.ok) { console.error('vote failed:', resp.status); return; }
       const data = await resp.json();
-      updateUI(data);
-    } catch (e) {
-      console.error('vote error:', e);
-    }
-  }
-
-  async function pollCounts() {
-    try {
-      const resp = await fetch('/api/vote/' + POLL_ID, { credentials: 'same-origin' });
-      if (!resp.ok) return;
-      const data = await resp.json();
-      updateUI(data);
-    } catch (e) {
-      console.error('poll error:', e);
-    }
-  }
-
-  // Initial load + periodic refresh
-  pollCounts();
-  setInterval(pollCounts, 5000);
-  </script>
-
-  <script>
-  const FOUNTAIN_POLL_ID = 'commons-fountain-v1';
-  const FOUNTAIN_OPTIONS = ['A', 'B', 'C'];
-
-  function updateFountainUI(data) {
-    const counts = data.counts || {};
-    const winner = data.winner || null;
-    const yourVote = data.your_vote || null;
-
-    for (const opt of FOUNTAIN_OPTIONS) {
-      const btn = document.getElementById('btnF' + opt);
-      const countEl = document.getElementById('countF' + opt);
-      const n = counts[opt] || 0;
-      countEl.textContent = n + (n === 1 ? ' vote' : ' votes');
-
-      btn.classList.remove('voted', 'winner-glow');
-      if (yourVote === opt) {
-        btn.textContent = '✓ you voted ' + opt;
-        btn.classList.add('voted');
-      } else {
-        btn.textContent = 'Vote ' + opt;
-      }
-      if (winner === opt) {
-        btn.classList.add('winner-glow');
-      }
-    }
+      yourVotes['congress-building-v1'] = data.your_vote ?? option;
+      applyPollState('congress-building-v1', data.counts, data.winner, yourVotes['congress-building-v1']);
+    } catch (e) { console.error('vote error:', e); }
   }
 
   async function castFountainVote(option) {
@@ -975,30 +949,31 @@
       const resp = await fetch('/api/vote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ poll_id: FOUNTAIN_POLL_ID, option }),
+        body: JSON.stringify({ poll_id: 'commons-fountain-v1', option }),
         credentials: 'same-origin',
       });
       if (!resp.ok) { console.error('fountain vote failed:', resp.status); return; }
       const data = await resp.json();
-      updateFountainUI(data);
-    } catch (e) {
-      console.error('fountain vote error:', e);
+      yourVotes['commons-fountain-v1'] = data.your_vote ?? option;
+      applyPollState('commons-fountain-v1', data.counts, data.winner, yourVotes['commons-fountain-v1']);
+    } catch (e) { console.error('fountain vote error:', e); }
+  }
+
+  // On load, fetch per-poll your_vote state from individual vote endpoints
+  async function initYourVotes() {
+    for (const pollId of Object.keys(POLL_UI_MAP)) {
+      try {
+        const resp = await fetch('/api/vote/' + pollId, { credentials: 'same-origin' });
+        if (!resp.ok) continue;
+        const data = await resp.json();
+        if (data.your_vote) yourVotes[pollId] = data.your_vote;
+      } catch { /* ignore */ }
     }
   }
 
-  async function pollFountainCounts() {
-    try {
-      const resp = await fetch('/api/vote/' + FOUNTAIN_POLL_ID, { credentials: 'same-origin' });
-      if (!resp.ok) return;
-      const data = await resp.json();
-      updateFountainUI(data);
-    } catch (e) {
-      console.error('fountain poll error:', e);
-    }
-  }
-
-  pollFountainCounts();
-  setInterval(pollFountainCounts, 5000);
+  // Initial load: fetch your_vote state then full poll list
+  initYourVotes().then(() => refreshAllPolls());
+  setInterval(refreshAllPolls, 5000);
   </script>
 </body>
 </html>
