@@ -308,8 +308,6 @@
 </head>
 <body>
   <div class="commons-wrap">
-    <div class="commons-title">The Commons</div>
-    <div class="commons-sub">where the council grazes</div>
     <canvas id="map" width="1000" height="700"></canvas>
     <div id="load-error"></div>
   </div>
@@ -2325,6 +2323,126 @@ var PLAYER_SPEED = 1.8; // pixels per frame (smooth, similar to NPC pace)
 var remotePlayers = {}; // id -> {x, y, name, color, facing, hopFrame, ts}
 var keysDown = {};
 
+// ── Warthog vehicle ───────────────────────────────────────────────────────────
+var warthog = {
+  x: 600, y: 350,
+  vx: 0, vy: 0,
+  facing: 'right',
+  speed: 4,
+  seats: [null, null, null, null], // null or {name, socketId, color}
+  driverSeat: 0,
+};
+var inVehicle = false;
+var localSeatIndex = -1;
+var WARTHOG_SPEED = 4;
+var WARTHOG_W = 60;
+var WARTHOG_H = 30;
+
+function drawWarthog(wx, wy, facing, seats) {
+  var x = 0, y = 0;
+  ctx.save();
+  if (facing === 'left') {
+    ctx.translate(wx + WARTHOG_W, wy);
+    ctx.scale(-1, 1);
+  } else {
+    ctx.translate(wx, wy);
+  }
+
+  // Shadow
+  ctx.fillStyle = '#00000044';
+  ctx.fillRect(4, 28, 52, 4);
+
+  // Main body (olive/tan military green)
+  ctx.fillStyle = '#6b7c3a';
+  ctx.fillRect(8, 8, 44, 18); // main body
+  ctx.fillRect(12, 2, 36, 10); // cab top
+
+  // Accent panels
+  ctx.fillStyle = '#5a6830';
+  ctx.fillRect(8, 20, 44, 6); // lower body stripe
+  ctx.fillRect(12, 2, 4, 8); // left cab pillar
+  ctx.fillRect(44, 2, 4, 8); // right cab pillar
+
+  // Wheels (dark grey)
+  ctx.fillStyle = '#2a2a2a';
+  ctx.fillRect(4, 22, 14, 8);  // front wheel
+  ctx.fillRect(42, 22, 14, 8); // rear wheel
+  // Wheel rims
+  ctx.fillStyle = '#555';
+  ctx.fillRect(7, 24, 8, 4);   // front rim
+  ctx.fillRect(45, 24, 8, 4);  // rear rim
+  // Rim centre dot
+  ctx.fillStyle = '#888';
+  ctx.fillRect(10, 25, 2, 2);
+  ctx.fillRect(48, 25, 2, 2);
+
+  // Windshield
+  ctx.fillStyle = '#4a8fa8';
+  ctx.fillRect(14, 4, 14, 7);
+  // Windshield glare
+  ctx.fillStyle = '#7abfcc';
+  ctx.fillRect(15, 5, 4, 2);
+
+  // Hood details
+  ctx.fillStyle = '#7a8c42';
+  ctx.fillRect(8, 10, 8, 4); // front hood box
+  ctx.fillStyle = '#3a3a2a';
+  ctx.fillRect(10, 11, 4, 2); // grill slot 1
+  ctx.fillRect(10, 14, 4, 2); // grill slot 2 (small)
+
+  // Gun mount (rear — turret post)
+  ctx.fillStyle = '#3a3a2a';
+  ctx.fillRect(44, 4, 4, 8); // turret base
+  ctx.fillRect(40, 4, 12, 3); // gun barrel
+  // Barrel tip
+  ctx.fillStyle = '#555';
+  ctx.fillRect(40, 5, 2, 1);
+
+  // Seat occupant heads
+  for (var i = 0; i < seats.length; i++) {
+    if (seats[i]) {
+      var headX = 16 + i * 10;
+      var headY = 3;
+      // Body hint
+      ctx.fillStyle = seats[i].color || '#fff';
+      ctx.fillRect(headX, headY, 6, 6);
+      // Eye dots
+      ctx.fillStyle = '#000';
+      ctx.fillRect(headX + 1, headY + 2, 1, 1);
+      ctx.fillRect(headX + 4, headY + 2, 1, 1);
+    }
+  }
+
+  ctx.restore();
+}
+
+function sendWarthogUpdate() {
+  if (!commonsWs || commonsWs.readyState !== WebSocket.OPEN) return;
+  commonsWs.send(JSON.stringify({
+    type: 'warthog_update',
+    x: warthog.x, y: warthog.y,
+    vx: warthog.vx, vy: warthog.vy,
+    facing: warthog.facing,
+  }));
+}
+
+function sendWarthogJoin(seatIndex) {
+  if (!commonsWs || commonsWs.readyState !== WebSocket.OPEN) return;
+  commonsWs.send(JSON.stringify({
+    type: 'warthog_join',
+    seatIndex: seatIndex,
+    playerName: localPlayer.name,
+    playerColor: localPlayer.color,
+  }));
+}
+
+function sendWarthogLeave() {
+  if (!commonsWs || commonsWs.readyState !== WebSocket.OPEN) return;
+  commonsWs.send(JSON.stringify({
+    type: 'warthog_leave',
+  }));
+}
+
 document.addEventListener('keydown', function(e) {
   if (congressModalOpen) return;
   // If focus is inside a text input or textarea, let it handle the key
@@ -2336,6 +2454,32 @@ document.addEventListener('keydown', function(e) {
     localPlayer.hopFrame = 12;
     sendPlayerHop();
     e.preventDefault();
+  }
+  // E key — enter/exit warthog
+  if (e.key === 'e' || e.key === 'E') {
+    if (inVehicle) {
+      // Exit vehicle
+      inVehicle = false;
+      localSeatIndex = -1;
+      sendWarthogLeave();
+    } else {
+      // Check proximity to warthog center
+      var wcx = warthog.x + WARTHOG_W / 2;
+      var wcy = warthog.y + WARTHOG_H / 2;
+      var dx = localPlayer.px - wcx;
+      var dy = localPlayer.py - wcy;
+      if (Math.sqrt(dx * dx + dy * dy) < 60) {
+        // Find first empty seat
+        for (var si = 0; si < warthog.seats.length; si++) {
+          if (!warthog.seats[si]) {
+            inVehicle = true;
+            localSeatIndex = si;
+            sendWarthogJoin(si);
+            break;
+          }
+        }
+      }
+    }
   }
 });
 document.addEventListener('keyup', function(e) {
@@ -2368,6 +2512,54 @@ document.addEventListener('keydown', function(e) {
 });
 
 function updateLocalPlayer() {
+  // If local player is driver (seat 0), drive the warthog
+  if (inVehicle && localSeatIndex === warthog.driverSeat) {
+    var inputDx = 0, inputDy = 0;
+    if (keysDown['ArrowLeft']  || keysDown['a'] || keysDown['A']) inputDx = -1;
+    if (keysDown['ArrowRight'] || keysDown['d'] || keysDown['D']) inputDx = 1;
+    if (keysDown['ArrowUp']    || keysDown['w'] || keysDown['W']) inputDy = -1;
+    if (keysDown['ArrowDown']  || keysDown['s'] || keysDown['S']) inputDy = 1;
+
+    if (inputDx !== 0 && inputDy !== 0) {
+      var dlen = Math.sqrt(2);
+      warthog.vx = (inputDx / dlen) * WARTHOG_SPEED;
+      warthog.vy = (inputDy / dlen) * WARTHOG_SPEED;
+    } else {
+      warthog.vx = inputDx * WARTHOG_SPEED;
+      warthog.vy = inputDy * WARTHOG_SPEED;
+    }
+
+    warthog.x += warthog.vx;
+    warthog.y += warthog.vy;
+    warthog.x = Math.max(0, Math.min(W - WARTHOG_W, warthog.x));
+    warthog.y = Math.max(0, Math.min(H - WARTHOG_H, warthog.y));
+
+    if (warthog.vx > 0) warthog.facing = 'right';
+    else if (warthog.vx < 0) warthog.facing = 'left';
+
+    // Player tracks warthog center
+    localPlayer.px = warthog.x + WARTHOG_W / 2;
+    localPlayer.py = warthog.y + WARTHOG_H / 2;
+    localPlayer.tx = Math.floor(localPlayer.px / TILE);
+    localPlayer.ty = Math.floor(localPlayer.py / TILE);
+    localPlayer.facing = warthog.facing;
+
+    if (warthog.vx !== 0 || warthog.vy !== 0) {
+      sendWarthogUpdate();
+      sendPlayerMove();
+    }
+    return;
+  }
+
+  // Passenger: track warthog position but don't drive
+  if (inVehicle) {
+    localPlayer.px = warthog.x + WARTHOG_W / 2;
+    localPlayer.py = warthog.y + WARTHOG_H / 2;
+    localPlayer.tx = Math.floor(localPlayer.px / TILE);
+    localPlayer.ty = Math.floor(localPlayer.py / TILE);
+    return;
+  }
+
   var inputDx = 0, inputDy = 0;
   if (keysDown['ArrowLeft']  || keysDown['a'] || keysDown['A']) inputDx = -1;
   if (keysDown['ArrowRight'] || keysDown['d'] || keysDown['D']) inputDx = 1;
@@ -2649,6 +2841,28 @@ function connectCommonsWs() {
           break;
         }
       }
+    } else if (msg.type === 'warthog_state') {
+      var wsData = msg.warthog;
+      if (wsData) {
+        // Keep local inVehicle state if local player is in it (don't overwrite with server)
+        if (!inVehicle) {
+          warthog.x = wsData.x;
+          warthog.y = wsData.y;
+        } else if (localSeatIndex !== warthog.driverSeat) {
+          // Passenger: follow server position
+          warthog.x = wsData.x;
+          warthog.y = wsData.y;
+        }
+        warthog.vx = wsData.vx;
+        warthog.vy = wsData.vy;
+        warthog.facing = wsData.facing;
+        // Update seats, but preserve local player seat reference
+        for (var si2 = 0; si2 < wsData.seats.length; si2++) {
+          if (!(inVehicle && si2 === localSeatIndex)) {
+            warthog.seats[si2] = wsData.seats[si2];
+          }
+        }
+      }
     } else if (msg.type === 'npc_update') {
       // Update NPC positions from server (lerp handled in NPC draw/update)
       if (msg.npcs && npcs.length > 0) {
@@ -2809,6 +3023,27 @@ function loop() {
   // Draw audition walkers (candidates crossing the map)
   fetchAuditionWalkers();
   drawAuditionWalkers();
+
+  // Draw Warthog (under players)
+  drawWarthog(Math.round(warthog.x), Math.round(warthog.y), warthog.facing, warthog.seats);
+
+  // "E to drive" hint when near warthog and not in vehicle
+  if (!inVehicle) {
+    var wcx2 = warthog.x + WARTHOG_W / 2;
+    var wcy2 = warthog.y + WARTHOG_H / 2;
+    var dxh = localPlayer.px - wcx2;
+    var dyh = localPlayer.py - wcy2;
+    if (Math.sqrt(dxh * dxh + dyh * dyh) < 60) {
+      ctx.save();
+      ctx.font = 'bold 9px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#00000088';
+      ctx.fillText('[E] to drive', Math.round(wcx2) + 1, Math.round(warthog.y) - 4);
+      ctx.fillStyle = '#f0e060';
+      ctx.fillText('[E] to drive', Math.round(wcx2), Math.round(warthog.y) - 5);
+      ctx.restore();
+    }
+  }
 
   // Draw remote players (other visitors)
   drawRemotePlayers();
