@@ -3030,6 +3030,12 @@ function drawForegroundTiles() {
       if (tileCenterY <= wCenterY) continue;
 
       var x = tx * TILE, y = ty * TILE;
+      // First restore the grass background for the full tile cell.
+      // Tree and rock tiles in the mapCache have transparent non-shape pixels
+      // (no grass fill in drawMap case 4/5), so without this the warthog pixels
+      // bleed through the transparent areas even after we redraw the tree/rock.
+      ctx.fillStyle = grassColor(tx, ty);
+      ctx.fillRect(x, y, TILE, TILE);
       if (t === 4) {
         // tree
         ctx.fillStyle = '#4a2c0a';
