@@ -77,50 +77,66 @@
       position: fixed;
       inset: 0;
       z-index: 200;
-      background: rgba(0,0,0,0.55);
-      align-items: center;
-      justify-content: center;
+      background: rgba(0,0,0,0.75);
     }
-    #invoke-overlay.active { display: flex; }
+    #invoke-overlay.active { display: flex; align-items: stretch; }
+    #invoke-portrait-col {
+      display: flex;
+      align-items: flex-end;
+      padding: 0 0 0 30px;
+      flex-shrink: 0;
+    }
+    #npc-portrait {
+      image-rendering: pixelated;
+      display: block;
+    }
+    #invoke-dialog-col {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      padding: 0 20px 0 20px;
+    }
     #invoke-box {
-      background: #0d0d1a;
-      border: 1px solid #4ecca3;
-      border-radius: 6px;
+      background: #0a0f1a;
+      border: 2px solid #00ffaa;
+      border-radius: 8px;
       padding: 18px 20px 16px;
-      width: 340px;
-      max-width: 92vw;
-      box-shadow: 0 0 24px #4ecca344;
+      width: 100%;
+      max-width: 600px;
+      box-shadow: 0 0 24px #00ffaa22;
     }
     #invoke-title {
-      color: #4ecca3;
-      font-size: 12px;
+      color: #00ffaa;
+      font-size: 14px;
       font-weight: 700;
-      letter-spacing: 0.1em;
+      font-family: monospace;
+      letter-spacing: 0.05em;
       margin-bottom: 10px;
     }
     #invoke-input {
       width: 100%;
       box-sizing: border-box;
-      background: #11111f;
-      border: 1px solid #2a2a40;
-      border-radius: 4px;
+      background: #111827;
+      border: none;
+      border-bottom: 1px solid #2a2a40;
+      border-radius: 0;
       color: #e0e0ff;
-      font-family: inherit;
-      font-size: 12px;
+      font-family: monospace;
+      font-size: 13px;
       padding: 7px 9px;
       outline: none;
       resize: none;
     }
-    #invoke-input:focus { border-color: #4ecca3; }
+    #invoke-input:focus { border-bottom-color: #00ffaa; }
     #invoke-hint {
-      color: #444460;
+      color: #4a5568;
       font-size: 10px;
       margin-top: 6px;
     }
     #invoke-cancel {
       background: none;
       border: none;
-      color: #555570;
+      color: #4a5568;
       font-family: inherit;
       font-size: 10px;
       cursor: pointer;
@@ -128,6 +144,89 @@
       padding: 0;
     }
     #invoke-cancel:hover { color: #e94560; }
+    /* ── Persona audition concept card ───────────────────────────────────────── */
+    #audition-card {
+      display: none;
+      position: fixed;
+      z-index: 250;
+      background: #0d0d1a;
+      border: 1px solid #a78bfa;
+      border-radius: 6px;
+      padding: 14px 16px 12px;
+      width: 280px;
+      max-width: 90vw;
+      box-shadow: 0 0 20px #a78bfa44;
+      pointer-events: auto;
+    }
+    #audition-card.active { display: block; }
+    #audition-card-name {
+      color: #a78bfa;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      margin-bottom: 2px;
+    }
+    #audition-card-title {
+      color: #666688;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    #audition-card-traits {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .audition-trait {
+      background: #1a1a2e;
+      border: 1px solid #2a2a50;
+      border-radius: 3px;
+      color: #8888aa;
+      font-size: 9px;
+      padding: 2px 6px;
+      letter-spacing: 0.05em;
+    }
+    #audition-card-desc {
+      color: #9898b8;
+      font-size: 10px;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    #audition-card-actions {
+      display: flex;
+      gap: 8px;
+    }
+    #audition-keep-btn {
+      flex: 1;
+      background: #a78bfa22;
+      border: 1px solid #a78bfa;
+      border-radius: 4px;
+      color: #a78bfa;
+      font-family: inherit;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 6px 0;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    #audition-keep-btn:hover { background: #a78bfa44; }
+    #audition-dismiss-btn {
+      flex: 1;
+      background: none;
+      border: 1px solid #333355;
+      border-radius: 4px;
+      color: #555570;
+      font-family: inherit;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      padding: 6px 0;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    #audition-dismiss-btn:hover { border-color: #e94560; color: #e94560; }
     #music-btn {
       position: fixed;
       bottom: 16px;
@@ -224,11 +323,16 @@
 
   <!-- Click-to-invoke overlay -->
   <div id="invoke-overlay">
-    <div id="invoke-box">
-      <div id="invoke-title">speak to <span id="invoke-persona-label"></span></div>
-      <textarea id="invoke-input" rows="3" placeholder="ask something..."></textarea>
-      <div id="invoke-hint">Enter to send · Shift+Enter for newline</div>
-      <button id="invoke-cancel">cancel</button>
+    <div id="invoke-portrait-col">
+      <canvas id="npc-portrait" width="200" height="400"></canvas>
+    </div>
+    <div id="invoke-dialog-col">
+      <div id="invoke-box">
+        <div id="invoke-title">speak to <span id="invoke-persona-label"></span></div>
+        <textarea id="invoke-input" rows="3" placeholder="ask something..."></textarea>
+        <div id="invoke-hint">Enter to send · Shift+Enter for newline</div>
+        <button id="invoke-cancel">cancel</button>
+      </div>
     </div>
   </div>
 
@@ -250,6 +354,18 @@
         Sessions are broadcast live when in progress.
       </div>
       <a id="congress-modal-link" href="/congress" target="_blank" rel="noopener">Open Congress →</a>
+    </div>
+  </div>
+
+  <!-- Persona audition concept card -->
+  <div id="audition-card">
+    <div id="audition-card-name"></div>
+    <div id="audition-card-title"></div>
+    <div id="audition-card-traits"></div>
+    <div id="audition-card-desc"></div>
+    <div id="audition-card-actions">
+      <button id="audition-keep-btn">Keep ✦</button>
+      <button id="audition-dismiss-btn">Dismiss</button>
     </div>
   </div>
 
@@ -1594,6 +1710,48 @@ var invokeInput = document.getElementById('invoke-input');
 var invokePersonaLabel = document.getElementById('invoke-persona-label');
 var invokeCancel = document.getElementById('invoke-cancel');
 var activeInvokeNPC = null;
+var npcPortraitCanvas = document.getElementById('npc-portrait');
+var npcPortraitCtx = npcPortraitCanvas.getContext('2d');
+
+function drawNpcPortrait(npc) {
+  var pw = npcPortraitCanvas.width;   // 200
+  var ph = npcPortraitCanvas.height;  // 400
+  npcPortraitCtx.clearRect(0, 0, pw, ph);
+
+  // Determine sprite function
+  var spriteInfo = SPRITE_SLUG_MAP[npc.name];
+  var winner = spriteInfo ? SPRITE_WINNERS[npc.name] : null;
+  var spriteFn = winner ? window['drawSprite_' + spriteInfo.id + '_' + winner] : null;
+
+  // Draw at 4x scale, centered horizontally, positioned in lower portion of portrait
+  var scale = 4;
+  var cx = Math.round(pw / 2);
+  var cy_feet = Math.round(ph * 0.78);
+
+  // Temporarily redirect ctx to portrait canvas
+  var savedCtx = ctx;
+  ctx = npcPortraitCtx;
+
+  if (typeof spriteFn === 'function') {
+    npcPortraitCtx.save();
+    npcPortraitCtx.scale(scale, scale);
+    spriteFn(npcPortraitCtx, cx / scale, cy_feet / scale);
+    npcPortraitCtx.restore();
+  } else {
+    // Fallback: draw generic character at 4x scale
+    drawCharacter(cx, cy_feet - Math.round(18 * scale), npc.color, scale, npc.isGalactus);
+  }
+
+  ctx = savedCtx;
+
+  // NPC name label at bottom
+  npcPortraitCtx.save();
+  npcPortraitCtx.font = 'bold 13px monospace';
+  npcPortraitCtx.textAlign = 'center';
+  npcPortraitCtx.fillStyle = '#00ffaa';
+  npcPortraitCtx.fillText(npc.displayName, pw / 2, ph - 12);
+  npcPortraitCtx.restore();
+}
 
 // ── Drag state ────────────────────────────────────────────────────────────────
 var dragState = null; // null | { npc, startClientX, startClientY, dragging }
@@ -1713,6 +1871,7 @@ canvas.addEventListener('mouseup', function(e) {
     activeInvokeNPC = npc;
     invokePersonaLabel.textContent = npc.displayName;
     invokeInput.value = '';
+    drawNpcPortrait(npc);
     invokeOverlay.classList.add('active');
     setTimeout(function() { invokeInput.focus(); }, 50);
   } else {
@@ -2036,27 +2195,12 @@ function updateLocalPlayer() {
   var newPx = localPlayer.px + localPlayer.vx;
   var newPy = localPlayer.py + localPlayer.vy;
 
-  var newTx = Math.floor(newPx / TILE);
-  var newTy = Math.floor(newPy / TILE);
-
-  // Try full movement; slide on each axis if blocked
-  if (!isBlocked(newTx, newTy)) {
-    localPlayer.px = newPx;
-    localPlayer.py = newPy;
-  } else if (!isBlocked(Math.floor(newPx / TILE), localPlayer.ty)) {
-    localPlayer.px = newPx;
-    newTy = localPlayer.ty;
-  } else if (!isBlocked(localPlayer.tx, Math.floor(newPy / TILE))) {
-    localPlayer.py = newPy;
-    newTx = localPlayer.tx;
-  } else {
-    return; // fully blocked
-  }
-
-  // ── Chunk edge detection — check BEFORE clamping ──────────────────────────
+  // ── Chunk edge detection — MUST happen before collision check ─────────────
+  // isBlocked() returns true for out-of-bounds tiles, so edge crossing must
+  // be detected here before the collision code can block it with an early return.
   var crossed = false;
   var newCx = chunkX, newCy = chunkY;
-  var wrapPx = localPlayer.px, wrapPy = localPlayer.py;
+  var wrapPx = newPx, wrapPy = newPy;
 
   if (newPx < 0) {
     newCx = chunkX - 1;
@@ -2100,6 +2244,23 @@ function updateLocalPlayer() {
     sendChunkChange(newCx, newCy);
     sendPlayerMove();
     return;
+  }
+
+  var newTx = Math.floor(newPx / TILE);
+  var newTy = Math.floor(newPy / TILE);
+
+  // Try full movement; slide on each axis if blocked
+  if (!isBlocked(newTx, newTy)) {
+    localPlayer.px = newPx;
+    localPlayer.py = newPy;
+  } else if (!isBlocked(Math.floor(newPx / TILE), localPlayer.ty)) {
+    localPlayer.px = newPx;
+    newTy = localPlayer.ty;
+  } else if (!isBlocked(localPlayer.tx, Math.floor(newPy / TILE))) {
+    localPlayer.py = newPy;
+    newTx = localPlayer.tx;
+  } else {
+    return; // fully blocked
   }
 
   // Clamp to canvas bounds
