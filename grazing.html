@@ -3003,6 +3003,66 @@ function startLoop() {
   requestAnimationFrame(loop);
 }
 
+// Redraw tree/rock tiles that spatially overlap the warthog and are visually in front of it.
+// This corrects the z-order bug where the warthog (drawn on top of the cached map) would
+// appear to pass over trees/rocks that should occlude it from the front.
+function drawForegroundTiles() {
+  // Warthog bounding box in canvas pixels
+  var wx = Math.round(warthog.x);
+  var wy = Math.round(warthog.y);
+  var wCenterY = wy + WARTHOG_H / 2;
+
+  // Tile range that could possibly overlap the warthog bbox
+  var txMin = Math.floor(wx / TILE);
+  var txMax = Math.floor((wx + WARTHOG_W) / TILE);
+  var tyMin = Math.floor(wy / TILE);
+  var tyMax = Math.floor((wy + WARTHOG_H) / TILE);
+
+  for (var ty = tyMin; ty <= tyMax; ty++) {
+    if (ty < 0 || ty >= ROWS) continue;
+    for (var tx = txMin; tx <= txMax; tx++) {
+      if (tx < 0 || tx >= COLS) continue;
+      var t = MAP[ty][tx];
+      if (t !== 4 && t !== 5) continue;
+
+      // Tile center y — if greater than warthog center y, tile is visually in front
+      var tileCenterY = ty * TILE + TILE / 2;
+      if (tileCenterY <= wCenterY) continue;
+
+      var x = tx * TILE, y = ty * TILE;
+      if (t === 4) {
+        // tree
+        ctx.fillStyle = '#4a2c0a';
+        ctx.fillRect(x + 6, y + 10, 4, 6);
+        if (SEASON === 2) {
+          ctx.fillStyle = '#8b4513';
+          ctx.fillRect(x + 2, y + 2, 12, 10);
+          ctx.fillStyle = '#a0521a';
+          ctx.fillRect(x + 4, y, 8, 6);
+        } else if (SEASON === 3) {
+          ctx.fillStyle = '#b0b8c0';
+          ctx.fillRect(x + 2, y + 2, 12, 10);
+          ctx.fillStyle = '#c8d0d8';
+          ctx.fillRect(x + 4, y, 8, 6);
+        } else {
+          ctx.fillStyle = '#1a5c1a';
+          ctx.fillRect(x + 2, y + 2, 12, 10);
+          ctx.fillStyle = '#236623';
+          ctx.fillRect(x + 4, y, 8, 6);
+        }
+      } else {
+        // rock (t === 5)
+        ctx.fillStyle = '#3a3a4a';
+        ctx.fillRect(x + 2, y + 6, 12, 8);
+        ctx.fillStyle = '#4e4e60';
+        ctx.fillRect(x + 3, y + 4, 10, 7);
+        ctx.fillStyle = '#606070';
+        ctx.fillRect(x + 5, y + 3, 4, 3);
+      }
+    }
+  }
+}
+
 function loop() {
   // Fetch traces periodically
   fetchTraces();
@@ -3070,6 +3130,9 @@ function loop() {
     warthogHopOffset = -Math.sin(localPlayer.hopFrame / 12 * Math.PI) * 10;
   }
   drawWarthog(Math.round(warthog.x), Math.round(warthog.y) + warthogHopOffset, warthog.facing, warthog.seats);
+
+  // Foreground z-order pass: redraw trees/rocks that are visually in front of the warthog
+  drawForegroundTiles();
 
   // "E to drive" hint when near warthog and not in vehicle
   if (!inVehicle) {
