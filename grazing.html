@@ -1148,28 +1148,287 @@ fetch('/api/agents')
     startLoop();
   });
 
+// ── Traces (NPC footprints/thoughts/artifacts) ────────────────────────────────
+var tracesData = []; // [{persona_name, trace_type, tile_x, tile_y, content, age_ms}]
+var tracesLastFetch = 0;
+var TRACES_FETCH_INTERVAL = 30000; // ms
+
+function fetchTraces() {
+  var now = Date.now();
+  if (now - tracesLastFetch < TRACES_FETCH_INTERVAL) return;
+  tracesLastFetch = now;
+  fetch('/api/commons/traces')
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(d) { if (d && d.traces) tracesData = d.traces; })
+    .catch(function() {});
+}
+
+function drawTraces() {
+  var STALE_MS = 10 * 60 * 1000; // fade out over last minute before expiry (7 days)
+  for (var i = 0; i < tracesData.length; i++) {
+    var t = tracesData[i];
+    var px = t.tile_x * TILE + TILE / 2;
+    var py = t.tile_y * TILE + TILE / 2;
+    var alpha = Math.max(0.1, Math.min(1, 1 - (t.age_ms / (7 * 24 * 3600 * 1000))));
+
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.55;
+
+    if (t.trace_type === 'footprint') {
+      // Small dots representing footsteps
+      ctx.fillStyle = COLOR_OVERRIDES[t.persona_name] || '#aaaaaa';
+      ctx.beginPath();
+      ctx.arc(px - 3, py + 2, 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(px + 3, py - 2, 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (t.trace_type === 'thought') {
+      // Small speech bubble dot
+      ctx.fillStyle = COLOR_OVERRIDES[t.persona_name] || '#aaaaaa';
+      ctx.beginPath();
+      ctx.arc(px, py, 3, 0, Math.PI * 2);
+      ctx.fill();
+      // Tiny thought dots above
+      ctx.beginPath(); ctx.arc(px, py - 6, 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(px + 3, py - 9, 1, 0, Math.PI * 2); ctx.fill();
+    } else if (t.trace_type === 'artifact') {
+      // Small diamond
+      ctx.strokeStyle = COLOR_OVERRIDES[t.persona_name] || '#aaaaaa';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(px, py - 4);
+      ctx.lineTo(px + 4, py);
+      ctx.lineTo(px, py + 4);
+      ctx.lineTo(px - 4, py);
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+}
+
+// ── Multiplayer: local player + remote players ────────────────────────────────
+var ADJECTIVES = ['swift','quiet','bold','bright','calm','dark','wild','keen','kind','proud','fierce','gentle','silver','gold','iron','lost','found','lone','brave','odd'];
+var ANIMALS = ['fox','bear','wolf','deer','hawk','owl','crow','lynx','seal','elk','hare','mole','wren','kite','vole','newt','toad','crab','ibis','moth'];
+
+function genPlayerName() {
+  var stored = sessionStorage.getItem('commons_player_name');
+  if (stored) return stored;
+  var adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
+  var ani = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
+  var name = adj + '-' + ani;
+  sessionStorage.setItem('commons_player_name', name);
+  return name;
+}
+
+function genPlayerColor() {
+  var stored = sessionStorage.getItem('commons_player_color');
+  if (stored) return stored;
+  var hue = Math.floor(Math.random() * 360);
+  var color = 'hsl(' + hue + ',70%,65%)';
+  // Convert to hex-ish for consistency
+  var c = document.createElement('canvas');
+  c.width = 1; c.height = 1;
+  var cx2 = c.getContext('2d');
+  cx2.fillStyle = color;
+  cx2.fillRect(0, 0, 1, 1);
+  var d = cx2.getImageData(0, 0, 1, 1).data;
+  var hex = '#' + ('0' + d[0].toString(16)).slice(-2) + ('0' + d[1].toString(16)).slice(-2) + ('0' + d[2].toString(16)).slice(-2);
+  sessionStorage.setItem('commons_player_color', hex);
+  return hex;
+}
+
+var localPlayer = {
+  tx: 13, ty: 20, // start in open grass area
+  px: 0, py: 0,
+  name: genPlayerName(),
+  color: genPlayerColor(),
+};
+localPlayer.px = localPlayer.tx * TILE + TILE / 2;
+localPlayer.py = localPlayer.ty * TILE + TILE / 2;
+
+var remotePlayers = {}; // id -> {x, y, name, color, ts}
+var keysDown = {};
+
+document.addEventListener('keydown', function(e) {
+  keysDown[e.key] = true;
+});
+document.addEventListener('keyup', function(e) {
+  delete keysDown[e.key];
+});
+
+var lastMoveFrame = 0;
+var MOVE_INTERVAL = 8; // frames between moves (at 60fps ~133ms per step)
+
+function updateLocalPlayer() {
+  lastMoveFrame++;
+  if (lastMoveFrame < MOVE_INTERVAL) return;
+  lastMoveFrame = 0;
+
+  var dx = 0, dy = 0;
+  if (keysDown['ArrowLeft']  || keysDown['a'] || keysDown['A']) dx = -1;
+  if (keysDown['ArrowRight'] || keysDown['d'] || keysDown['D']) dx = 1;
+  if (keysDown['ArrowUp']    || keysDown['w'] || keysDown['W']) dy = -1;
+  if (keysDown['ArrowDown']  || keysDown['s'] || keysDown['S']) dy = 1;
+
+  if (dx === 0 && dy === 0) return;
+
+  var nx = localPlayer.tx + dx;
+  var ny = localPlayer.ty + dy;
+  if (!isBlocked(nx, ny)) {
+    localPlayer.tx = nx;
+    localPlayer.ty = ny;
+    localPlayer.px = nx * TILE + TILE / 2;
+    localPlayer.py = ny * TILE + TILE / 2;
+    sendPlayerMove();
+  }
+}
+
+function drawLocalPlayer() {
+  var cx = Math.round(localPlayer.px);
+  var cy = Math.round(localPlayer.py) - 14;
+
+  // White glow to distinguish from NPCs
+  ctx.save();
+  ctx.shadowColor = '#ffffff';
+  ctx.shadowBlur = 8;
+  drawCharacter(cx, cy, localPlayer.color, 1, false);
+  ctx.restore();
+
+  // Name label above
+  ctx.save();
+  ctx.font = 'bold 8px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(localPlayer.name, cx, cy - 3);
+  ctx.restore();
+}
+
+function drawRemotePlayers() {
+  var now = Date.now();
+  var toDelete = [];
+  for (var id in remotePlayers) {
+    var p = remotePlayers[id];
+    if (now - p.ts > 10000) { toDelete.push(id); continue; }
+    var cx = p.x * TILE + TILE / 2;
+    var cy = p.y * TILE + TILE / 2 - 14;
+
+    // Draw sprite
+    drawCharacter(cx, cy, p.color, 1, false);
+
+    // Small dot indicator above head
+    ctx.save();
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(cx, cy - 5, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  for (var j = 0; j < toDelete.length; j++) delete remotePlayers[toDelete[j]];
+}
+
+// ── WebSocket connection ──────────────────────────────────────────────────────
+var commonsWs = null;
+var wsReconnectTimer = null;
+
+function connectCommonsWs() {
+  if (commonsWs && (commonsWs.readyState === WebSocket.OPEN || commonsWs.readyState === WebSocket.CONNECTING)) return;
+
+  var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  var url = proto + '//' + location.host + '/api/commons/ws';
+  commonsWs = new WebSocket(url);
+
+  commonsWs.onopen = function() {
+    // Send initial position
+    sendPlayerMove();
+  };
+
+  commonsWs.onmessage = function(e) {
+    var msg;
+    try { msg = JSON.parse(e.data); } catch { return; }
+    if (msg.type === 'players') {
+      remotePlayers = {};
+      for (var id in msg.players) {
+        // Don't render self (we don't know our own id from server, so we filter by name+pos match)
+        var p = msg.players[id];
+        if (p.name === localPlayer.name && p.x === localPlayer.tx && p.y === localPlayer.ty) continue;
+        remotePlayers[id] = { x: p.x, y: p.y, name: p.name, color: p.color, ts: p.ts };
+      }
+    }
+  };
+
+  commonsWs.onclose = function() {
+    commonsWs = null;
+    // Reconnect after 3s
+    if (!wsReconnectTimer) {
+      wsReconnectTimer = setTimeout(function() { wsReconnectTimer = null; connectCommonsWs(); }, 3000);
+    }
+  };
+
+  commonsWs.onerror = function() {
+    // onclose will fire after onerror, so reconnect handled there
+  };
+}
+
+function sendPlayerMove() {
+  if (!commonsWs || commonsWs.readyState !== WebSocket.OPEN) return;
+  commonsWs.send(JSON.stringify({
+    type: 'move',
+    x: localPlayer.tx,
+    y: localPlayer.ty,
+    name: localPlayer.name,
+    color: localPlayer.color,
+  }));
+}
+
+// Start WebSocket connection after personas are loaded (startLoop is called)
+var wsStarted = false;
+function maybeStartWs() {
+  if (wsStarted) return;
+  wsStarted = true;
+  connectCommonsWs();
+}
+
 // ── Game loop ─────────────────────────────────────────────────────────────────
 var loopStarted = false;
 function startLoop() {
   if (loopStarted) return;
   loopStarted = true;
+  maybeStartWs();
   requestAnimationFrame(loop);
 }
 
 function loop() {
+  // Fetch traces periodically
+  fetchTraces();
+
   // Update all NPCs
   for (var i = 0; i < npcs.length; i++) {
     npcs[i].update(npcs);
   }
 
+  // Update local player (keyboard movement)
+  updateLocalPlayer();
+
   // Draw map (cached)
   ctx.drawImage(mapCache, 0, 0);
+
+  // Draw NPC traces (footprints, thoughts, artifacts)
+  drawTraces();
 
   // Sort NPCs by y position (painter's algorithm)
   var sorted = npcs.slice().sort(function(a,b) { return a.py - b.py; });
   for (var i = 0; i < sorted.length; i++) {
     sorted[i].draw();
   }
+
+  // Draw remote players (other visitors)
+  drawRemotePlayers();
+
+  // Draw local player (always on top)
+  drawLocalPlayer();
 
   // ── Time of day overlay ──────────────────────────────────────────────────
   var tov = getTimeOverlay();
