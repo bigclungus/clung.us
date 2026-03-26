@@ -396,6 +396,8 @@ function fetchAuditionWalkers() {
 function drawAuditionWalkers() {
   for (var i = 0; i < auditionWalkers.length; i++) {
     var w = auditionWalkers[i];
+    // Skip walkers that haven't entered the visible canvas yet
+    if (w.x < 0) continue;
     var wx = Math.round(w.x);
     var wy = auditionWalkerY;
     // Simple humanoid silhouette (similar to drawCharacter but more mysterious)
@@ -2007,10 +2009,11 @@ canvas.addEventListener('mousemove', function(e) {
       canvas.style.cursor = dragState ? 'grabbing' : 'default';
     }
 
-    // Audition walker hover detection
+    // Audition walker hover detection (only walkers on-canvas)
     var foundWalker = null;
     for (var ai = 0; ai < auditionWalkers.length; ai++) {
       var aw = auditionWalkers[ai];
+      if (aw.x < 0) continue; // not yet on canvas — no ghost tooltips
       var awdx = mx - aw.x;
       var awdy = my - auditionWalkerY;
       if (Math.abs(awdx) < 20 && Math.abs(awdy) < 20) { foundWalker = aw; break; }
