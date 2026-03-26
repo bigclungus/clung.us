@@ -254,28 +254,30 @@
     // "CONGRESS" text above columns — pixel font, row 6 in the entablature area
     // Using 1-pixel-wide marks (each letter ~1 tile wide, 1 tile tall)
     // We'll render it as small colored pixels spelling "CONGRESS" in 1×1 tiles at row 4
-    const letters_council = [
+    const letters_congress = [
       // C
       [[0,0],[0,1],[0,2],[1,0],[1,2]],
       // O
-      [[0,0],[0,1],[0,2],[1,0],[1,2],[2,0],[2,1],[2,2]],
-      // U
-      [[0,0],[0,1],[0,2],[1,2],[2,0],[2,1],[2,2]],
+      [[0,0],[1,0],[2,0],[0,1],[2,1],[0,2],[1,2],[2,2]],
       // N
       [[0,0],[0,1],[0,2],[1,1],[2,0],[2,1],[2,2]],
-      // C
-      [[0,0],[0,1],[0,2],[1,0],[1,2]],
-      // I
-      [[0,0],[0,1],[0,2]],
-      // L
-      [[0,0],[0,1],[0,2],[1,2],[2,2]],
+      // G
+      [[0,0],[1,0],[0,1],[0,2],[1,2],[2,2],[2,1]],
+      // R
+      [[0,0],[0,1],[0,2],[1,0],[2,0],[1,1],[2,2]],
+      // E
+      [[0,0],[1,0],[2,0],[0,1],[0,2],[1,2],[2,2]],
+      // S
+      [[0,0],[1,0],[2,0],[0,1],[1,1],[2,2],[1,2],[0,2]],
+      // S
+      [[0,0],[1,0],[2,0],[0,1],[1,1],[2,2],[1,2],[0,2]],
     ];
     // Scale: each dot = 1px (not tile-based), render at top of entablature
-    const startX = 28, startY = 35; // pixel coords inside the entablature strip
+    const startX = 25, startY = 35; // pixel coords inside the entablature strip
     const dotSize = 1;
-    const letterSpacing = 6;
+    const letterSpacing = 5;
     ctx.fillStyle = '#c0c0e0';
-    letters_council.forEach((letter, li) => {
+    letters_congress.forEach((letter, li) => {
       const ox = startX + li * letterSpacing;
       letter.forEach(([dc, dr]) => {
         ctx.fillRect(ox + dc * dotSize, startY + dr * dotSize, dotSize, dotSize);
@@ -511,25 +513,27 @@
     px(ctx, 2, 14, 16, 1, '#12122a');
 
     // "CONGRESS" arched above door — pixel text at row 8 center area
-    const letters_council = [
+    const letters_congress_c = [
       // C
       [[0,0],[0,1],[0,2],[1,0],[1,2]],
       // O
       [[0,0],[1,0],[2,0],[0,1],[2,1],[0,2],[1,2],[2,2]],
-      // U
-      [[0,0],[0,1],[0,2],[1,2],[2,0],[2,1],[2,2]],
       // N
       [[0,0],[0,1],[0,2],[1,1],[2,0],[2,1],[2,2]],
-      // C
-      [[0,0],[0,1],[0,2],[1,0],[1,2]],
-      // I
-      [[0,0],[0,1],[0,2]],
-      // L
-      [[0,0],[0,1],[0,2],[1,2],[2,2]],
+      // G
+      [[0,0],[1,0],[0,1],[0,2],[1,2],[2,2],[2,1]],
+      // R
+      [[0,0],[0,1],[0,2],[1,0],[2,0],[1,1],[2,2]],
+      // E
+      [[0,0],[1,0],[2,0],[0,1],[0,2],[1,2],[2,2]],
+      // S
+      [[0,0],[1,0],[2,0],[0,1],[1,1],[2,2],[1,2],[0,2]],
+      // S
+      [[0,0],[1,0],[2,0],[0,1],[1,1],[2,2],[1,2],[0,2]],
     ];
-    const startX = 30, startY = 67;
+    const startX = 22, startY = 67;
     ctx.fillStyle = '#4a5a9a';
-    letters_council.forEach((letter, li) => {
+    letters_congress_c.forEach((letter, li) => {
       const ox = startX + li * 5;
       letter.forEach(([dc, dr]) => {
         ctx.fillRect(ox + dc, startY + dr, 1, 1);
