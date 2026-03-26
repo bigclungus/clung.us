@@ -1427,11 +1427,11 @@ function NPC(persona, startTx, startTy) {
   this.lastTx = this.tx;
   this.lastTy = this.ty;
 
-  // Server-authoritative position (from npc_update WS message)
+  // Server-authoritative position (from tick WS message npcs array)
   this.serverX = null; // null = no server data yet, use client simulation
   this.serverY = null;
   this.serverFacing = null;
-  this.firstServerSync = true; // snap on first npc_update to avoid fly-in
+  this.firstServerSync = true; // snap on first tick to avoid fly-in
 }
 
 NPC.prototype.pickNewDir = function (npcs) {
@@ -1671,7 +1671,7 @@ NPC.prototype.update = function (npcs) {
       this.lastTy = newTy;
     }
   } else {
-    // Client-side simulation fallback (before first server npc_update arrives)
+    // Client-side simulation fallback (before first server tick arrives)
     if (!isDebater || !this.inCouncil) {
       // Waiting between moves
       if (this.waitFrames > 0) {
