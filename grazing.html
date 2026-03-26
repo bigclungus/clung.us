@@ -2336,9 +2336,9 @@ var localSeatIndex = -1;
 var WARTHOG_SPEED = 4;
 var WARTHOG_W = 60;
 var WARTHOG_H = 30;
+var WARTHOG_BOARD_DIST = 60; // pixels — how close you must be to board/see hint
 
 function drawWarthog(wx, wy, facing, seats) {
-  var x = 0, y = 0;
   ctx.save();
   if (facing === 'left') {
     ctx.translate(wx + WARTHOG_W, wy);
@@ -2467,7 +2467,7 @@ document.addEventListener('keydown', function(e) {
       var wcy = warthog.y + WARTHOG_H / 2;
       var dx = localPlayer.px - wcx;
       var dy = localPlayer.py - wcy;
-      if (Math.sqrt(dx * dx + dy * dy) < 60) {
+      if (Math.sqrt(dx * dx + dy * dy) < WARTHOG_BOARD_DIST) {
         // Find first empty seat
         for (var si = 0; si < warthog.seats.length; si++) {
           if (!warthog.seats[si]) {
@@ -3036,7 +3036,7 @@ function loop() {
     var wcy2 = warthog.y + WARTHOG_H / 2;
     var dxh = localPlayer.px - wcx2;
     var dyh = localPlayer.py - wcy2;
-    if (Math.sqrt(dxh * dxh + dyh * dyh) < 60) {
+    if (Math.sqrt(dxh * dxh + dyh * dyh) < WARTHOG_BOARD_DIST) {
       ctx.save();
       ctx.font = 'bold 9px monospace';
       ctx.textAlign = 'center';
