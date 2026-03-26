@@ -894,15 +894,54 @@
         fmtTime(new Date()) + ' &middot; ' + totalLabel + ' tasks';
     }
 
+    function showAuthPrompt() {
+      var loginUrl = '/auth/github?next=' + encodeURIComponent(window.location.pathname);
+      document.getElementById('error-banner').style.display = 'none';
+      document.getElementById('task-list').innerHTML = '';
+      document.getElementById('tasks-summary').style.display = 'none';
+      var container = document.getElementById('auth-prompt');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'auth-prompt';
+        document.getElementById('task-list').parentNode.insertBefore(container, document.getElementById('task-list'));
+      }
+      container.innerHTML =
+        '<div style="text-align:center; padding: 80px 20px;">' +
+          '<h2 style="margin: 0 0 10px; font-size: 1.4rem; color: var(--accent); text-shadow: 0 0 14px var(--accent);">Sign in to view tasks</h2>' +
+          '<p style="color: var(--text-muted); margin: 0 0 28px; font-size: 0.9rem;">Authentication required</p>' +
+          '<a href="' + loginUrl + '" style="' +
+            'display: inline-block;' +
+            'background: #24292e;' +
+            'color: #fff;' +
+            'padding: 12px 28px;' +
+            'border-radius: 6px;' +
+            'text-decoration: none;' +
+            'font-size: 1rem;' +
+            'font-weight: 500;' +
+            'border: 1px solid rgba(255,255,255,0.12);' +
+            'transition: background 0.15s ease;' +
+          '" onmouseover="this.style.background=\'#363d44\'" onmouseout="this.style.background=\'#24292e\'">Sign in with GitHub</a>' +
+        '</div>';
+      document.getElementById('refresh-status').innerHTML =
+        '<span style="color:var(--text-muted)">not signed in</span>';
+    }
+
     function fetchTasks() {
       var url = '/api/tasks?page=' + currentPage + '&limit=' + PAGE_LIMIT;
       fetch(url)
         .then(function(r) {
+          if (r.status === 403 || r.status === 401) {
+            showAuthPrompt();
+            return null;
+          }
           if (!r.ok) throw new Error('HTTP ' + r.status);
           return r.json();
         })
         .then(function(data) {
+          if (data === null) return;
           document.getElementById('error-banner').style.display = 'none';
+          var authPrompt = document.getElementById('auth-prompt');
+          if (authPrompt) authPrompt.innerHTML = '';
           // Handle both paginated response {tasks, total, page, limit, pages, totals} and legacy array
           if (Array.isArray(data)) {
             render(data, null, null);
@@ -920,7 +959,11 @@
     }
 
     fetchTasks();
-    setInterval(fetchTasks, 10000);
+    var pollInterval = setInterval(function() {
+      // Don't poll if we're showing the auth prompt
+      if (document.getElementById('auth-prompt') && document.getElementById('auth-prompt').innerHTML) return;
+      fetchTasks();
+    }, 10000);
   </script>
 </body>
 </html>
