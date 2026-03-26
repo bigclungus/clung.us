@@ -7,6 +7,9 @@
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="stylesheet" href="/sitenav.css?v=cc9e443">
   <script src="/sitenav.js?v=cc9e443" defer></script>
+  <script src="/sprites-batch1.js"></script>
+  <script src="/sprites-batch2.js"></script>
+  <script src="/sprites-batch3.js"></script>
   <style>
     body {
       margin: 0;
@@ -96,6 +99,76 @@
       color: #6a9a88;
       letter-spacing: 0.05em;
       min-height: 16px;
+    }
+    .sprite-section {
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 12px 48px;
+    }
+    .sprite-section-title {
+      font-size: 20px;
+      letter-spacing: 0.15em;
+      color: #4ecca3;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    .sprite-section-subtitle {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 32px;
+      letter-spacing: 0.08em;
+      text-align: center;
+    }
+    .sprite-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 40px;
+      justify-content: center;
+    }
+    .sprite-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      background: #13132a;
+      border: 1px solid #2a2a4a;
+      border-radius: 6px;
+      padding: 16px 12px 14px;
+      min-width: 280px;
+    }
+    .sprite-card-name {
+      font-size: 13px;
+      font-weight: bold;
+      color: #4ecca3;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    .sprite-variants {
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
+    }
+    .sprite-variant {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .sprite-canvas {
+      width: 80px;
+      height: 120px;
+      border: 1px solid #2a2a4a;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .sprite-variant-label {
+      font-size: 18px;
+      font-weight: bold;
+      color: #4ecca3;
+      letter-spacing: 0.1em;
     }
   </style>
 </head>
@@ -940,6 +1013,149 @@
   // Initial load: fetch your_vote state then full poll list
   initYourVotes().then(() => refreshAllPolls());
   setInterval(refreshAllPolls, 5000);
+  </script>
+
+  <div class="sprite-section">
+    <div class="sprite-section-title">Persona Sprites</div>
+    <div class="sprite-section-subtitle">vote for your favourite variant of each persona</div>
+    <div class="sprite-grid" id="sprite-grid">
+      <!-- Cards injected by JS -->
+    </div>
+  </div>
+
+  <script>
+  // ── Persona sprite vote section ─────────────────────────────────────────────
+
+  const PERSONAS = [
+    { slug: 'chairman',   displayName: 'Ibrahim',   drawFns: [drawSprite_chairman_A,   drawSprite_chairman_B,   drawSprite_chairman_C]   },
+    { slug: 'critic',     displayName: 'Pippi',     drawFns: [drawSprite_critic_A,     drawSprite_critic_B,     drawSprite_critic_C]     },
+    { slug: 'architect',  displayName: 'Kwame',     drawFns: [drawSprite_architect_A,  drawSprite_architect_B,  drawSprite_architect_C]  },
+    { slug: 'ux',         displayName: 'Yuki',      drawFns: [drawSprite_ux_A,         drawSprite_ux_B,         drawSprite_ux_C]         },
+    { slug: 'designer',   displayName: 'Vesper',    drawFns: [drawSprite_designer_A,   drawSprite_designer_B,   drawSprite_designer_C]   },
+    { slug: 'galactus',   displayName: 'Galactus',  drawFns: [drawSprite_galactus_A,   drawSprite_galactus_B,   drawSprite_galactus_C]   },
+    { slug: 'hume',       displayName: 'Hume',      drawFns: [drawSprite_hume_A,       drawSprite_hume_B,       drawSprite_hume_C]       },
+    { slug: 'otto',       displayName: 'Otto',      drawFns: [drawSprite_otto_A,       drawSprite_otto_B,       drawSprite_otto_C]       },
+    { slug: 'pm',         displayName: 'PM',        drawFns: [drawSprite_pm_A,         drawSprite_pm_B,         drawSprite_pm_C]         },
+    { slug: 'trump',      displayName: 'Trump',     drawFns: [drawSprite_trump_A,      drawSprite_trump_B,      drawSprite_trump_C]      },
+    { slug: 'unclebob',   displayName: 'Uncle Bob', drawFns: [drawSprite_unclebob_A,   drawSprite_unclebob_B,   drawSprite_unclebob_C]   },
+    { slug: 'spengler',   displayName: 'Spengler',  drawFns: [drawSprite_spengler_A,   drawSprite_spengler_B,   drawSprite_spengler_C]   },
+    { slug: 'bloodfeast', displayName: 'Bloodfeast',drawFns: [drawSprite_bloodfeast_A, drawSprite_bloodfeast_B, drawSprite_bloodfeast_C] },
+    { slug: 'adelbert',   displayName: 'Adelbert',  drawFns: [drawSprite_adelbert_A,   drawSprite_adelbert_B,   drawSprite_adelbert_C]   },
+    { slug: 'jhaddu',     displayName: 'Jhaddu',    drawFns: [drawSprite_jhaddu_A,     drawSprite_jhaddu_B,     drawSprite_jhaddu_C]     },
+    { slug: 'morgan',     displayName: 'Morgan',    drawFns: [drawSprite_morgan_A,     drawSprite_morgan_B,     drawSprite_morgan_C]     },
+    { slug: 'the_kid',    displayName: 'The Kid',   drawFns: [drawSprite_the_kid_A,    drawSprite_the_kid_B,    drawSprite_the_kid_C]    },
+  ];
+
+  // poll_id uses hyphens: the_kid -> sprite-the-kid, unclebob -> sprite-unclebob, etc.
+  function slugToPollId(slug) {
+    return 'sprite-' + slug.replace(/_/g, '-');
+  }
+
+  // Build sprite cards and register poll IDs
+  (function buildSpriteCards() {
+    const grid = document.getElementById('sprite-grid');
+    const variants = ['A', 'B', 'C'];
+
+    for (const persona of PERSONAS) {
+      const pollId = slugToPollId(persona.slug);
+
+      // Register in POLL_UI_MAP
+      const btnPrefix   = 'sprbtn-' + persona.slug + '-';
+      const countPrefix = 'sprcount-' + persona.slug + '-';
+      POLL_UI_MAP[pollId] = { prefix: btnPrefix, countPrefix: countPrefix, options: variants };
+
+      // Build card HTML
+      const card = document.createElement('div');
+      card.className = 'sprite-card';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'sprite-card-name';
+      nameEl.textContent = persona.displayName;
+      card.appendChild(nameEl);
+
+      const variantsRow = document.createElement('div');
+      variantsRow.className = 'sprite-variants';
+
+      variants.forEach((v, i) => {
+        const varDiv = document.createElement('div');
+        varDiv.className = 'sprite-variant';
+
+        const canvas = document.createElement('canvas');
+        canvas.id = 'sprcanvas-' + persona.slug + '-' + v;
+        canvas.width = 40;
+        canvas.height = 60;
+        canvas.className = 'sprite-canvas';
+
+        const label = document.createElement('div');
+        label.className = 'sprite-variant-label';
+        label.textContent = v;
+
+        const btn = document.createElement('button');
+        btn.id = btnPrefix + v;
+        btn.className = 'vote-btn';
+        btn.textContent = 'Vote ' + v;
+        btn.onclick = (function(pid, opt) {
+          return function() { castSpriteVote(pid, opt); };
+        })(pollId, v);
+
+        const countEl = document.createElement('div');
+        countEl.id = countPrefix + v;
+        countEl.className = 'vote-count';
+        countEl.textContent = '— votes';
+
+        varDiv.appendChild(canvas);
+        varDiv.appendChild(label);
+        varDiv.appendChild(btn);
+        varDiv.appendChild(countEl);
+        variantsRow.appendChild(varDiv);
+      });
+
+      card.appendChild(variantsRow);
+      grid.appendChild(card);
+
+      // Draw sprites (canvas is 40x60, sprite expects cx=center, cy=bottom-feet)
+      variants.forEach((v, i) => {
+        const canvas = document.getElementById('sprcanvas-' + persona.slug + '-' + v);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#0d0d1a';
+        ctx.fillRect(0, 0, 40, 60);
+        // cx=20 (center), cy=58 (near bottom), scale 0.5x via canvas size (40x60 = half of 80x120)
+        ctx.save();
+        ctx.scale(0.5, 0.5);
+        persona.drawFns[i](ctx, 40, 116);
+        ctx.restore();
+      });
+    }
+  })();
+
+  async function castSpriteVote(pollId, option) {
+    try {
+      const resp = await fetch('/api/vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ poll_id: pollId, option }),
+        credentials: 'same-origin',
+      });
+      if (!resp.ok) { console.error('sprite vote failed:', resp.status); return; }
+      const data = await resp.json();
+      yourVotes[pollId] = data.your_vote ?? option;
+      applyPollState(pollId, data.counts, data.winner, yourVotes[pollId]);
+    } catch (e) { console.error('sprite vote error:', e); }
+  }
+
+  // Fetch initial your_vote for all sprite polls
+  (async function initSpriteVotes() {
+    for (const persona of PERSONAS) {
+      const pollId = slugToPollId(persona.slug);
+      try {
+        const resp = await fetch('/api/vote/' + pollId, { credentials: 'same-origin' });
+        if (!resp.ok) continue;
+        const data = await resp.json();
+        if (data.your_vote) yourVotes[pollId] = data.your_vote;
+      } catch { /* ignore */ }
+    }
+    refreshAllPolls();
+  })();
   </script>
 </body>
 </html>
