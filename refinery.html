@@ -1107,7 +1107,7 @@
 
     const isGalactus = slug === 'galactus';
 
-    variants.forEach((v, i) => {
+    variants.forEach((v) => {
       const varDiv = document.createElement('div');
       varDiv.className = 'sprite-variant';
 
@@ -1145,7 +1145,7 @@
 
     // Draw sprites after card is in DOM — resolved by window function name convention
     requestAnimationFrame(() => {
-      variants.forEach((v, i) => {
+      variants.forEach((v) => {
         const fnName = 'drawSprite_' + slug + '_' + v;
         const drawFn = window[fnName];
         if (typeof drawFn !== 'function') return;
