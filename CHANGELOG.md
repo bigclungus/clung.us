@@ -311,6 +311,8 @@
 
 - remove Nemesis from congress.html and grazing.html
 
+- delete Nemesis avatar files
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
