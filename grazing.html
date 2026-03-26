@@ -243,15 +243,53 @@ var SEASON_LABELS = ['🌸 spring', '☀️ summer', '🍂 autumn', '❄️ wint
 
 // ── Congress live state ────────────────────────────────────────────────────────
 var congressState = { active: false, topic: '', debaters: [] };
+var factionState = { debaters: [], expiresAt: 0 }; // Feature 2: post-congress faction window
 
 function pollCongress() {
   fetch('/api/congress/active')
     .then(function(r) { return r.ok ? r.json() : null; })
-    .then(function(d) { if (d) congressState = d; })
+    .then(function(d) {
+      if (!d) return;
+      var wasActive = congressState.active;
+      var hadDebaters = congressState.debaters;
+      congressState = d;
+      // Feature 2: detect congress ending — set 3-minute faction window
+      if (wasActive && !d.active && hadDebaters && hadDebaters.length > 0) {
+        factionState = {
+          debaters: hadDebaters.slice(),
+          expiresAt: Date.now() + 3 * 60 * 1000,
+        };
+      }
+    })
     .catch(function() {});
 }
 pollCongress();
 setInterval(pollCongress, 10000);
+
+// Apply faction targets to NPCs (called every second from main loop)
+var factionLastApplied = 0;
+function applyFactionClustering() {
+  var now = Date.now();
+  if (now - factionLastApplied < 1000) return;
+  factionLastApplied = now;
+  if (!npcs || npcs.length === 0) return;
+  var active = factionState.expiresAt > now;
+  for (var i = 0; i < npcs.length; i++) {
+    var n = npcs[i];
+    if (!active || factionState.debaters.indexOf(n.name) < 0) {
+      n.factionTarget = null;
+      continue;
+    }
+    // Find another debater to drift toward
+    for (var j = 0; j < npcs.length; j++) {
+      if (i === j) continue;
+      if (factionState.debaters.indexOf(npcs[j].name) >= 0) {
+        n.factionTarget = npcs[j];
+        break;
+      }
+    }
+  }
+}
 
 // Council area: top-left building (rows 2-6, cols 2-8) — pixel centers
 var COUNCIL_TILES = [];
@@ -659,6 +697,38 @@ function drawBubble(cx, cy, lines, alpha) {
   ctx.restore();
 }
 
+// ── Gossip thought bubble (Feature 1) ────────────────────────────────────────
+function drawGossipBubble(cx, cy, lines, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  var pad = 5;
+  ctx.font = 'italic 9px monospace';
+  var lineH = 11;
+  var lineArr = Array.isArray(lines) ? lines : [lines];
+  var maxW = 0;
+  lineArr.forEach(function(l) { var w = ctx.measureText(l).width; if (w > maxW) maxW = w; });
+  var bw = maxW + pad * 2;
+  var bh = lineH * lineArr.length + 4;
+  var bx = cx - bw / 2;
+  var by = cy - bh - 12;
+  if (bx < 2) bx = 2;
+  if (bx + bw > W - 2) bx = W - 2 - bw;
+  if (by < 2) by = 2;
+  ctx.fillStyle = '#fffae0ee';
+  ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 3); ctx.fill();
+  ctx.strokeStyle = '#c8a000'; ctx.lineWidth = 1; ctx.stroke();
+  // Thought dots
+  ctx.fillStyle = '#fffae0ee';
+  ctx.beginPath(); ctx.arc(cx, by + bh + 3, 2.5, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + 3, by + bh + 7, 1.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#7a6000';
+  ctx.font = 'italic 9px monospace';
+  lineArr.forEach(function(l, i) {
+    ctx.fillText(l, bx + pad, by + lineH * (i + 1) - 1);
+  });
+  ctx.restore();
+}
+
 // ── Worn paths (Feature 5) ─────────────────────────────────────────────────────
 // Track tile visit counts; reset daily via localStorage
 var WORN_TILES = (function() {
@@ -840,6 +910,32 @@ NPC.prototype.pickNewDir = function (npcs) {
     }
   }
 
+  // Feature 2: Faction clustering — after congress, debaters drift toward co-debaters
+  if (this.factionTarget && Math.random() < 0.4) {
+    var ft = this.factionTarget;
+    var fddx = ft.tx - this.tx;
+    var fddy = ft.ty - this.ty;
+    var fdist = Math.abs(fddx) + Math.abs(fddy);
+    if (fdist > 2) {
+      var fcandidates = [];
+      if (Math.abs(fddx) >= Math.abs(fddy)) {
+        if (fddx !== 0) fcandidates.push({dx: Math.sign(fddx), dy: 0});
+        if (fddy !== 0) fcandidates.push({dx: 0, dy: Math.sign(fddy)});
+      } else {
+        if (fddy !== 0) fcandidates.push({dx: 0, dy: Math.sign(fddy)});
+        if (fddx !== 0) fcandidates.push({dx: Math.sign(fddx), dy: 0});
+      }
+      for (var fi = 0; fi < fcandidates.length; fi++) {
+        var fnd = fcandidates[fi];
+        if (!isBlocked(this.tx + fnd.dx, this.ty + fnd.dy)) {
+          this.dir = fnd;
+          this.stepsLeft = 2 + Math.floor(Math.random() * 3);
+          return;
+        }
+      }
+    }
+  }
+
   // Default: pick a random walkable direction
   var valid = DIRS.filter(function(d) {
     return !isBlocked(self.tx + d.dx, self.ty + d.dy);
@@ -895,18 +991,48 @@ NPC.prototype.update = function (npcs) {
   } else if (this.speakCooldown <= 0) {
     var chance = this.isIbrahim ? 0.002 : this.isKid ? 0.02 : this.isGalactus ? 0.004 : 0.006;
     if (Math.random() < chance) {
-      this.bubble = {
-        lines: [this.quips[this.quipIndex % this.quips.length]],
-        ttl: Math.round(2.5 * 60),
-      };
+      var quip = this.quips[this.quipIndex % this.quips.length];
+      this.bubble = { lines: [quip], ttl: Math.round(2.5 * 60) };
+      this.lastSpokenQuip = quip;
       this.quipIndex++;
     }
+  }
+
+  // Gossip bubble TTL (Feature 1)
+  if (this.gossipBubble) {
+    this.gossipBubble.ttl--;
+    if (this.gossipBubble.ttl <= 0) this.gossipBubble = null;
   }
 
   // Response bubble TTL
   if (this.responseBubble) {
     this.responseBubble.ttl--;
     if (this.responseBubble.ttl <= 0) this.responseBubble = null;
+  }
+
+  // Feature 1: Gossip spreading — check proximity to other NPCs
+  if (npcs && !this.gossipBubble) {
+    for (var gi = 0; gi < npcs.length; gi++) {
+      var other = npcs[gi];
+      if (other === this) continue;
+      var gdist = Math.abs(other.tx - this.tx) + Math.abs(other.ty - this.ty);
+      if (gdist <= 3) {
+        // Track time spent close
+        this.proximityTimers[other.name] = (this.proximityTimers[other.name] || 0) + 1;
+        // >5 seconds at 60fps = 300 frames; 10% chance per proximity check (run every frame)
+        if (this.proximityTimers[other.name] > 300 && other.lastSpokenQuip && Math.random() < 0.001) {
+          var distortedQuip = other.lastSpokenQuip;
+          this.gossipBubble = {
+            lines: ['*heard: "' + distortedQuip.slice(0, 25) + '"*'],
+            ttl: 4 * 60,
+          };
+          this.proximityTimers[other.name] = 0; // reset after gossip
+          break;
+        }
+      } else {
+        this.proximityTimers[other.name] = 0;
+      }
+    }
   }
 
   // Congress mode: if debater, move toward council area
@@ -935,13 +1061,25 @@ NPC.prototype.update = function (npcs) {
       return;
     }
 
+    // Feature 4 winter: 70% speed
+    var effectiveSpeed = SEASON === 3 ? this.speed * 0.7 : this.speed;
+
     var dx = this.targetPx - this.px;
     var dy = this.targetPy - this.py;
     var dist = Math.sqrt(dx*dx + dy*dy);
 
-    if (dist < this.speed + 0.5) {
+    if (dist < effectiveSpeed + 0.5) {
       this.px = this.targetPx;
       this.py = this.targetPy;
+
+      // Feature 5: record tile visit when NPC lands on a grass tile
+      if (this.tx !== this.lastTx || this.ty !== this.lastTy) {
+        if (MAP[this.ty] && MAP[this.ty][this.tx] === 0) {
+          recordTileVisit(this.tx, this.ty);
+        }
+        this.lastTx = this.tx;
+        this.lastTy = this.ty;
+      }
 
       if (this.stepsLeft > 0) {
         var nx = this.tx + this.dir.dx;
@@ -961,8 +1099,8 @@ NPC.prototype.update = function (npcs) {
         this.pickNewDir(npcs);
       }
     } else {
-      this.px += (dx / dist) * this.speed;
-      this.py += (dy / dist) * this.speed;
+      this.px += (dx / dist) * effectiveSpeed;
+      this.py += (dy / dist) * effectiveSpeed;
     }
   }
 };
@@ -985,7 +1123,7 @@ NPC.prototype.draw = function () {
 
   drawCharacter(cx, cy, this.color, this.isGalactus ? 1.8 : 1, this.isGalactus);
 
-  // Response bubble takes priority over quip bubble
+  // Response bubble takes priority over quip bubble, gossip shows separately
   if (this.responseBubble) {
     var alpha = this.responseBubble.ttl > 30 ? 1.0 : this.responseBubble.ttl / 30;
     var headY = cy - 4;
@@ -994,6 +1132,12 @@ NPC.prototype.draw = function () {
     var alpha = this.bubble.ttl > 20 ? 1.0 : this.bubble.ttl / 20;
     var headY = cy - 4;
     drawBubble(cx, headY, this.bubble.lines, alpha);
+  }
+
+  // Feature 1: gossip thought bubble (amber, italic, shown above normal bubble)
+  if (this.gossipBubble) {
+    var galpha = this.gossipBubble.ttl > 20 ? 1.0 : this.gossipBubble.ttl / 20;
+    drawGossipBubble(cx, cy - 4, this.gossipBubble.lines, galpha);
   }
 };
 
@@ -1175,12 +1319,30 @@ invokeOverlay.addEventListener('click', function(e) {
   }
 });
 
+// Feature 3: Determine location context from tile position
+function getLocationContext(tx, ty) {
+  // Congress building area (tx 2-8, ty 2-6)
+  if (tx >= 2 && tx <= 8 && ty >= 2 && ty <= 6) {
+    return 'the congress building — formal, deliberative atmosphere';
+  }
+  // Near the pond (tx 4-10, ty 22-27)
+  if (tx >= 4 && tx <= 10 && ty >= 22 && ty <= 27) {
+    return 'the pond — reflective, tranquil surroundings';
+  }
+  // Path (horizontal or vertical)
+  if (MAP[ty] && (MAP[ty][tx] === 1)) {
+    return 'the main path through the commons';
+  }
+  return 'the open commons';
+}
+
 invokeInput.addEventListener('keydown', function(e) {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     var text = invokeInput.value.trim();
     if (!text || !activeInvokeNPC) return;
     var npc = activeInvokeNPC;
+    var locationCtx = getLocationContext(npc.tx, npc.ty);
     invokeOverlay.classList.remove('active');
     activeInvokeNPC = null;
     // Show a "..." bubble while waiting
@@ -1188,7 +1350,7 @@ invokeInput.addEventListener('keydown', function(e) {
     fetch('/api/invoke-persona', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: npc.name, prompt: text }),
+      body: JSON.stringify({ name: npc.name, prompt: text, location: locationCtx }),
     })
       .then(function(r) { return r.json(); })
       .then(function(d) {
@@ -1525,6 +1687,27 @@ function maybeStartWs() {
   connectCommonsWs();
 }
 
+// ── Feature 5: Worn path rendering ────────────────────────────────────────────
+function drawWornPaths() {
+  for (var ty = 0; ty < ROWS; ty++) {
+    for (var tx = 0; tx < COLS; tx++) {
+      if (MAP[ty][tx] !== 0) continue; // only grass
+      var wl = getWornLevel(tx, ty);
+      if (wl === 0) continue;
+      var x = tx * TILE, y = ty * TILE;
+      if (wl === 2) {
+        // dirt — light brown overlay
+        ctx.fillStyle = '#6b4c1888';
+        ctx.fillRect(x, y, TILE, TILE);
+      } else {
+        // worn — slight dark overlay
+        ctx.fillStyle = '#00000028';
+        ctx.fillRect(x, y, TILE, TILE);
+      }
+    }
+  }
+}
+
 // ── Game loop ─────────────────────────────────────────────────────────────────
 var loopStarted = false;
 function startLoop() {
@@ -1538,6 +1721,9 @@ function loop() {
   // Fetch traces periodically
   fetchTraces();
 
+  // Feature 2: apply faction clustering bias
+  applyFactionClustering();
+
   // Update all NPCs
   for (var i = 0; i < npcs.length; i++) {
     npcs[i].update(npcs);
@@ -1548,6 +1734,9 @@ function loop() {
 
   // Draw map (cached)
   ctx.drawImage(mapCache, 0, 0);
+
+  // Feature 5: draw worn path overlays on grass tiles
+  drawWornPaths();
 
   // Draw NPC traces (footprints, thoughts, artifacts)
   drawTraces();
@@ -1603,6 +1792,16 @@ function loop() {
     ctx.fillText(badgeText, bx + 8, by + bh - 5);
     ctx.restore();
   }
+
+  // Feature 4: Season indicator (bottom-left corner)
+  ctx.save();
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#00000066';
+  ctx.fillText(SEASON_LABELS[SEASON], 7, H - 7);
+  ctx.fillStyle = '#c8e8d0';
+  ctx.fillText(SEASON_LABELS[SEASON], 6, H - 8);
+  ctx.restore();
 
   // "The Commons" title overlay (pixel-ish style)
   ctx.save();
