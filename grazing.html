@@ -263,6 +263,51 @@ var TILE = 16;
 var COLS = Math.floor(W / TILE); // 50
 var ROWS = Math.floor(H / TILE); // 35
 
+// ── Sprite winner system ────────────────────────────────────────────────────────
+// Maps npc.name → winning variant letter ('A'|'B'|'C') once quorum is reached
+var SPRITE_WINNERS = {};
+
+// Maps npc.name (API slug) → sprite function ID (used in drawSprite_<id>_<letter>)
+// and poll slug (used in /api/vote/results?poll_id=sprite-<slug>)
+var SPRITE_SLUG_MAP = {
+  'chairman':   { id: 'chairman',   pollSlug: 'chairman'  },
+  'critic':     { id: 'critic',     pollSlug: 'critic'    },
+  'architect':  { id: 'architect',  pollSlug: 'architect' },
+  'ux':         { id: 'ux',         pollSlug: 'ux'        },
+  'designer':   { id: 'designer',   pollSlug: 'designer'  },
+  'galactus':   { id: 'galactus',   pollSlug: 'galactus'  },
+  'hume':       { id: 'hume',       pollSlug: 'hume'      },
+  'otto':       { id: 'otto',       pollSlug: 'otto'      },
+  'pm':         { id: 'pm',         pollSlug: 'pm'        },
+  'spengler':   { id: 'spengler',   pollSlug: 'spengler'  },
+  'trump':      { id: 'trump',      pollSlug: 'trump'     },
+  'uncle-bob':  { id: 'unclebob',   pollSlug: 'uncle-bob' },
+  'bloodfeast': { id: 'bloodfeast', pollSlug: 'bloodfeast'},
+  'adelbert':   { id: 'adelbert',   pollSlug: 'adelbert'  },
+  'jhaddu':     { id: 'jhaddu',     pollSlug: 'jhaddu'    },
+  'morgan':     { id: 'morgan',     pollSlug: 'morgan'    },
+  'the-kid':    { id: 'the_kid',    pollSlug: 'the-kid'   },
+};
+
+function fetchSpriteWinners() {
+  var slugs = Object.keys(SPRITE_SLUG_MAP);
+  slugs.forEach(function(name) {
+    var info = SPRITE_SLUG_MAP[name];
+    fetch('/api/vote/results?poll_id=' + encodeURIComponent('sprite-' + info.pollSlug))
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(d) {
+        if (d && d.winner) {
+          SPRITE_WINNERS[name] = d.winner;
+        }
+      })
+      .catch(function() {});
+  });
+}
+
+// Poll for winners every 30 seconds
+fetchSpriteWinners();
+setInterval(fetchSpriteWinners, 30000);
+
 // ── Persona quips ──────────────────────────────────────────────────────────────
 var QUIPS = {
   'chairman': ["Order.", "The gavel is patient.", "...", "Retained.", "The record stands.", "Deliberate."],
@@ -1281,21 +1326,36 @@ NPC.prototype.update = function (npcs) {
 
 NPC.prototype.draw = function () {
   var cx = Math.round(this.px);
-  var cy = Math.round(this.py) - 14; // top of sprite
+  var cy = Math.round(this.py) - 14; // top of sprite (for generic NPC drawing + bubble anchoring)
+  // cy_feet: bottom of sprite position for drawSprite_* functions (they draw upward from feet)
+  var cy_feet = Math.round(this.py) + 8;
+
+  // Check if this persona has a sprite winner
+  var spriteInfo = SPRITE_SLUG_MAP[this.name];
+  var winner = spriteInfo ? SPRITE_WINNERS[this.name] : null;
+  var spriteFn = winner ? window['drawSprite_' + spriteInfo.id + '_' + winner] : null;
 
   if (this.held) {
     // Draw white glow halo behind character
     ctx.save();
     ctx.shadowColor = '#ffffff';
     ctx.shadowBlur = 12;
-    var heldScale = (this.isGalactus ? 1.8 : 1) * 1.3;
-    drawCharacter(cx, cy, this.color, heldScale, this.isGalactus);
+    if (typeof spriteFn === 'function') {
+      spriteFn(ctx, cx, cy_feet);
+    } else {
+      var heldScale = (this.isGalactus ? 1.8 : 1) * 1.3;
+      drawCharacter(cx, cy, this.color, heldScale, this.isGalactus);
+    }
     ctx.restore();
     // No speech bubbles while held
     return;
   }
 
-  drawCharacter(cx, cy, this.color, this.isGalactus ? 1.8 : 1, this.isGalactus);
+  if (typeof spriteFn === 'function') {
+    spriteFn(ctx, cx, cy_feet);
+  } else {
+    drawCharacter(cx, cy, this.color, this.isGalactus ? 1.8 : 1, this.isGalactus);
+  }
 
   // Response bubble takes priority over quip bubble, gossip shows separately
   if (this.responseBubble) {
