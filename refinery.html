@@ -1,3 +1,7 @@
+<!-- refinery.html — Poll UI for clung.us
+     Displays all active polls from /api/polls, grouped by category prefix.
+     Users vote on sprite variants, emoji choices, etc. Results feed into site features.
+     Add new poll types by creating poll files in /mnt/data/hello-world/polls/ -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -286,61 +290,8 @@
   </style>
 </head>
 <body>
-  <div class="vote-wrap" data-poll-id="congress-building-v1">
-    <div class="vote-title">Refinery</div>
-    <div class="vote-subtitle">click to vote — results update live</div>
-    <div class="variants">
-      <div class="variant">
-        <canvas id="canvasA" width="160" height="120"></canvas>
-        <div class="variant-label">A</div>
-        <div class="variant-desc">Classical Pillars — stone columns, pediment, carved steps</div>
-        <button class="vote-btn" id="btnA" onclick="castVote('A')">Vote A</button>
-        <div class="vote-count" id="countA">— votes</div>
-      </div>
-      <div class="variant">
-        <canvas id="canvasB" width="160" height="120"></canvas>
-        <div class="variant-label">B</div>
-        <div class="variant-desc">Brutalist Block — concrete banding, twin towers, slit windows</div>
-        <button class="vote-btn" id="btnB" onclick="castVote('B')">Vote B</button>
-        <div class="vote-count" id="countB">— votes</div>
-      </div>
-      <div class="variant">
-        <canvas id="canvasC" width="160" height="120"></canvas>
-        <div class="variant-label">C</div>
-        <div class="variant-desc">Gothic Spire — central tower, arched windows, gargoyle sentinels</div>
-        <button class="vote-btn" id="btnC" onclick="castVote('C')">Vote C</button>
-        <div class="vote-count" id="countC">— votes</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="vote-wrap" style="padding-top: 0;" data-poll-id="commons-fountain-v1">
-    <div class="vote-title" style="margin-top: 16px;">Fountain</div>
-    <div class="vote-subtitle">click to vote — results update live</div>
-    <div class="variants">
-      <div class="variant">
-        <canvas id="canvasFA" width="160" height="120"></canvas>
-        <div class="variant-label">A</div>
-        <div class="variant-desc">Tiered Roman Fountain — three tiers, cascading water, stone basin</div>
-        <button class="vote-btn" id="btnFA" onclick="castFountainVote('A')">Vote A</button>
-        <div class="vote-count" id="countFA">— votes</div>
-      </div>
-      <div class="variant">
-        <canvas id="canvasFB" width="160" height="120"></canvas>
-        <div class="variant-label">B</div>
-        <div class="variant-desc">Geyser — raw stone vent, violent jet, chaotic spray</div>
-        <button class="vote-btn" id="btnFB" onclick="castFountainVote('B')">Vote B</button>
-        <div class="vote-count" id="countFB">— votes</div>
-      </div>
-      <div class="variant">
-        <canvas id="canvasFC" width="160" height="120"></canvas>
-        <div class="variant-label">C</div>
-        <div class="variant-desc">Shishi-odoshi — bamboo spout, zen stones, quiet trickle</div>
-        <button class="vote-btn" id="btnFC" onclick="castFountainVote('C')">Vote C</button>
-        <div class="vote-count" id="countFC">— votes</div>
-      </div>
-    </div>
-  </div>
+  <!-- poll sections are injected dynamically by JS from /api/polls -->
+  <div id="dynamic-poll-sections"></div>
 
   <script>
   const T = 8; // tile size
@@ -371,8 +322,7 @@
   ];
 
   // ─── VARIANT A: Classical Pillars ─────────────────────────────────────────
-  (function drawA() {
-    const ctx = document.getElementById('canvasA').getContext('2d');
+  function drawCongressA(ctx) {
     const W = 20, H = 15;
 
     // Background
@@ -476,12 +426,11 @@
 
     // Roof highlight line
     px(ctx, 1, 4, 18, 1, '#8a8aaa');
-  })();
+  }
 
 
   // ─── VARIANT B: Brutalist Block ────────────────────────────────────────────
-  (function drawB() {
-    const ctx = document.getElementById('canvasB').getContext('2d');
+  function drawCongressB(ctx) {
     const W = 20, H = 15;
 
     // Background
@@ -564,12 +513,11 @@
         ctx.fillRect(ox + dc * dotSize, startY + dr * dotSize, dotSize, dotSize);
       });
     });
-  })();
+  }
 
 
   // ─── VARIANT C: Gothic Spire ───────────────────────────────────────────────
-  (function drawC() {
-    const ctx = document.getElementById('canvasC').getContext('2d');
+  function drawCongressC(ctx) {
     const W = 20, H = 15;
 
     // Background
@@ -692,7 +640,7 @@
     ctx.fillStyle = hi;
     ctx.fillRect(9 * T + 3, 1 * T + 2, 2, 5);
     ctx.fillRect(9 * T, 1 * T + 4, 8, 2);
-  })();
+  }
   </script>
 
   <script>
@@ -1019,28 +967,29 @@
     setInterval(() => requestAnimationFrame(frame), 200);
   }
 
-  // Draw static bases then start animations
-  (function initFountains() {
-    const ctxFA = document.getElementById('canvasFA').getContext('2d');
-    const ctxFB = document.getElementById('canvasFB').getContext('2d');
-    const ctxFC = document.getElementById('canvasFC').getContext('2d');
-    drawFountainA(ctxFA);
-    drawFountainB(ctxFB);
-    drawFountainC(ctxFC);
-    animFountainA(ctxFA);
-    animFountainB(ctxFB);
-    animFountainC(ctxFC);
-  })();
+  // Canvas renderers for polls that have bespoke pixel art per option.
+  // Keyed by poll_id; each value maps option key -> { draw, anim? } functions.
+  // draw(ctx) renders the static frame; anim(ctx) starts an animation loop.
+  const CANVAS_RENDERERS = {
+    'congress-building-v1': {
+      A: { draw: drawCongressA },
+      B: { draw: drawCongressB },
+      C: { draw: drawCongressC },
+    },
+    'commons-fountain-v1': {
+      A: { draw: drawFountainA, anim: animFountainA },
+      B: { draw: drawFountainB, anim: animFountainB },
+      C: { draw: drawFountainC, anim: animFountainC },
+    },
+  };
   </script>
 
   <script>
   // ── Poll state driven by GET /api/polls ────────────────────────────────────
 
   // Map poll_id -> { options, prefix } for button/count element id construction
-  const POLL_UI_MAP = {
-    'congress-building-v1': { prefix: 'btn', countPrefix: 'count', options: ['A','B','C'] },
-    'commons-fountain-v1':  { prefix: 'btnF', countPrefix: 'countF', options: ['A','B','C'] },
-  };
+  // Populated dynamically at runtime — nothing hardcoded here.
+  const POLL_UI_MAP = {};
 
   // voter_token is set by backend automatically via Set-Cookie on first vote/GET
   // We track your_vote per poll_id from individual vote API responses
@@ -1049,68 +998,23 @@
   // Track which poll_ids have a winner (concluded)
   const pollWinners = {};
 
-  // Whether layout has been bucketed yet
-  let layoutApplied = false;
-
-  function applyLayoutBuckets() {
-    if (layoutApplied) return;
-    layoutApplied = true;
-
-    // Collect all top-level poll sections: vote-wrap elements and sprite cards
-    const body = document.body;
-
-    // Determine if ALL polls are concluded (building, fountain, and all sprites)
-    const allPollIds = Object.keys(POLL_UI_MAP);
-    const spriteCards = Array.from(document.querySelectorAll('[data-sprite-poll-id]'));
-    const totalCount = allPollIds.length + spriteCards.length;
-    const concludedMainCount = allPollIds.filter(id => pollWinners[id]).length;
-    const concludedSpriteCount = spriteCards.filter(el => pollWinners[el.getAttribute('data-sprite-poll-id')]).length;
-    const allConcluded = totalCount > 0 && (concludedMainCount + concludedSpriteCount) === totalCount;
-
-    // Gather concluded vote-wrap elements (building/fountain)
-    const concludedSections = [];
-    document.querySelectorAll('[data-poll-id]').forEach(el => {
-      const pid = el.getAttribute('data-poll-id');
-      if (pollWinners[pid]) concludedSections.push(el);
-    });
-
-    // Gather concluded sprite cards (data-sprite-poll-id set on cards)
-    document.querySelectorAll('[data-sprite-poll-id]').forEach(el => {
-      const pid = el.getAttribute('data-sprite-poll-id');
-      if (pollWinners[pid]) concludedSections.push(el);
-    });
-
-    if (concludedSections.length === 0) return;
-
-    // Build the <details> container
-    const details = document.createElement('details');
-    details.className = 'concluded-details';
-    if (allConcluded) details.open = true;
-
-    const summary = document.createElement('summary');
-    summary.textContent = 'Concluded (' + concludedSections.length + ')';
-    details.appendChild(summary);
-
-    const inner = document.createElement('div');
-    inner.className = 'concluded-inner';
-    details.appendChild(inner);
-
-    // Move concluded sections into inner
-    for (const el of concludedSections) {
-      inner.appendChild(el);
-    }
-
-    // Append details after sprite-section (or after last vote-wrap if no sprites)
-    const spriteSection = document.getElementById('sprite-section');
-    spriteSection.parentNode.insertBefore(details, spriteSection.nextSibling);
-
-    // If sprite grid is now empty, hide the sprite section header shell
-    const spriteGrid = document.getElementById('sprite-grid');
-    if (spriteGrid && spriteGrid.children.length === 0) {
-      spriteSection.style.display = 'none';
-    }
+  // ── Generic vote cast ───────────────────────────────────────────────────────
+  async function castVote(pollId, option) {
+    try {
+      const resp = await fetch('/api/vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ poll_id: pollId, option }),
+        credentials: 'same-origin',
+      });
+      if (!resp.ok) { console.error('vote failed:', resp.status, 'poll:', pollId); return; }
+      const data = await resp.json();
+      yourVotes[pollId] = data.your_vote ?? option;
+      applyPollState(pollId, data.counts, data.winner, yourVotes[pollId]);
+    } catch (e) { console.error('vote error:', e); }
   }
 
+  // ── Apply counts/winner state to a poll's buttons and count elements ────────
   function applyPollState(pollId, counts, winner, yourVote) {
     const ui = POLL_UI_MAP[pollId];
     if (!ui) return;
@@ -1134,7 +1038,8 @@
     }
   }
 
-  async function refreshAllPolls(triggerLayout) {
+  // ── Refresh all known polls from the API ───────────────────────────────────
+  async function refreshAllPolls() {
     try {
       const resp = await fetch('/api/polls', { credentials: 'same-origin' });
       if (!resp.ok) { console.error('polls fetch failed:', resp.status); return; }
@@ -1142,242 +1047,133 @@
       for (const poll of (data.polls || [])) {
         applyPollState(poll.poll_id, poll.vote_counts, poll.winner, yourVotes[poll.poll_id] ?? null);
       }
-      if (triggerLayout) applyLayoutBuckets();
     } catch (e) {
       console.error('polls refresh error:', e);
     }
   }
 
-  async function castVote(option) {
-    try {
-      const resp = await fetch('/api/vote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ poll_id: 'congress-building-v1', option }),
-        credentials: 'same-origin',
-      });
-      if (!resp.ok) { console.error('vote failed:', resp.status); return; }
-      const data = await resp.json();
-      yourVotes['congress-building-v1'] = data.your_vote ?? option;
-      applyPollState('congress-building-v1', data.counts, data.winner, yourVotes['congress-building-v1']);
-    } catch (e) { console.error('vote error:', e); }
-  }
+  // ── Section layout: bucket concluded polls into a collapsible <details> ─────
+  function applyLayoutBuckets(container) {
+    const allCards = Array.from(container.querySelectorAll('[data-poll-id]'));
+    const concludedCards = allCards.filter(el => pollWinners[el.getAttribute('data-poll-id')]);
+    if (concludedCards.length === 0) return;
 
-  async function castFountainVote(option) {
-    try {
-      const resp = await fetch('/api/vote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ poll_id: 'commons-fountain-v1', option }),
-        credentials: 'same-origin',
-      });
-      if (!resp.ok) { console.error('fountain vote failed:', resp.status); return; }
-      const data = await resp.json();
-      yourVotes['commons-fountain-v1'] = data.your_vote ?? option;
-      applyPollState('commons-fountain-v1', data.counts, data.winner, yourVotes['commons-fountain-v1']);
-    } catch (e) { console.error('fountain vote error:', e); }
-  }
+    const allConcluded = concludedCards.length === allCards.length;
 
-  // On load, fetch per-poll your_vote state from individual vote endpoints
-  async function initYourVotes() {
-    for (const pollId of Object.keys(POLL_UI_MAP)) {
-      try {
-        const resp = await fetch('/api/vote/' + pollId, { credentials: 'same-origin' });
-        if (!resp.ok) continue;
-        const data = await resp.json();
-        if (data.your_vote) yourVotes[pollId] = data.your_vote;
-      } catch { /* ignore */ }
+    const details = document.createElement('details');
+    details.className = 'concluded-details';
+    if (allConcluded) details.open = true;
+
+    const summary = document.createElement('summary');
+    summary.textContent = 'Concluded (' + concludedCards.length + ')';
+    details.appendChild(summary);
+
+    const inner = document.createElement('div');
+    inner.className = 'concluded-inner';
+    details.appendChild(inner);
+
+    for (const el of concludedCards) {
+      inner.appendChild(el);
     }
+
+    container.appendChild(details);
   }
 
-  // Expose initYourVotes promise so sprite init can await it
-  window._initYourVotesPromise = initYourVotes();
-  setInterval(refreshAllPolls, 5000);
-  </script>
+  // ── Build a sprite canvas card for a sprite-* poll ─────────────────────────
+  // Resolves draw functions from window by naming convention:
+  //   sprite-chairman -> drawSprite_chairman_A/B/C
+  //   sprite-the-kid  -> drawSprite_the_kid_A/B/C (hyphens become underscores)
+  function buildSpriteCard(pollData) {
+    const { poll_id, title, options, vote_counts, winner } = pollData;
+    // poll_id: sprite-<slug> (hyphens). Function names use underscores.
+    const slug = poll_id.replace(/^sprite-/, '').replace(/-/g, '_');
+    const variants = Object.keys(options || {}).sort();
 
-  <div class="sprite-section" id="sprite-section">
-    <div class="sprite-section-title">Persona Sprites</div>
-    <div class="sprite-section-subtitle">vote for your favourite variant of each persona</div>
-    <div class="sprite-grid" id="sprite-grid">
-      <!-- Cards injected by JS -->
-    </div>
-  </div>
+    const btnPrefix   = 'sprbtn-' + slug + '-';
+    const countPrefix = 'sprcount-' + slug + '-';
+    POLL_UI_MAP[poll_id] = { prefix: btnPrefix, countPrefix: countPrefix, options: variants };
 
-  <script>
-  // ── Persona sprite vote section ─────────────────────────────────────────────
+    const card = document.createElement('div');
+    card.className = 'sprite-card';
+    card.setAttribute('data-poll-id', poll_id);
 
-  const PERSONAS = [
-    { slug: 'chairman',   displayName: 'Ibrahim',   drawFns: [drawSprite_chairman_A,   drawSprite_chairman_B,   drawSprite_chairman_C]   },
-    { slug: 'critic',     displayName: 'Pippi',     drawFns: [drawSprite_critic_A,     drawSprite_critic_B,     drawSprite_critic_C]     },
-    { slug: 'architect',  displayName: 'Kwame',     drawFns: [drawSprite_architect_A,  drawSprite_architect_B,  drawSprite_architect_C]  },
-    { slug: 'ux',         displayName: 'Yuki',      drawFns: [drawSprite_ux_A,         drawSprite_ux_B,         drawSprite_ux_C]         },
-    { slug: 'designer',   displayName: 'Vesper',    drawFns: [drawSprite_designer_A,   drawSprite_designer_B,   drawSprite_designer_C]   },
-    { slug: 'galactus',   displayName: 'Galactus',  drawFns: [drawSprite_galactus_A,   drawSprite_galactus_B,   drawSprite_galactus_C]   },
-    { slug: 'hume',       displayName: 'Hume',      drawFns: [drawSprite_hume_A,       drawSprite_hume_B,       drawSprite_hume_C]       },
-    { slug: 'otto',       displayName: 'Otto',      drawFns: [drawSprite_otto_A,       drawSprite_otto_B,       drawSprite_otto_C]       },
-    { slug: 'pm',         displayName: 'PM',        drawFns: [drawSprite_pm_A,         drawSprite_pm_B,         drawSprite_pm_C]         },
-    { slug: 'trump',      displayName: 'Trump',     drawFns: [drawSprite_trump_A,      drawSprite_trump_B,      drawSprite_trump_C]      },
-    { slug: 'unclebob',   displayName: 'Uncle Bob', drawFns: [drawSprite_unclebob_A,   drawSprite_unclebob_B,   drawSprite_unclebob_C]   },
-    { slug: 'spengler',   displayName: 'Spengler',  drawFns: [drawSprite_spengler_A,   drawSprite_spengler_B,   drawSprite_spengler_C]   },
-    { slug: 'bloodfeast', displayName: 'Bloodfeast',drawFns: [drawSprite_bloodfeast_A, drawSprite_bloodfeast_B, drawSprite_bloodfeast_C] },
-    { slug: 'adelbert',   displayName: 'Adelbert',  drawFns: [drawSprite_adelbert_A,   drawSprite_adelbert_B,   drawSprite_adelbert_C]   },
-    { slug: 'jhaddu',     displayName: 'Jhaddu',    drawFns: [drawSprite_jhaddu_A,     drawSprite_jhaddu_B,     drawSprite_jhaddu_C]     },
-    { slug: 'morgan',     displayName: 'Morgan',    drawFns: [drawSprite_morgan_A,     drawSprite_morgan_B,     drawSprite_morgan_C]     },
-    { slug: 'the_kid',    displayName: 'The Kid',   drawFns: [drawSprite_the_kid_A,    drawSprite_the_kid_B,    drawSprite_the_kid_C]    },
-  ];
+    const nameEl = document.createElement('div');
+    nameEl.className = 'sprite-card-name';
+    nameEl.textContent = title || slug;
+    card.appendChild(nameEl);
 
-  // poll_id uses hyphens: the_kid -> sprite-the-kid, unclebob -> sprite-unclebob, etc.
-  function slugToPollId(slug) {
-    return 'sprite-' + slug.replace(/_/g, '-');
-  }
+    const variantsRow = document.createElement('div');
+    variantsRow.className = 'sprite-variants';
 
-  // Build sprite cards and register poll IDs
-  (function buildSpriteCards() {
-    const grid = document.getElementById('sprite-grid');
-    const variants = ['A', 'B', 'C'];
+    const isGalactus = slug === 'galactus';
 
-    for (const persona of PERSONAS) {
-      const pollId = slugToPollId(persona.slug);
+    variants.forEach((v, i) => {
+      const varDiv = document.createElement('div');
+      varDiv.className = 'sprite-variant';
 
-      // Register in POLL_UI_MAP
-      const btnPrefix   = 'sprbtn-' + persona.slug + '-';
-      const countPrefix = 'sprcount-' + persona.slug + '-';
-      POLL_UI_MAP[pollId] = { prefix: btnPrefix, countPrefix: countPrefix, options: variants };
+      const canvas = document.createElement('canvas');
+      canvas.id = 'sprcanvas-' + slug + '-' + v;
+      canvas.width  = isGalactus ? 160 : 40;
+      canvas.height = isGalactus ? 240 : 60;
+      canvas.className = 'sprite-canvas';
 
-      // Build card HTML
-      const card = document.createElement('div');
-      card.className = 'sprite-card';
-      card.setAttribute('data-sprite-poll-id', pollId);
+      const label = document.createElement('div');
+      label.className = 'sprite-variant-label';
+      label.textContent = v;
 
-      const nameEl = document.createElement('div');
-      nameEl.className = 'sprite-card-name';
-      nameEl.textContent = persona.displayName;
-      card.appendChild(nameEl);
+      const btn = document.createElement('button');
+      btn.id = btnPrefix + v;
+      btn.className = 'vote-btn';
+      btn.textContent = 'Vote ' + v;
+      btn.onclick = (function(pid, opt) {
+        return function() { castVote(pid, opt); };
+      })(poll_id, v);
 
-      const variantsRow = document.createElement('div');
-      variantsRow.className = 'sprite-variants';
+      const countEl = document.createElement('div');
+      countEl.id = countPrefix + v;
+      countEl.className = 'vote-count';
+      countEl.textContent = '— votes';
 
+      varDiv.appendChild(canvas);
+      varDiv.appendChild(label);
+      varDiv.appendChild(btn);
+      varDiv.appendChild(countEl);
+      variantsRow.appendChild(varDiv);
+    });
+
+    card.appendChild(variantsRow);
+
+    // Draw sprites after card is in DOM — resolved by window function name convention
+    requestAnimationFrame(() => {
       variants.forEach((v, i) => {
-        const varDiv = document.createElement('div');
-        varDiv.className = 'sprite-variant';
-
-        const canvas = document.createElement('canvas');
-        canvas.id = 'sprcanvas-' + persona.slug + '-' + v;
-        canvas.width  = persona.slug === 'galactus' ? 160 : 40;
-        canvas.height = persona.slug === 'galactus' ? 240 : 60;
-        canvas.className = 'sprite-canvas';
-
-        const label = document.createElement('div');
-        label.className = 'sprite-variant-label';
-        label.textContent = v;
-
-        const btn = document.createElement('button');
-        btn.id = btnPrefix + v;
-        btn.className = 'vote-btn';
-        btn.textContent = 'Vote ' + v;
-        btn.onclick = (function(pid, opt) {
-          return function() { castSpriteVote(pid, opt); };
-        })(pollId, v);
-
-        const countEl = document.createElement('div');
-        countEl.id = countPrefix + v;
-        countEl.className = 'vote-count';
-        countEl.textContent = '— votes';
-
-        varDiv.appendChild(canvas);
-        varDiv.appendChild(label);
-        varDiv.appendChild(btn);
-        varDiv.appendChild(countEl);
-        variantsRow.appendChild(varDiv);
-      });
-
-      card.appendChild(variantsRow);
-      grid.appendChild(card);
-
-      // Draw sprites (canvas is 40x60, sprite expects cx=center, cy=bottom-feet)
-      // Galactus is rendered at 2x scale: canvas 160x240, scale 2.0
-      variants.forEach((v, i) => {
-        const canvas = document.getElementById('sprcanvas-' + persona.slug + '-' + v);
-        const ctx = canvas.getContext('2d');
-        const isGalactusSprite = persona.slug === 'galactus';
-        const cw = isGalactusSprite ? 160 : 40;
-        const ch = isGalactusSprite ? 240 : 60;
+        const fnName = 'drawSprite_' + slug + '_' + v;
+        const drawFn = window[fnName];
+        if (typeof drawFn !== 'function') return;
+        const cvs = document.getElementById('sprcanvas-' + slug + '-' + v);
+        if (!cvs) return;
+        const ctx = cvs.getContext('2d');
         ctx.fillStyle = '#0d0d1a';
-        ctx.fillRect(0, 0, cw, ch);
+        ctx.fillRect(0, 0, cvs.width, cvs.height);
         ctx.save();
-        if (isGalactusSprite) {
-          // 2x scale: canvas 160x240, draw at cx=80 (center), cy=232 (near bottom)
+        if (isGalactus) {
           ctx.scale(2, 2);
-          persona.drawFns[i](ctx, 80, 232);
+          drawFn(ctx, 80, 232);
         } else {
-          // Standard 0.5x scale: canvas 40x60 = half of 80x120
           ctx.scale(0.5, 0.5);
-          persona.drawFns[i](ctx, 40, 116);
+          drawFn(ctx, 40, 116);
         }
         ctx.restore();
       });
-    }
-  })();
+    });
 
-  async function castSpriteVote(pollId, option) {
-    try {
-      const resp = await fetch('/api/vote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ poll_id: pollId, option }),
-        credentials: 'same-origin',
-      });
-      if (!resp.ok) { console.error('sprite vote failed:', resp.status); return; }
-      const data = await resp.json();
-      yourVotes[pollId] = data.your_vote ?? option;
-      applyPollState(pollId, data.counts, data.winner, yourVotes[pollId]);
-    } catch (e) { console.error('sprite vote error:', e); }
+    if (vote_counts) {
+      applyPollState(poll_id, vote_counts, winner, yourVotes[poll_id] ?? null);
+    }
+
+    return card;
   }
 
-  // Fetch initial your_vote for all sprite polls, then refresh + apply layout
-  (async function initSpriteVotes() {
-    // Wait for building/fountain your_votes to finish first
-    await (window._initYourVotesPromise || Promise.resolve());
-    for (const persona of PERSONAS) {
-      const pollId = slugToPollId(persona.slug);
-      try {
-        const resp = await fetch('/api/vote/' + pollId, { credentials: 'same-origin' });
-        if (!resp.ok) continue;
-        const data = await resp.json();
-        if (data.your_vote) yourVotes[pollId] = data.your_vote;
-      } catch { /* ignore */ }
-    }
-    // triggerLayout=true: after all vote states are known, bucket active vs concluded
-    refreshAllPolls(true);
-  })();
-  </script>
-
-  <div class="emoji-section" id="emoji-section" style="display:none;">
-    <div class="emoji-section-title">Emoji Reactions</div>
-    <div class="emoji-section-subtitle">vote for which emoji BigClungus should use for each reaction type</div>
-    <div class="emoji-grid" id="emoji-grid">
-      <!-- Cards injected by JS -->
-    </div>
-  </div>
-
-  <script>
-  // ── Emoji poll section — dynamically built from /api/polls ──────────────────
-
-  async function castEmojiVote(pollId, option) {
-    try {
-      const resp = await fetch('/api/vote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ poll_id: pollId, option }),
-        credentials: 'same-origin',
-      });
-      if (!resp.ok) { console.error('emoji vote failed:', resp.status); return; }
-      const data = await resp.json();
-      yourVotes[pollId] = data.your_vote ?? option;
-      applyPollState(pollId, data.counts, data.winner, yourVotes[pollId]);
-    } catch (e) { console.error('emoji vote error:', e); }
-  }
-
+  // ── Build an emoji display card for an emoji-* poll ────────────────────────
   function buildEmojiCard(pollData) {
     const { poll_id, title, description, options, vote_counts, winner } = pollData;
     const variants = Object.keys(options || {}).sort();
@@ -1388,7 +1184,7 @@
 
     const card = document.createElement('div');
     card.className = 'emoji-card';
-    card.setAttribute('data-sprite-poll-id', poll_id);
+    card.setAttribute('data-poll-id', poll_id);
 
     const nameEl = document.createElement('div');
     nameEl.className = 'emoji-card-name';
@@ -1422,7 +1218,7 @@
       btn.className = 'vote-btn';
       btn.textContent = 'Vote ' + v;
       btn.onclick = (function(pid, opt) {
-        return function() { castEmojiVote(pid, opt); };
+        return function() { castVote(pid, opt); };
       })(poll_id, v);
 
       const countEl = document.createElement('div');
@@ -1446,39 +1242,258 @@
     return card;
   }
 
-  (async function initEmojiPolls() {
-    await (window._initYourVotesPromise || Promise.resolve());
+  // ── Build a canvas-rendered card for polls with bespoke pixel art ───────────
+  // Uses CANVAS_RENDERERS[poll_id] to find draw/anim functions per option.
+  function buildCanvasCard(pollData) {
+    const { poll_id, title, options, vote_counts, winner } = pollData;
+    const variants = Object.keys(options || {}).sort();
+    const renderers = CANVAS_RENDERERS[poll_id] || {};
+
+    const btnPrefix   = 'cvsbtn-'   + poll_id + '-';
+    const countPrefix = 'cvscount-' + poll_id + '-';
+    POLL_UI_MAP[poll_id] = { prefix: btnPrefix, countPrefix: countPrefix, options: variants };
+
+    const wrap = document.createElement('div');
+    wrap.className = 'vote-wrap';
+    wrap.setAttribute('data-poll-id', poll_id);
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'vote-title';
+    titleEl.textContent = title || poll_id;
+    wrap.appendChild(titleEl);
+
+    const subtitle = document.createElement('div');
+    subtitle.className = 'vote-subtitle';
+    subtitle.textContent = 'click to vote \u2014 results update live';
+    wrap.appendChild(subtitle);
+
+    const variantsRow = document.createElement('div');
+    variantsRow.className = 'variants';
+
+    variants.forEach((v) => {
+      const varDiv = document.createElement('div');
+      varDiv.className = 'variant';
+
+      const canvasId = 'cvs-' + poll_id + '-' + v;
+      const canvas = document.createElement('canvas');
+      canvas.id = canvasId;
+      canvas.width = 160;
+      canvas.height = 120;
+
+      const label = document.createElement('div');
+      label.className = 'variant-label';
+      label.textContent = v;
+
+      const desc = document.createElement('div');
+      desc.className = 'variant-desc';
+      desc.textContent = options[v] || '';
+
+      const btn = document.createElement('button');
+      btn.id = btnPrefix + v;
+      btn.className = 'vote-btn';
+      btn.textContent = 'Vote ' + v;
+      btn.onclick = (function(pid, opt) {
+        return function() { castVote(pid, opt); };
+      })(poll_id, v);
+
+      const countEl = document.createElement('div');
+      countEl.id = countPrefix + v;
+      countEl.className = 'vote-count';
+      countEl.textContent = '\u2014 votes';
+
+      varDiv.appendChild(canvas);
+      varDiv.appendChild(label);
+      varDiv.appendChild(desc);
+      varDiv.appendChild(btn);
+      varDiv.appendChild(countEl);
+      variantsRow.appendChild(varDiv);
+    });
+
+    wrap.appendChild(variantsRow);
+
+    // Run draw/anim functions after the card is in the DOM
+    requestAnimationFrame(() => {
+      variants.forEach((v) => {
+        const r = renderers[v];
+        if (!r) return;
+        const cvs = document.getElementById('cvs-' + poll_id + '-' + v);
+        if (!cvs) return;
+        const ctx = cvs.getContext('2d');
+        if (r.draw) r.draw(ctx);
+        if (r.anim) r.anim(ctx);
+      });
+    });
+
+    if (vote_counts) {
+      applyPollState(poll_id, vote_counts, winner, yourVotes[poll_id] ?? null);
+    }
+
+    return wrap;
+  }
+
+  // ── Build a generic text-option card for any unknown poll type ──────────────
+  function buildGenericCard(pollData) {
+    const { poll_id, title, description, options, vote_counts, winner } = pollData;
+    const variants = Object.keys(options || {}).sort();
+
+    const btnPrefix   = 'genbtn-'   + poll_id + '-';
+    const countPrefix = 'gencount-' + poll_id + '-';
+    POLL_UI_MAP[poll_id] = { prefix: btnPrefix, countPrefix: countPrefix, options: variants };
+
+    const wrap = document.createElement('div');
+    wrap.className = 'vote-wrap';
+    wrap.setAttribute('data-poll-id', poll_id);
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'vote-title';
+    titleEl.textContent = title || poll_id;
+    wrap.appendChild(titleEl);
+
+    if (description) {
+      const descEl = document.createElement('div');
+      descEl.className = 'vote-subtitle';
+      descEl.textContent = description;
+      wrap.appendChild(descEl);
+    }
+
+    const variantsRow = document.createElement('div');
+    variantsRow.className = 'variants';
+
+    variants.forEach((v) => {
+      const varDiv = document.createElement('div');
+      varDiv.className = 'variant';
+
+      const label = document.createElement('div');
+      label.className = 'variant-label';
+      label.textContent = v;
+
+      const desc = document.createElement('div');
+      desc.className = 'variant-desc';
+      desc.textContent = options[v] || '';
+
+      const btn = document.createElement('button');
+      btn.id = btnPrefix + v;
+      btn.className = 'vote-btn';
+      btn.textContent = 'Vote ' + v;
+      btn.onclick = (function(pid, opt) {
+        return function() { castVote(pid, opt); };
+      })(poll_id, v);
+
+      const countEl = document.createElement('div');
+      countEl.id = countPrefix + v;
+      countEl.className = 'vote-count';
+      countEl.textContent = '\u2014 votes';
+
+      varDiv.appendChild(label);
+      varDiv.appendChild(desc);
+      varDiv.appendChild(btn);
+      varDiv.appendChild(countEl);
+      variantsRow.appendChild(varDiv);
+    });
+
+    wrap.appendChild(variantsRow);
+
+    if (vote_counts) {
+      applyPollState(poll_id, vote_counts, winner, yourVotes[poll_id] ?? null);
+    }
+
+    return wrap;
+  }
+
+  // ── Main init: fetch all polls, group by prefix, render sections ────────────
+  (async function initAllPolls() {
+    let polls;
     try {
       const resp = await fetch('/api/polls', { credentials: 'same-origin' });
-      if (!resp.ok) { console.error('emoji polls fetch failed:', resp.status); return; }
+      if (!resp.ok) { console.error('polls fetch failed:', resp.status); return; }
       const data = await resp.json();
-      const emojiPolls = (data.polls || []).filter(p => p.poll_id.startsWith('emoji-'));
-      if (emojiPolls.length === 0) return;
-
-      const grid = document.getElementById('emoji-grid');
-      const section = document.getElementById('emoji-section');
-      section.style.display = '';
-
-      for (const poll of emojiPolls) {
-        const card = buildEmojiCard(poll);
-        grid.appendChild(card);
-      }
-
-      // Fetch your_vote for each emoji poll
-      for (const poll of emojiPolls) {
-        try {
-          const vresp = await fetch('/api/vote/' + poll.poll_id, { credentials: 'same-origin' });
-          if (!vresp.ok) continue;
-          const vdata = await vresp.json();
-          if (vdata.your_vote) {
-            yourVotes[poll.poll_id] = vdata.your_vote;
-            applyPollState(poll.poll_id, vdata.counts, vdata.winner, vdata.your_vote);
-          }
-        } catch { /* ignore */ }
-      }
+      polls = data.polls || [];
     } catch (e) {
-      console.error('emoji polls init error:', e);
+      console.error('polls init error:', e);
+      return;
     }
+
+    // Fetch your_vote for every poll
+    for (const poll of polls) {
+      try {
+        const resp = await fetch('/api/vote/' + poll.poll_id, { credentials: 'same-origin' });
+        if (!resp.ok) continue;
+        const data = await resp.json();
+        if (data.your_vote) yourVotes[poll.poll_id] = data.your_vote;
+      } catch { /* ignore */ }
+    }
+
+    // Group polls by their category prefix (everything before the first '-')
+    const groups = {};
+    for (const poll of polls) {
+      const prefix = poll.poll_id.split('-')[0];
+      if (!groups[prefix]) groups[prefix] = [];
+      groups[prefix].push(poll);
+    }
+
+    const container = document.getElementById('dynamic-poll-sections');
+
+    // Render each group as a section
+    for (const [prefix, groupPolls] of Object.entries(groups)) {
+      const section = document.createElement('div');
+
+      if (prefix === 'sprite') {
+        // Sprite section: grid of persona canvas cards
+        section.className = 'sprite-section';
+        const titleEl = document.createElement('div');
+        titleEl.className = 'sprite-section-title';
+        titleEl.textContent = 'Persona Sprites';
+        section.appendChild(titleEl);
+        const subtitleEl = document.createElement('div');
+        subtitleEl.className = 'sprite-section-subtitle';
+        subtitleEl.textContent = 'vote for your favourite variant of each persona';
+        section.appendChild(subtitleEl);
+        const grid = document.createElement('div');
+        grid.className = 'sprite-grid';
+        for (const poll of groupPolls) {
+          grid.appendChild(buildSpriteCard(poll));
+        }
+        section.appendChild(grid);
+        container.appendChild(section);
+        applyLayoutBuckets(grid);
+
+      } else if (prefix === 'emoji') {
+        // Emoji section: grid of emoji reaction cards
+        section.className = 'emoji-section';
+        const titleEl = document.createElement('div');
+        titleEl.className = 'emoji-section-title';
+        titleEl.textContent = 'Emoji Reactions';
+        section.appendChild(titleEl);
+        const subtitleEl = document.createElement('div');
+        subtitleEl.className = 'emoji-section-subtitle';
+        subtitleEl.textContent = 'vote for which emoji BigClungus should use for each reaction type';
+        section.appendChild(subtitleEl);
+        const grid = document.createElement('div');
+        grid.className = 'emoji-grid';
+        for (const poll of groupPolls) {
+          grid.appendChild(buildEmojiCard(poll));
+        }
+        section.appendChild(grid);
+        container.appendChild(section);
+        applyLayoutBuckets(grid);
+
+      } else {
+        // Canvas-rendered polls (congress, commons) or generic unknown polls
+        // Each poll gets its own vote-wrap card rendered into the section
+        section.className = 'vote-wrap-group';
+        for (const poll of groupPolls) {
+          const card = CANVAS_RENDERERS[poll.poll_id]
+            ? buildCanvasCard(poll)
+            : buildGenericCard(poll);
+          section.appendChild(card);
+        }
+        container.appendChild(section);
+        applyLayoutBuckets(section);
+      }
+    }
+
+    // Start periodic refresh
+    setInterval(refreshAllPolls, 5000);
   })();
   </script>
 </body>
