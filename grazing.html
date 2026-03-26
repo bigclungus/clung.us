@@ -1585,7 +1585,23 @@ function drawTraces() {
 var ADJECTIVES = ['swift','quiet','bold','bright','calm','dark','wild','keen','kind','proud','fierce','gentle','silver','gold','iron','lost','found','lone','brave','odd'];
 var ANIMALS = ['fox','bear','wolf','deer','hawk','owl','crow','lynx','seal','elk','hare','mole','wren','kite','vole','newt','toad','crab','ibis','moth'];
 
+function getGitHubUsername() {
+  // tauth_github cookie format: username.hmac_signature
+  var cookies = document.cookie.split(';');
+  for (var i = 0; i < cookies.length; i++) {
+    var c = cookies[i].trim();
+    if (c.indexOf('tauth_github=') === 0) {
+      var val = c.slice('tauth_github='.length);
+      var dotIdx = val.indexOf('.');
+      if (dotIdx > 0) return val.slice(0, dotIdx);
+    }
+  }
+  return null;
+}
+
 function genPlayerName() {
+  var ghUser = getGitHubUsername();
+  if (ghUser) return ghUser;
   var stored = sessionStorage.getItem('commons_player_name');
   if (stored) return stored;
   var adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
@@ -1613,26 +1629,19 @@ function genPlayerColor() {
 }
 
 var localPlayer = {
-  tx: 13, ty: 20, // start in open grass area
-  px: 0, py: 0,
+  tx: 13, ty: 20, // tile coords (kept in sync for collision and WS)
+  px: 0, py: 0,   // pixel coords (smooth render position)
+  vx: 0, vy: 0,   // pixel velocity
   name: genPlayerName(),
   color: genPlayerColor(),
 };
 localPlayer.px = localPlayer.tx * TILE + TILE / 2;
 localPlayer.py = localPlayer.ty * TILE + TILE / 2;
 
+var PLAYER_SPEED = 1.8; // pixels per frame (smooth, similar to NPC pace)
+
 var remotePlayers = {}; // id -> {x, y, name, color, ts}
 var keysDown = {};
-
-document.addEventListener('keydown', function(e) {
-  keysDown[e.key] = true;
-});
-document.addEventListener('keyup', function(e) {
-  delete keysDown[e.key];
-});
-
-var lastMoveFrame = 0;
-var MOVE_INTERVAL = 8; // frames between moves (at 60fps ~133ms per step)
 
 function triggerAreaTransition(url) {
   var overlay = document.createElement('div');
@@ -1715,6 +1724,16 @@ function drawRemotePlayers() {
     ctx.arc(cx, cy - 5, 2, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
+
+    // Name label above sprite
+    if (p.name) {
+      ctx.save();
+      ctx.font = 'bold 8px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#cccccc';
+      ctx.fillText(p.name, cx, cy - 10);
+      ctx.restore();
+    }
   }
   for (var j = 0; j < toDelete.length; j++) delete remotePlayers[toDelete[j]];
 }
