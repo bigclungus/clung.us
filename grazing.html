@@ -1628,6 +1628,9 @@ function genPlayerColor() {
   return hex;
 }
 
+var MOVE_INTERVAL = 6; // frames between tile steps
+var lastMoveFrame = 0;
+
 var localPlayer = {
   tx: 13, ty: 20, // tile coords (kept in sync for collision and WS)
   px: 0, py: 0,   // pixel coords (smooth render position)
@@ -1643,45 +1646,86 @@ var PLAYER_SPEED = 1.8; // pixels per frame (smooth, similar to NPC pace)
 var remotePlayers = {}; // id -> {x, y, name, color, ts}
 var keysDown = {};
 
-function triggerAreaTransition(url) {
-  var overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;opacity:0;z-index:999;pointer-events:none;transition:opacity 0.5s ease;';
-  document.body.appendChild(overlay);
-  // Force reflow so the transition fires
-  overlay.offsetHeight;
-  overlay.style.opacity = '1';
-  setTimeout(function() {
-    window.location.href = url;
-  }, 500);
+document.addEventListener('keydown', function(e) {
+  keysDown[e.key] = true;
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+});
+document.addEventListener('keyup', function(e) {
+  delete keysDown[e.key];
+});
+
+// ── Congress modal ────────────────────────────────────────────────────────────
+var congressModalOpen = false;
+
+function showCongressModal() {
+  if (congressModalOpen) return;
+  congressModalOpen = true;
+  document.getElementById('congress-modal-overlay').style.display = 'flex';
+}
+
+function hideCongressModal() {
+  congressModalOpen = false;
+  document.getElementById('congress-modal-overlay').style.display = 'none';
 }
 
 function updateLocalPlayer() {
-  lastMoveFrame++;
-  if (lastMoveFrame < MOVE_INTERVAL) return;
-  lastMoveFrame = 0;
+  var inputDx = 0, inputDy = 0;
+  if (keysDown['ArrowLeft']  || keysDown['a'] || keysDown['A']) inputDx = -1;
+  if (keysDown['ArrowRight'] || keysDown['d'] || keysDown['D']) inputDx = 1;
+  if (keysDown['ArrowUp']    || keysDown['w'] || keysDown['W']) inputDy = -1;
+  if (keysDown['ArrowDown']  || keysDown['s'] || keysDown['S']) inputDy = 1;
 
-  var dx = 0, dy = 0;
-  if (keysDown['ArrowLeft']  || keysDown['a'] || keysDown['A']) dx = -1;
-  if (keysDown['ArrowRight'] || keysDown['d'] || keysDown['D']) dx = 1;
-  if (keysDown['ArrowUp']    || keysDown['w'] || keysDown['W']) dy = -1;
-  if (keysDown['ArrowDown']  || keysDown['s'] || keysDown['S']) dy = 1;
+  // Normalise diagonal
+  if (inputDx !== 0 && inputDy !== 0) {
+    var diagLen = Math.sqrt(2);
+    localPlayer.vx = (inputDx / diagLen) * PLAYER_SPEED;
+    localPlayer.vy = (inputDy / diagLen) * PLAYER_SPEED;
+  } else {
+    localPlayer.vx = inputDx * PLAYER_SPEED;
+    localPlayer.vy = inputDy * PLAYER_SPEED;
+  }
 
-  if (dx === 0 && dy === 0) return;
+  if (localPlayer.vx === 0 && localPlayer.vy === 0) return;
 
-  var nx = localPlayer.tx + dx;
-  var ny = localPlayer.ty + dy;
-  if (!isBlocked(nx, ny)) {
-    localPlayer.tx = nx;
-    localPlayer.ty = ny;
-    localPlayer.px = nx * TILE + TILE / 2;
-    localPlayer.py = ny * TILE + TILE / 2;
+  var newPx = localPlayer.px + localPlayer.vx;
+  var newPy = localPlayer.py + localPlayer.vy;
+
+  var newTx = Math.floor(newPx / TILE);
+  var newTy = Math.floor(newPy / TILE);
+
+  // Try full movement; slide on each axis if blocked
+  if (!isBlocked(newTx, newTy)) {
+    localPlayer.px = newPx;
+    localPlayer.py = newPy;
+  } else if (!isBlocked(Math.floor(newPx / TILE), localPlayer.ty)) {
+    localPlayer.px = newPx;
+    newTy = localPlayer.ty;
+  } else if (!isBlocked(localPlayer.tx, Math.floor(newPy / TILE))) {
+    localPlayer.py = newPy;
+    newTx = localPlayer.tx;
+  } else {
+    return; // fully blocked
+  }
+
+  // Clamp to canvas bounds
+  localPlayer.px = Math.max(TILE / 2, Math.min(W - TILE / 2, localPlayer.px));
+  localPlayer.py = Math.max(TILE / 2, Math.min(H - TILE / 2, localPlayer.py));
+
+  // Sync tile coords
+  var prevTx = localPlayer.tx;
+  var prevTy = localPlayer.ty;
+  localPlayer.tx = Math.floor(localPlayer.px / TILE);
+  localPlayer.ty = Math.floor(localPlayer.py / TILE);
+
+  // Broadcast move if tile changed
+  if (localPlayer.tx !== prevTx || localPlayer.ty !== prevTy) {
     sendPlayerMove();
+  }
 
-    // Congress building entry: doorway and just inside
-    if ((localPlayer.tx === 5 && localPlayer.ty === 5) ||
-        (localPlayer.tx >= 4 && localPlayer.tx <= 6 && localPlayer.ty === 4)) {
-      triggerAreaTransition('https://clung.us/congress');
-    }
+  // Congress building entry: doorway and just inside
+  if ((localPlayer.tx === 5 && localPlayer.ty === 5) ||
+      (localPlayer.tx >= 4 && localPlayer.tx <= 6 && localPlayer.ty === 4)) {
+    showCongressModal();
   }
 }
 
