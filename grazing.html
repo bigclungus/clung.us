@@ -3117,7 +3117,7 @@ function loop() {
       for (var _ai = 0; _ai < auditionWalkers.length; _ai++) {
         if (auditionWalkers[_ai].id === auditionHoveredId) { _cardWalker = auditionWalkers[_ai]; break; }
       }
-      if (_cardWalker) {
+      if (_cardWalker && lastMouseCanvas) {
         var _awdx = lastMouseCanvas.mx - _cardWalker.x;
         var _awdy = lastMouseCanvas.my - auditionWalkerY;
         if (Math.abs(_awdx) >= 20 || Math.abs(_awdy) >= 20) {
