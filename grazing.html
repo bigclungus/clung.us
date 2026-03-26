@@ -2315,6 +2315,8 @@ var keysDown = {};
 
 document.addEventListener('keydown', function(e) {
   if (congressModalOpen) return;
+  // If focus is inside a text input or textarea, let it handle the key
+  if (document.activeElement && (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT')) return;
   keysDown[e.key] = true;
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
   // Spacebar hop
