@@ -1668,7 +1668,11 @@
       </div>
       <div class="pf-field">
         <label class="pf-label" for="pf-role">Role</label>
-        <input class="pf-input" type="text" id="pf-role" placeholder="e.g. critic" autocomplete="off">
+        <input class="pf-input" type="text" id="pf-role" placeholder="e.g. Code and Work Reviewer" autocomplete="off">
+      </div>
+      <div class="pf-field">
+        <label class="pf-label" for="pf-title">Title</label>
+        <input class="pf-input" type="text" id="pf-title" placeholder="e.g. Perfectionist" autocomplete="off">
       </div>
       <div class="pf-field">
         <label class="pf-label" for="pf-sex">Sex</label>
@@ -1676,11 +1680,17 @@
       </div>
     </div>
     <div class="pf-row">
+      <div class="pf-field full">
+        <label class="pf-label" for="pf-avatar-url">Avatar URL</label>
+        <input class="pf-input" type="text" id="pf-avatar-url" placeholder="e.g. /static/avatars/critic.gif" autocomplete="off">
+      </div>
+    </div>
+    <div class="pf-row">
       <div class="pf-field">
         <label class="pf-label" for="pf-status">Status</label>
         <select class="pf-select" id="pf-status">
-          <option value="active">active</option>
-          <option value="fired">fired (severance)</option>
+          <option value="eligible">eligible</option>
+          <option value="ineligible">ineligible (retired)</option>
         </select>
       </div>
       <div class="pf-field" style="justify-content:flex-end;gap:10px;flex-direction:row;align-items:flex-end;">
@@ -1823,7 +1833,7 @@
     </div>
     <div class="sidebar-body" id="rosterList" style="flex: 0 1 auto;"></div>
     <div class="sidebar-section-divider" id="leftSeveranceDivider" style="display:none;">
-      Severance <span class="count-badge" id="leftSeveranceCount" style="font-size:0.55rem; color: var(--text-muted); margin-left:4px;"></span>
+      Retired <span class="count-badge" id="leftSeveranceCount" style="font-size:0.55rem; color: var(--text-muted); margin-left:4px;"></span>
     </div>
     <div class="sidebar-body" id="leftSeveranceList" style="flex: 1 1 auto;"></div>
   </aside>
@@ -2601,7 +2611,7 @@
     if (!entry.fired_reason) entry.fired_reason = 'Removed from active roster.';
     firedPool.unshift(entry);
     render();
-    setStatus((p.display_name || p.name) + ' moved to severance');
+    setStatus((p.display_name || p.name) + ' retired');
   }
 
 
@@ -3620,7 +3630,8 @@
       const tdStatus = document.createElement('td');
       const pill = document.createElement('span');
       pill.className = 'pt-status-pill ' + status;
-      pill.textContent = status;
+      const statusLabel = { eligible: 'eligible', ineligible: 'retired', moderator: 'moderator' };
+      pill.textContent = statusLabel[status] || status;
       tdStatus.appendChild(pill);
       tr.appendChild(tdStatus);
 
@@ -3654,18 +3665,18 @@
       tdActions.appendChild(editBtn);
 
       if (status === 'eligible') {
-        const fireBtn = document.createElement('button');
-        fireBtn.className = 'pt-btn fire-btn';
-        fireBtn.textContent = 'Fire';
-        fireBtn.title = 'Mark ineligible';
-        fireBtn.onclick = () => quickStatusChange(p.name, 'fired');
-        tdActions.appendChild(fireBtn);
+        const retireBtn = document.createElement('button');
+        retireBtn.className = 'pt-btn fire-btn';
+        retireBtn.textContent = 'Retire';
+        retireBtn.title = 'Mark ineligible (retired)';
+        retireBtn.onclick = () => quickStatusChange(p.name, 'ineligible');
+        tdActions.appendChild(retireBtn);
       } else if (status === 'ineligible') {
         const restoreBtn = document.createElement('button');
         restoreBtn.className = 'pt-btn restore-btn';
         restoreBtn.textContent = 'Restore';
         restoreBtn.title = 'Mark eligible';
-        restoreBtn.onclick = () => quickStatusChange(p.name, 'active');
+        restoreBtn.onclick = () => quickStatusChange(p.name, 'eligible');
         tdActions.appendChild(restoreBtn);
       }
 
@@ -3678,7 +3689,7 @@
   }
 
   async function quickStatusChange(name, newStatus) {
-    const label = newStatus === 'fired' ? 'Fire' : 'Restore';
+    const label = newStatus === 'ineligible' ? 'Retire' : 'Restore';
     if (!confirm(label + ' persona "' + name + '"?')) return;
     try {
       const res = await fetch('/api/personas/' + name, {
@@ -3747,7 +3758,7 @@
       sex: '',
       congress: true,
       evolves: true,
-      status: 'active',
+      status: 'eligible',
       prompt: '',
     });
     overlay.classList.add('open');
@@ -3758,10 +3769,14 @@
     document.getElementById('pf-display-name').value = p.display_name || '';
     document.getElementById('pf-model').value = p.model || 'claude-sonnet-4-6';
     document.getElementById('pf-role').value = p.role || '';
+    document.getElementById('pf-title').value = p.title || '';
     document.getElementById('pf-sex').value = p.sex || '';
+    document.getElementById('pf-avatar-url').value = p.avatar_url || '';
     document.getElementById('pf-congress').checked = p.congress !== false;
     document.getElementById('pf-evolves').checked = p.evolves !== false;
-    document.getElementById('pf-status').value = (p.status === 'fired' ? 'fired' : 'active');
+    // Normalize legacy status values: fired→ineligible, active→eligible
+    const normalizedStatus = p.status === 'fired' ? 'ineligible' : (p.status === 'active' ? 'eligible' : (p.status || 'eligible'));
+    document.getElementById('pf-status').value = normalizedStatus;
     document.getElementById('pf-prompt').value = p.prompt || '';
   }
 
@@ -3779,7 +3794,9 @@
       display_name: document.getElementById('pf-display-name').value.trim(),
       model: document.getElementById('pf-model').value.trim(),
       role: document.getElementById('pf-role').value.trim(),
+      title: document.getElementById('pf-title').value.trim(),
       sex: document.getElementById('pf-sex').value.trim(),
+      avatar_url: document.getElementById('pf-avatar-url').value.trim(),
       congress: document.getElementById('pf-congress').checked,
       evolves: document.getElementById('pf-evolves').checked,
       status: document.getElementById('pf-status').value,
