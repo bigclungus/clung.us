@@ -1341,7 +1341,14 @@ NPC.prototype.draw = function () {
     ctx.shadowColor = '#ffffff';
     ctx.shadowBlur = 12;
     if (typeof spriteFn === 'function') {
-      spriteFn(ctx, cx, cy_feet);
+      if (this.isGalactus) {
+        ctx.save();
+        ctx.scale(2, 2);
+        spriteFn(ctx, cx / 2, cy_feet / 2);
+        ctx.restore();
+      } else {
+        spriteFn(ctx, cx, cy_feet);
+      }
     } else {
       var heldScale = (this.isGalactus ? 1.8 : 1) * 1.3;
       drawCharacter(cx, cy, this.color, heldScale, this.isGalactus);
@@ -1352,7 +1359,14 @@ NPC.prototype.draw = function () {
   }
 
   if (typeof spriteFn === 'function') {
-    spriteFn(ctx, cx, cy_feet);
+    if (this.isGalactus) {
+      ctx.save();
+      ctx.scale(2, 2);
+      spriteFn(ctx, cx / 2, cy_feet / 2);
+      ctx.restore();
+    } else {
+      spriteFn(ctx, cx, cy_feet);
+    }
   } else {
     drawCharacter(cx, cy, this.color, this.isGalactus ? 1.8 : 1, this.isGalactus);
   }

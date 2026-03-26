@@ -1082,8 +1082,8 @@
 
         const canvas = document.createElement('canvas');
         canvas.id = 'sprcanvas-' + persona.slug + '-' + v;
-        canvas.width = 40;
-        canvas.height = 60;
+        canvas.width  = persona.slug === 'galactus' ? 160 : 40;
+        canvas.height = persona.slug === 'galactus' ? 240 : 60;
         canvas.className = 'sprite-canvas';
 
         const label = document.createElement('div');
@@ -1114,15 +1114,25 @@
       grid.appendChild(card);
 
       // Draw sprites (canvas is 40x60, sprite expects cx=center, cy=bottom-feet)
+      // Galactus is rendered at 2x scale: canvas 160x240, scale 2.0
       variants.forEach((v, i) => {
         const canvas = document.getElementById('sprcanvas-' + persona.slug + '-' + v);
         const ctx = canvas.getContext('2d');
+        const isGalactusSprite = persona.slug === 'galactus';
+        const cw = isGalactusSprite ? 160 : 40;
+        const ch = isGalactusSprite ? 240 : 60;
         ctx.fillStyle = '#0d0d1a';
-        ctx.fillRect(0, 0, 40, 60);
-        // cx=20 (center), cy=58 (near bottom), scale 0.5x via canvas size (40x60 = half of 80x120)
+        ctx.fillRect(0, 0, cw, ch);
         ctx.save();
-        ctx.scale(0.5, 0.5);
-        persona.drawFns[i](ctx, 40, 116);
+        if (isGalactusSprite) {
+          // 2x scale: canvas 160x240, draw at cx=80 (center), cy=232 (near bottom)
+          ctx.scale(2, 2);
+          persona.drawFns[i](ctx, 80, 232);
+        } else {
+          // Standard 0.5x scale: canvas 40x60 = half of 80x120
+          ctx.scale(0.5, 0.5);
+          persona.drawFns[i](ctx, 40, 116);
+        }
         ctx.restore();
       });
     }
