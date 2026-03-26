@@ -263,6 +263,106 @@ var TILE = 20;
 var COLS = Math.floor(W / TILE); // 50
 var ROWS = Math.floor(H / TILE); // 35
 
+// ── Chunk system ───────────────────────────────────────────────────────────────
+var chunkX = 0, chunkY = 0;
+
+function chunkSeed(cx, cy) {
+  var h = cx * 374761393 + cy * 668265263;
+  h = (h ^ (h >> 13)) * 1274126177;
+  return h ^ (h >> 16);
+}
+
+function seededRand(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function generateChunk(cx, cy) {
+  var m = [];
+  for (var r = 0; r < ROWS; r++) {
+    m.push(new Uint8Array(COLS));
+  }
+
+  var rng = seededRand(chunkSeed(cx, cy));
+
+  // Scatter trees (~10%) — keep 2-tile border clear
+  for (var r = 2; r < ROWS - 2; r++) {
+    for (var c = 2; c < COLS - 2; c++) {
+      // Keep center 20x12 area mostly clear for NPCs
+      var inCenter = (c >= 15 && c <= 35 && r >= 12 && r <= 23);
+      if (inCenter) continue;
+      var roll = rng();
+      if (roll < 0.10) {
+        m[r][c] = 4; // tree
+      }
+    }
+  }
+
+  // Scatter water clusters (~5%)
+  var numPonds = 1 + Math.floor(rng() * 3);
+  for (var p = 0; p < numPonds; p++) {
+    var pr = 5 + Math.floor(rng() * (ROWS - 12));
+    var pc = 5 + Math.floor(rng() * (COLS - 12));
+    var pw = 3 + Math.floor(rng() * 5);
+    var ph = 2 + Math.floor(rng() * 4);
+    for (var wr = pr; wr < Math.min(pr + ph, ROWS - 3); wr++) {
+      for (var wc = pc; wc < Math.min(pc + pw, COLS - 3); wc++) {
+        m[wr][wc] = 2;
+      }
+    }
+  }
+
+  // Scatter rocks
+  var numRocks = 3 + Math.floor(rng() * 6);
+  for (var k = 0; k < numRocks; k++) {
+    var rr = 2 + Math.floor(rng() * (ROWS - 4));
+    var rc = 2 + Math.floor(rng() * (COLS - 4));
+    if (m[rr][rc] === 0) m[rr][rc] = 5;
+  }
+
+  // Add 1-2 path corridors (grass strips through tree areas)
+  var numPaths = 1 + Math.floor(rng() * 2);
+  for (var pp = 0; pp < numPaths; pp++) {
+    if (rng() < 0.5) {
+      // Horizontal strip
+      var pathRow = 3 + Math.floor(rng() * (ROWS - 6));
+      for (var pc2 = 0; pc2 < COLS; pc2++) {
+        if (m[pathRow][pc2] === 4 || m[pathRow][pc2] === 5) m[pathRow][pc2] = 1;
+      }
+    } else {
+      // Vertical strip
+      var pathCol = 3 + Math.floor(rng() * (COLS - 6));
+      for (var pr2 = 0; pr2 < ROWS; pr2++) {
+        if (m[pr2][pathCol] === 4 || m[pr2][pathCol] === 5) m[pr2][pathCol] = 1;
+      }
+    }
+  }
+
+  // Always clear entry/exit corridors at each edge (middle 10 tiles)
+  var midC = Math.floor(COLS / 2);
+  var midR = Math.floor(ROWS / 2);
+  for (var i = -5; i <= 5; i++) {
+    // Top edge
+    if (m[0][midC + i] !== 0) m[0][midC + i] = 0;
+    if (m[1][midC + i] !== 0) m[1][midC + i] = 0;
+    // Bottom edge
+    if (m[ROWS - 1][midC + i] !== 0) m[ROWS - 1][midC + i] = 0;
+    if (m[ROWS - 2][midC + i] !== 0) m[ROWS - 2][midC + i] = 0;
+    // Left edge
+    if (m[midR + i][0] !== 0) m[midR + i][0] = 0;
+    if (m[midR + i][1] !== 0) m[midR + i][1] = 0;
+    // Right edge
+    if (m[midR + i][COLS - 1] !== 0) m[midR + i][COLS - 1] = 0;
+    if (m[midR + i][COLS - 2] !== 0) m[midR + i][COLS - 2] = 0;
+  }
+
+  return m;
+}
+
 // ── Sprite winner system ────────────────────────────────────────────────────────
 // Maps npc.name → winning variant letter ('A'|'B'|'C') once quorum is reached
 var SPRITE_WINNERS = {};
@@ -448,8 +548,8 @@ var STAR_POS = [];
 })();
 
 // ── Map definition ──────────────────────────────────────────────────────────────
-// 0=grass, 1=path (dirt), 2=water(pond), 3=wall/building, 4=tree, 5=rock
-var MAP = (function () {
+// 0=grass, 1=path (dirt), 2=water(pond), 3=wall/building, 4=tree, 5=rock, 6=fountain
+function buildChunk00() {
   var m = [];
   for (var r = 0; r < ROWS; r++) {
     m.push(new Uint8Array(COLS));
@@ -509,13 +609,35 @@ var MAP = (function () {
       m[r][c] = 6;
 
   return m;
-})();
+}
+
+var MAP = buildChunk00();
+
+// Rebuild the MAP for the given chunk coords and invalidate the map cache
+function loadChunk(cx, cy) {
+  chunkX = cx;
+  chunkY = cy;
+  if (cx === 0 && cy === 0) {
+    MAP = buildChunk00();
+  } else {
+    MAP = generateChunk(cx, cy);
+  }
+  // Redraw static map cache
+  var saveCtx = ctx;
+  ctx = mapCtx;
+  mapCtx.clearRect(0, 0, W, H);
+  drawMap();
+  ctx = saveCtx;
+}
+
 
 function isBlocked(tx, ty) {
   if (tx < 0 || tx >= COLS || ty < 0 || ty >= ROWS) return true;
-  // Allow entering congress building through doorway
-  if (tx === 5 && ty === 5) return false; // doorway
-  if (tx === 5 && ty === 6) return false; // steps
+  // Allow entering congress building through doorway (chunk 0,0 only)
+  if (chunkX === 0 && chunkY === 0) {
+    if (tx === 5 && ty === 5) return false; // doorway
+    if (tx === 5 && ty === 6) return false; // steps
+  }
   var t = MAP[ty][tx];
   return t === 2 || t === 3 || t === 4 || t === 5 || t === 6;
 }
@@ -1863,6 +1985,55 @@ function updateLocalPlayer() {
     return; // fully blocked
   }
 
+  // ── Chunk edge detection — check BEFORE clamping ──────────────────────────
+  var crossed = false;
+  var newCx = chunkX, newCy = chunkY;
+  var wrapPx = localPlayer.px, wrapPy = localPlayer.py;
+
+  if (newPx < 0) {
+    newCx = chunkX - 1;
+    wrapPx = W - TILE;
+    crossed = true;
+  } else if (newPx >= W) {
+    newCx = chunkX + 1;
+    wrapPx = TILE;
+    crossed = true;
+  }
+
+  if (newPy < 0) {
+    newCy = chunkY - 1;
+    wrapPy = H - TILE;
+    crossed = true;
+  } else if (newPy >= H) {
+    newCy = chunkY + 1;
+    wrapPy = TILE;
+    crossed = true;
+  }
+
+  if (crossed) {
+    loadChunk(newCx, newCy);
+    localPlayer.px = wrapPx;
+    localPlayer.py = wrapPy;
+    localPlayer.tx = Math.floor(wrapPx / TILE);
+    localPlayer.ty = Math.floor(wrapPy / TILE);
+    // Reset NPC positions to center so they don't get stuck in walls of new chunk
+    for (var ni = 0; ni < npcs.length; ni++) {
+      var midTx = Math.floor(COLS / 2);
+      var midTy = Math.floor(ROWS / 2);
+      npcs[ni].tx = midTx + (ni % 5) - 2;
+      npcs[ni].ty = midTy + Math.floor(ni / 5) - 2;
+      npcs[ni].px = npcs[ni].tx * TILE + TILE / 2;
+      npcs[ni].py = npcs[ni].ty * TILE + TILE / 2;
+      npcs[ni].targetPx = npcs[ni].px;
+      npcs[ni].targetPy = npcs[ni].py;
+      npcs[ni].stepsLeft = 0;
+      npcs[ni].congressTarget = null;
+    }
+    sendChunkChange(newCx, newCy);
+    sendPlayerMove();
+    return;
+  }
+
   // Clamp to canvas bounds
   localPlayer.px = Math.max(TILE / 2, Math.min(W - TILE / 2, localPlayer.px));
   localPlayer.py = Math.max(TILE / 2, Math.min(H - TILE / 2, localPlayer.py));
@@ -1878,9 +2049,10 @@ function updateLocalPlayer() {
     sendPlayerMove();
   }
 
-  // Congress building entry: doorway and just inside
-  if ((localPlayer.tx === 5 && localPlayer.ty === 5) ||
-      (localPlayer.tx >= 4 && localPlayer.tx <= 6 && localPlayer.ty === 4)) {
+  // Congress building entry: doorway and just inside (chunk 0,0 only)
+  if (chunkX === 0 && chunkY === 0 &&
+      ((localPlayer.tx === 5 && localPlayer.ty === 5) ||
+       (localPlayer.tx >= 4 && localPlayer.tx <= 6 && localPlayer.ty === 4))) {
     showCongressModal();
   }
 }
@@ -1912,6 +2084,11 @@ function drawRemotePlayers() {
     var p = remotePlayers[id];
     if (now - p.ts > 10000) { toDelete.push(id); continue; }
     if (p.name === localPlayer.name) continue; // skip self
+    // Only render players in the same chunk as us
+    var pCx = (p.chunkX !== undefined ? p.chunkX : 0);
+    var pCy = (p.chunkY !== undefined ? p.chunkY : 0);
+    if (pCx !== chunkX || pCy !== chunkY) continue;
+
     var cx = p.x * TILE + TILE / 2;
     var cy = p.y * TILE + TILE / 2 - 14;
 
@@ -1964,7 +2141,20 @@ function connectCommonsWs() {
         // Don't render self (we don't know our own id from server, so we filter by name+pos match)
         var p = msg.players[id];
         if (p.name === localPlayer.name && p.x === localPlayer.tx && p.y === localPlayer.ty) continue;
-        remotePlayers[id] = { x: p.x, y: p.y, name: p.name, color: p.color, ts: p.ts };
+        remotePlayers[id] = {
+          x: p.x, y: p.y, name: p.name, color: p.color, ts: p.ts,
+          chunkX: (p.chunkX !== undefined ? p.chunkX : 0),
+          chunkY: (p.chunkY !== undefined ? p.chunkY : 0),
+        };
+      }
+    } else if (msg.type === 'chunk_change') {
+      // Another player changed chunks — update their stored chunk coords
+      for (var id in remotePlayers) {
+        if (remotePlayers[id].name === msg.playerName) {
+          remotePlayers[id].chunkX = msg.chunkX;
+          remotePlayers[id].chunkY = msg.chunkY;
+          break;
+        }
       }
     }
   };
@@ -1990,6 +2180,18 @@ function sendPlayerMove() {
     y: localPlayer.ty,
     name: localPlayer.name,
     color: localPlayer.color,
+    chunkX: chunkX,
+    chunkY: chunkY,
+  }));
+}
+
+function sendChunkChange(cx, cy) {
+  if (!commonsWs || commonsWs.readyState !== WebSocket.OPEN) return;
+  commonsWs.send(JSON.stringify({
+    type: 'chunk_change',
+    chunkX: cx,
+    chunkY: cy,
+    playerName: localPlayer.name,
   }));
 }
 
@@ -2049,8 +2251,8 @@ function loop() {
   // Draw map (cached)
   ctx.drawImage(mapCache, 0, 0);
 
-  // Fountain water animation (dynamic, drawn each frame on top of cached map)
-  drawFountainAnimation();
+  // Fountain water animation (dynamic, drawn each frame on top of cached map — chunk 0,0 only)
+  if (chunkX === 0 && chunkY === 0) drawFountainAnimation();
 
   // Feature 5: draw worn path overlays on grass tiles
   drawWornPaths();
@@ -2088,8 +2290,8 @@ function loop() {
     ctx.restore();
   }
 
-  // ── Congress flag (above congress building when in session) ──────────────
-  if (congressState.active) {
+  // ── Congress flag (above congress building when in session — chunk 0,0 only) ─
+  if (congressState.active && chunkX === 0 && chunkY === 0) {
     ctx.save();
     var fx = 5 * TILE; // flag pole x (center of building)
     var fy = TILE;     // above building (row 1)
@@ -2114,6 +2316,19 @@ function loop() {
   ctx.fillText(SEASON_LABELS[SEASON], 6, H - 8);
   ctx.restore();
 
+  // Chunk coordinates indicator (bottom-right corner)
+  if (chunkX !== 0 || chunkY !== 0) {
+    var chunkLabel = 'chunk ' + chunkX + ',' + chunkY;
+    ctx.save();
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#00000066';
+    ctx.fillText(chunkLabel, W - 6, H - 7);
+    ctx.fillStyle = '#8888cc';
+    ctx.fillText(chunkLabel, W - 7, H - 8);
+    ctx.restore();
+  }
+
   // "The Commons" title overlay (pixel-ish style)
   ctx.save();
   ctx.font = 'bold 18px monospace';
@@ -2124,15 +2339,17 @@ function loop() {
   ctx.fillText('The Commons', W/2, 21);
   ctx.restore();
 
-  // Council building label
-  ctx.save();
-  ctx.font = 'bold 8px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#00000066';
-  ctx.fillText('CONGRESS', 5*TILE + TILE/2 + 1, 2*TILE - 2);
-  ctx.fillStyle = '#c8c8e8';
-  ctx.fillText('CONGRESS', 5*TILE + TILE/2, 2*TILE - 3);
-  ctx.restore();
+  // Council building label (chunk 0,0 only)
+  if (chunkX === 0 && chunkY === 0) {
+    ctx.save();
+    ctx.font = 'bold 8px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#00000066';
+    ctx.fillText('CONGRESS', 5*TILE + TILE/2 + 1, 2*TILE - 2);
+    ctx.fillStyle = '#c8c8e8';
+    ctx.fillText('CONGRESS', 5*TILE + TILE/2, 2*TILE - 3);
+    ctx.restore();
+  }
 
   requestAnimationFrame(loop);
 }
