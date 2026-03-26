@@ -1181,6 +1181,11 @@ function NPC(persona, startTx, startTy) {
   // Last tile (for worn path tracking)
   this.lastTx = this.tx;
   this.lastTy = this.ty;
+
+  // Server-authoritative position (from npc_update WS message)
+  this.serverX = null; // null = no server data yet, use client simulation
+  this.serverY = null;
+  this.serverFacing = null;
 }
 
 NPC.prototype.pickNewDir = function (npcs) {
@@ -1394,54 +1399,73 @@ NPC.prototype.update = function (npcs) {
     this.inCouncil = false;
   }
 
-  // Normal movement when not in council or no congress
-  if (!isDebater || !this.inCouncil) {
-    // Waiting between moves
-    if (this.waitFrames > 0) {
-      this.waitFrames--;
-      return;
+  // If server has sent position data, lerp toward it; otherwise fall back to client simulation
+  if (this.serverX !== null && this.serverY !== null) {
+    var LERP = 0.15;
+    this.px += (this.serverX - this.px) * LERP;
+    this.py += (this.serverY - this.py) * LERP;
+    // Sync tile coords for worn path tracking
+    var newTx = Math.floor(this.px / TILE);
+    var newTy = Math.floor(this.py / TILE);
+    if (newTx !== this.lastTx || newTy !== this.lastTy) {
+      if (MAP[newTy] && MAP[newTy][newTx] === 0) {
+        recordTileVisit(newTx, newTy);
+      }
+      this.tx = newTx;
+      this.ty = newTy;
+      this.lastTx = newTx;
+      this.lastTy = newTy;
     }
-
-    // Feature 4 winter: 70% speed
-    var effectiveSpeed = SEASON === 3 ? this.speed * 0.7 : this.speed;
-
-    var dx = this.targetPx - this.px;
-    var dy = this.targetPy - this.py;
-    var dist = Math.sqrt(dx*dx + dy*dy);
-
-    if (dist < effectiveSpeed + 0.5) {
-      this.px = this.targetPx;
-      this.py = this.targetPy;
-
-      // Feature 5: record tile visit when NPC lands on a grass tile
-      if (this.tx !== this.lastTx || this.ty !== this.lastTy) {
-        if (MAP[this.ty] && MAP[this.ty][this.tx] === 0) {
-          recordTileVisit(this.tx, this.ty);
-        }
-        this.lastTx = this.tx;
-        this.lastTy = this.ty;
+  } else {
+    // Client-side simulation fallback (before first server npc_update arrives)
+    if (!isDebater || !this.inCouncil) {
+      // Waiting between moves
+      if (this.waitFrames > 0) {
+        this.waitFrames--;
+        return;
       }
 
-      if (this.stepsLeft > 0) {
-        var nx = this.tx + this.dir.dx;
-        var ny = this.ty + this.dir.dy;
-        if (isBlocked(nx, ny)) {
-          this.stepsLeft = 0;
+      // Feature 4 winter: 70% speed
+      var effectiveSpeed = SEASON === 3 ? this.speed * 0.7 : this.speed;
+
+      var dx = this.targetPx - this.px;
+      var dy = this.targetPy - this.py;
+      var dist = Math.sqrt(dx*dx + dy*dy);
+
+      if (dist < effectiveSpeed + 0.5) {
+        this.px = this.targetPx;
+        this.py = this.targetPy;
+
+        // Feature 5: record tile visit when NPC lands on a grass tile
+        if (this.tx !== this.lastTx || this.ty !== this.lastTy) {
+          if (MAP[this.ty] && MAP[this.ty][this.tx] === 0) {
+            recordTileVisit(this.tx, this.ty);
+          }
+          this.lastTx = this.tx;
+          this.lastTy = this.ty;
+        }
+
+        if (this.stepsLeft > 0) {
+          var nx = this.tx + this.dir.dx;
+          var ny = this.ty + this.dir.dy;
+          if (isBlocked(nx, ny)) {
+            this.stepsLeft = 0;
+          } else {
+            this.tx = nx;
+            this.ty = ny;
+            this.targetPx = nx * TILE + TILE / 2;
+            this.targetPy = ny * TILE + TILE / 2;
+            this.stepsLeft--;
+          }
         } else {
-          this.tx = nx;
-          this.ty = ny;
-          this.targetPx = nx * TILE + TILE / 2;
-          this.targetPy = ny * TILE + TILE / 2;
-          this.stepsLeft--;
+          var pause = this.isKid ? 2 : this.isGalactus ? 30 : this.isIbrahim ? 40 : 8 + Math.floor(Math.random() * 20);
+          this.waitFrames = pause;
+          this.pickNewDir(npcs);
         }
       } else {
-        var pause = this.isKid ? 2 : this.isGalactus ? 30 : this.isIbrahim ? 40 : 8 + Math.floor(Math.random() * 20);
-        this.waitFrames = pause;
-        this.pickNewDir(npcs);
+        this.px += (dx / dist) * effectiveSpeed;
+        this.py += (dy / dist) * effectiveSpeed;
       }
-    } else {
-      this.px += (dx / dist) * effectiveSpeed;
-      this.py += (dy / dist) * effectiveSpeed;
     }
   }
 };
@@ -1451,6 +1475,9 @@ NPC.prototype.draw = function () {
   var cy = Math.round(this.py) - 14; // top of sprite (for generic NPC drawing + bubble anchoring)
   // cy_feet: bottom of sprite position for drawSprite_* functions (they draw upward from feet)
   var cy_feet = Math.round(this.py) + 8;
+
+  // Determine facing from serverFacing (server-authoritative) or dir (client fallback)
+  var facingLeft = this.serverFacing ? (this.serverFacing === 'left') : (this.dir && this.dir.dx < 0);
 
   // Check if this persona has a sprite winner
   var spriteInfo = SPRITE_SLUG_MAP[this.name];
@@ -1468,12 +1495,26 @@ NPC.prototype.draw = function () {
         ctx.scale(2, 2);
         spriteFn(ctx, cx / 2, cy_feet / 2);
         ctx.restore();
+      } else if (facingLeft) {
+        ctx.save();
+        ctx.translate(cx * 2, 0);
+        ctx.scale(-1, 1);
+        spriteFn(ctx, cx, cy_feet);
+        ctx.restore();
       } else {
         spriteFn(ctx, cx, cy_feet);
       }
     } else {
       var heldScale = (this.isGalactus ? 1.8 : 1) * 1.3;
-      drawCharacter(cx, cy, this.color, heldScale, this.isGalactus);
+      if (facingLeft && !this.isGalactus) {
+        ctx.save();
+        ctx.translate(cx * 2, 0);
+        ctx.scale(-1, 1);
+        drawCharacter(cx, cy, this.color, heldScale, this.isGalactus);
+        ctx.restore();
+      } else {
+        drawCharacter(cx, cy, this.color, heldScale, this.isGalactus);
+      }
     }
     ctx.restore();
     // No speech bubbles while held
@@ -1486,11 +1527,25 @@ NPC.prototype.draw = function () {
       ctx.scale(2, 2);
       spriteFn(ctx, cx / 2, cy_feet / 2);
       ctx.restore();
+    } else if (facingLeft) {
+      ctx.save();
+      ctx.translate(cx * 2, 0);
+      ctx.scale(-1, 1);
+      spriteFn(ctx, cx, cy_feet);
+      ctx.restore();
     } else {
       spriteFn(ctx, cx, cy_feet);
     }
   } else {
-    drawCharacter(cx, cy, this.color, this.isGalactus ? 1.8 : 1, this.isGalactus);
+    if (facingLeft && !this.isGalactus) {
+      ctx.save();
+      ctx.translate(cx * 2, 0);
+      ctx.scale(-1, 1);
+      drawCharacter(cx, cy, this.color, this.isGalactus ? 1.8 : 1, this.isGalactus);
+      ctx.restore();
+    } else {
+      drawCharacter(cx, cy, this.color, this.isGalactus ? 1.8 : 1, this.isGalactus);
+    }
   }
 
   // Response bubble takes priority over quip bubble, gossip shows separately
@@ -1903,19 +1958,28 @@ var localPlayer = {
   vx: 0, vy: 0,   // pixel velocity
   name: genPlayerName(),
   color: genPlayerColor(),
+  facing: 'right', // 'left' or 'right'
+  hopFrame: 0,     // >0 = mid-hop; counts down to 0
+  socketId: null,  // assigned by server on connect
 };
 localPlayer.px = localPlayer.tx * TILE + TILE / 2;
 localPlayer.py = localPlayer.ty * TILE + TILE / 2;
 
 var PLAYER_SPEED = 1.8; // pixels per frame (smooth, similar to NPC pace)
 
-var remotePlayers = {}; // id -> {x, y, name, color, ts}
+var remotePlayers = {}; // id -> {x, y, name, color, facing, hopFrame, ts}
 var keysDown = {};
 
 document.addEventListener('keydown', function(e) {
   if (congressModalOpen) return;
   keysDown[e.key] = true;
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+  // Spacebar hop
+  if (e.key === ' ' && localPlayer.hopFrame === 0) {
+    localPlayer.hopFrame = 12;
+    sendPlayerHop();
+    e.preventDefault();
+  }
 });
 document.addEventListener('keyup', function(e) {
   delete keysDown[e.key];
@@ -1962,6 +2026,10 @@ function updateLocalPlayer() {
     localPlayer.vx = inputDx * PLAYER_SPEED;
     localPlayer.vy = inputDy * PLAYER_SPEED;
   }
+
+  // Track facing direction based on horizontal velocity
+  if (localPlayer.vx > 0) localPlayer.facing = 'right';
+  else if (localPlayer.vx < 0) localPlayer.facing = 'left';
 
   if (localPlayer.vx === 0 && localPlayer.vy === 0) return;
 
@@ -2059,13 +2127,27 @@ function updateLocalPlayer() {
 
 function drawLocalPlayer() {
   var cx = Math.round(localPlayer.px);
-  var cy = Math.round(localPlayer.py) - 14;
+  // Hop arc: offset Y upward based on hopFrame (12→0)
+  var hopOffset = 0;
+  if (localPlayer.hopFrame > 0) {
+    hopOffset = -Math.sin(localPlayer.hopFrame / 12 * Math.PI) * 10;
+    localPlayer.hopFrame--;
+  }
+  var cy = Math.round(localPlayer.py) - 14 + hopOffset;
 
   // White glow to distinguish from NPCs
   ctx.save();
   ctx.shadowColor = '#ffffff';
   ctx.shadowBlur = 8;
-  drawCharacter(cx, cy, localPlayer.color, 1, false);
+  if (localPlayer.facing === 'left') {
+    ctx.save();
+    ctx.translate(cx * 2, 0);
+    ctx.scale(-1, 1);
+    drawCharacter(cx, cy, localPlayer.color, 1, false);
+    ctx.restore();
+  } else {
+    drawCharacter(cx, cy, localPlayer.color, 1, false);
+  }
   ctx.restore();
 
   // Name label above
@@ -2083,17 +2165,34 @@ function drawRemotePlayers() {
   for (var id in remotePlayers) {
     var p = remotePlayers[id];
     if (now - p.ts > 10000) { toDelete.push(id); continue; }
-    if (p.name === localPlayer.name) continue; // skip self
+    // Skip self by socket_id (fix dual-avatar bug)
+    if (localPlayer.socketId && p.socket_id === localPlayer.socketId) continue;
     // Only render players in the same chunk as us
     var pCx = (p.chunkX !== undefined ? p.chunkX : 0);
     var pCy = (p.chunkY !== undefined ? p.chunkY : 0);
     if (pCx !== chunkX || pCy !== chunkY) continue;
 
     var cx = p.x * TILE + TILE / 2;
-    var cy = p.y * TILE + TILE / 2 - 14;
+    // Hop arc for remote player
+    var remoteHopOffset = 0;
+    if (p.hopFrame && p.hopFrame > 0) {
+      remoteHopOffset = -Math.sin(p.hopFrame / 12 * Math.PI) * 10;
+      p.hopFrame--;
+    }
+    var cy = p.y * TILE + TILE / 2 - 14 + remoteHopOffset;
 
-    // Draw sprite
-    drawCharacter(cx, cy, p.color, 1, false);
+    // Draw sprite with facing flip
+    ctx.save();
+    if (p.facing === 'left') {
+      ctx.save();
+      ctx.translate(cx * 2, 0);
+      ctx.scale(-1, 1);
+      drawCharacter(cx, cy, p.color, 1, false);
+      ctx.restore();
+    } else {
+      drawCharacter(cx, cy, p.color, 1, false);
+    }
+    ctx.restore();
 
     // Small dot indicator above head
     ctx.save();
@@ -2135,14 +2234,21 @@ function connectCommonsWs() {
   commonsWs.onmessage = function(e) {
     var msg;
     try { msg = JSON.parse(e.data); } catch { return; }
-    if (msg.type === 'players') {
+    if (msg.type === 'welcome') {
+      localPlayer.socketId = msg.socket_id;
+    } else if (msg.type === 'players') {
+      var prevRemote = remotePlayers;
       remotePlayers = {};
       for (var id in msg.players) {
-        // Don't render self (we don't know our own id from server, so we filter by name+pos match)
         var p = msg.players[id];
-        if (p.name === localPlayer.name && p.x === localPlayer.tx && p.y === localPlayer.ty) continue;
+        // Preserve existing hopFrame if already tracked
+        var existingHop = (prevRemote[id] && prevRemote[id].hopFrame) || 0;
         remotePlayers[id] = {
-          x: p.x, y: p.y, name: p.name, color: p.color, ts: p.ts,
+          x: p.x, y: p.y, name: p.name, color: p.color,
+          facing: p.facing || 'right',
+          socket_id: p.socket_id || id,
+          hopFrame: existingHop,
+          ts: p.ts,
           chunkX: (p.chunkX !== undefined ? p.chunkX : 0),
           chunkY: (p.chunkY !== undefined ? p.chunkY : 0),
         };
@@ -2154,6 +2260,29 @@ function connectCommonsWs() {
           remotePlayers[id].chunkX = msg.chunkX;
           remotePlayers[id].chunkY = msg.chunkY;
           break;
+        }
+      }
+    } else if (msg.type === 'player_hop') {
+      // Set hopFrame on the remote player that hopped
+      for (var id in remotePlayers) {
+        if (remotePlayers[id].socket_id === msg.socket_id) {
+          remotePlayers[id].hopFrame = 12;
+          break;
+        }
+      }
+    } else if (msg.type === 'npc_update') {
+      // Update NPC positions from server (lerp handled in NPC draw/update)
+      if (msg.npcs && npcs.length > 0) {
+        for (var ni = 0; ni < msg.npcs.length; ni++) {
+          var npcData = msg.npcs[ni];
+          for (var nj = 0; nj < npcs.length; nj++) {
+            if (npcs[nj].name === npcData.name) {
+              npcs[nj].serverX = npcData.x;
+              npcs[nj].serverY = npcData.y;
+              npcs[nj].serverFacing = npcData.facing;
+              break;
+            }
+          }
         }
       }
     }
@@ -2180,8 +2309,18 @@ function sendPlayerMove() {
     y: localPlayer.ty,
     name: localPlayer.name,
     color: localPlayer.color,
+    facing: localPlayer.facing,
+    socket_id: localPlayer.socketId,
     chunkX: chunkX,
     chunkY: chunkY,
+  }));
+}
+
+function sendPlayerHop() {
+  if (!commonsWs || commonsWs.readyState !== WebSocket.OPEN) return;
+  commonsWs.send(JSON.stringify({
+    type: 'hop',
+    socket_id: localPlayer.socketId,
   }));
 }
 
