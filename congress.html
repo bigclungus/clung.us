@@ -1986,7 +1986,7 @@
       // so historical sessions show the personas that existed at the time.
       if (session.roster && session.roster.length > 0) {
         allActivePersonas = session.roster
-          .filter(p => p.status === 'active')
+          .filter(p => p.status === 'active' || p.status === 'eligible')
           .map(p => ({
             id: p.id || p.name,
             name: p.name,
@@ -2007,7 +2007,7 @@
           }));
         // Also rebuild firedPool from the snapshot for accurate lookups
         firedPool = session.roster
-          .filter(p => p.status === 'severance')
+          .filter(p => p.status === 'severance' || p.status === 'ineligible')
           .map(p => ({
             id: p.id || p.name,
             name: p.name,
