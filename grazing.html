@@ -1846,8 +1846,10 @@ canvas.addEventListener('mouseleave', function() {
   tooltip.style.display = 'none';
   lastMouseCanvas = null;
   if (!dragState) canvas.style.cursor = 'default';
-  // Resume any paused audition walker when mouse leaves canvas (unless card is open)
-  if (auditionHoveredId && !auditionCard.classList.contains('active')) {
+  // Resume any paused audition walker when mouse leaves canvas and hide the card
+  if (auditionHoveredId) {
+    // Always hide the card when mouse leaves canvas
+    hideAuditionCard();
     fetch(AUDITION_URL + '/api/audition/resume', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: auditionHoveredId }),
@@ -3096,6 +3098,34 @@ function loop() {
       tooltip.style.top = (lastMouseCanvas.clientY - 10) + 'px';
     } else {
       tooltip.style.display = 'none';
+    }
+
+    // Per-frame audition walker card staleness check: if card is open but cursor has moved
+    // off the walker (walker keeps moving), hide the card automatically.
+    if (auditionHoveredId && !auditionCard.classList.contains('active')) {
+      // Card was already dismissed but hover state wasn't cleared — clean up
+      auditionHoveredId = null;
+    } else if (auditionHoveredId && auditionCard.classList.contains('active')) {
+      var _cardWalker = null;
+      for (var _ai = 0; _ai < auditionWalkers.length; _ai++) {
+        if (auditionWalkers[_ai].id === auditionHoveredId) { _cardWalker = auditionWalkers[_ai]; break; }
+      }
+      if (_cardWalker) {
+        var _awdx = lastMouseCanvas.mx - _cardWalker.x;
+        var _awdy = lastMouseCanvas.my - auditionWalkerY;
+        if (Math.abs(_awdx) >= 20 || Math.abs(_awdy) >= 20) {
+          // Cursor is no longer over the walker — hide card
+          hideAuditionCard();
+          fetch(AUDITION_URL + '/api/audition/resume', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: auditionHoveredId }),
+          }).catch(function() {});
+          for (var _ri = 0; _ri < auditionWalkers.length; _ri++) {
+            if (auditionWalkers[_ri].id === auditionHoveredId) auditionWalkers[_ri].paused = false;
+          }
+          auditionHoveredId = null;
+        }
+      }
     }
   }
 
