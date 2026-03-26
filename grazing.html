@@ -1725,23 +1725,7 @@ function drawTraces() {
 var ADJECTIVES = ['swift','quiet','bold','bright','calm','dark','wild','keen','kind','proud','fierce','gentle','silver','gold','iron','lost','found','lone','brave','odd'];
 var ANIMALS = ['fox','bear','wolf','deer','hawk','owl','crow','lynx','seal','elk','hare','mole','wren','kite','vole','newt','toad','crab','ibis','moth'];
 
-function getGitHubUsername() {
-  // tauth_github cookie format: username.hmac_signature
-  var cookies = document.cookie.split(';');
-  for (var i = 0; i < cookies.length; i++) {
-    var c = cookies[i].trim();
-    if (c.indexOf('tauth_github=') === 0) {
-      var val = c.slice('tauth_github='.length);
-      var dotIdx = val.indexOf('.');
-      if (dotIdx > 0) return val.slice(0, dotIdx);
-    }
-  }
-  return null;
-}
-
 function genPlayerName() {
-  var ghUser = getGitHubUsername();
-  if (ghUser) return ghUser;
   var stored = sessionStorage.getItem('commons_player_name');
   if (stored) return stored;
   var adj = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
@@ -1750,6 +1734,15 @@ function genPlayerName() {
   sessionStorage.setItem('commons_player_name', name);
   return name;
 }
+
+// Fetch real GitHub identity from server and update player name if authed
+fetch('/api/me').then(function(r) { return r.ok ? r.json() : null; }).then(function(d) {
+  if (d && d.username) {
+    localPlayer.name = d.username;
+    sessionStorage.setItem('commons_player_name', d.username);
+    sendPlayerMove();
+  }
+}).catch(function() {});
 
 function genPlayerColor() {
   var stored = sessionStorage.getItem('commons_player_color');
