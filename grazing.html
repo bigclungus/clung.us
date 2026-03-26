@@ -95,7 +95,7 @@ var ROWS = Math.floor(H / TILE); // 35
 
 // ── Persona quips ──────────────────────────────────────────────────────────────
 var QUIPS = {
-  'hiring-manager': ["Order.", "The gavel is patient.", "...", "Retained.", "The record stands.", "Deliberate."],
+  'chairman': ["Order.", "The gavel is patient.", "...", "Retained.", "The record stands.", "Deliberate."],
   'critic':         ["That's wrong.", "Prove it works.", "No.", "Show your data.", "Unacceptable.", "Rejected."],
   'architect':      ["Consider the load.", "What scales here?", "Draw the diagram.", "Single source.", "Decouple this.", "The foundation matters."],
   'ux':             ["Is this usable?", "Who's the user?", "Friction is failure.", "Test with humans.", "Accessibility first.", "Can my gran do it?"],
@@ -115,7 +115,7 @@ var DEFAULT_QUIPS = ["...", "hmm.", "processing.", "interesting.", "noted.", "ok
 
 // Per-persona color overrides (fallback to API color)
 var COLOR_OVERRIDES = {
-  'hiring-manager': '#8B1A1A',
+  'chairman': '#8B1A1A',
   'critic':         '#f87171',
   'architect':      '#f59e0b',
   'ux':             '#60a5fa',
@@ -408,7 +408,7 @@ function NPC(persona, startTx, startTy) {
   // Movement params
   var isGalactus = this.name === 'galactus';
   var isKid = this.name === 'the-kid';
-  var isIbrahim = this.name === 'hiring-manager';
+  var isIbrahim = this.name === 'chairman';
   var isWolf = this.name === 'wolf';
   var isUncle = this.name === 'uncle-bob';
 
@@ -696,7 +696,7 @@ fetch('/api/agents')
     document.getElementById('load-error').textContent = 'Could not load personas: ' + err.message;
     // Still start with hardcoded fallback NPCs
     var fallbacks = [
-      {name:'hiring-manager', display_name:'Ibrahim the Immovable', color:'#8B1A1A', role:'Hiring Manager', avatar_url:''},
+      {name:'chairman', display_name:'Ibrahim the Immovable', color:'#8B1A1A', role:'Chairman', avatar_url:''},
       {name:'critic',         display_name:'Pippi the Pitiless',    color:'#f87171', role:'Critic',          avatar_url:''},
       {name:'architect',      display_name:'Kwame the Constructor', color:'#f59e0b', role:'Architect',        avatar_url:''},
       {name:'ux',             display_name:'Yuki the Yielding',     color:'#60a5fa', role:'UX',               avatar_url:''},

@@ -721,7 +721,7 @@
     .persona-font-uncle-bob   { font-family: 'Courier New', Courier, monospace; }
     .persona-font-vesper      { font-family: 'Raleway', sans-serif; }
     .persona-font-architect   { font-family: 'Trebuchet MS', sans-serif; }
-    .persona-font-hiring-manager { font-family: 'JetBrains Mono', 'Courier New', monospace; }
+    .persona-font-chairman { font-family: 'JetBrains Mono', 'Courier New', monospace; }
     .persona-font-ux          { font-family: 'Comic Sans MS', cursive; }
     .persona-font-jhaddu      { font-family: Papyrus, 'Comic Sans MS', cursive; }
 
@@ -1845,15 +1845,15 @@
   const BUBBLE_SIDE = ['right', 'right', 'right', 'left', 'left'];
 
   // Emoji & color defaults (server also provides these, used as fallback)
-  const EMOJI_MAP = { critic: '🔍', architect: '🏗️', ux: '🎨', 'hiring-manager': '⚖️', otto: '🌪️', spengler: '🕰️', wolf: '🐺', hume: '🔬', adelbert: '🗡️', nemesis: '⚡' };
-  const COLOR_MAP = { architect: '#f59e0b', critic: '#f87171', ux: '#60a5fa', otto: '#a78bfa', spengler: '#94a3b8', 'hiring-manager': '#a3e635', wolf: '#f97316', hume: '#38bdf8', adelbert: '#e879f9', nemesis: '#f43f5e' };
+  const EMOJI_MAP = { critic: '🔍', architect: '🏗️', ux: '🎨', chairman: '⚖️', otto: '🌪️', spengler: '🕰️', wolf: '🐺', hume: '🔬', adelbert: '🗡️', nemesis: '⚡' };
+  const COLOR_MAP = { architect: '#f59e0b', critic: '#f87171', ux: '#60a5fa', otto: '#a78bfa', spengler: '#94a3b8', chairman: '#a3e635', wolf: '#f97316', hume: '#38bdf8', adelbert: '#e879f9', nemesis: '#f43f5e' };
 
   // ── State ──────────────────────────────────────────────────────────────────
   let seats = [null, null, null, null, null];   // persona | null for each seat (session participants only when session loaded)
   let allActivePersonas = [];        // full roster of active non-moderator personas (never mutated by session loading)
   let sessionParticipantIds = null;  // Set of identity ids that participated in the current session (null = no session loaded)
   let firedPool = [];                // personas in severance
-  let moderatorPersona = null;       // hiring-manager persona data (excluded from seats, shown in center)
+  let moderatorPersona = null;       // chairman persona data (excluded from seats, shown in center)
   let round = 0;
   let currentSessionId = null;       // active session id (from URL or newly started)
   let sessionPollTimer = null;
@@ -1889,7 +1889,7 @@
         const res = await fetch('/api/congress/identities');
         if (res.ok) {
           const ids = await res.json();
-          const debaters = ids.filter(i => i.name !== 'hiring-manager');
+          const debaters = ids.filter(i => i.name !== 'chairman');
           allActivePersonas = debaters.map(d => ({
             id: d.name, name: d.name,
             display_name: d.display_name || '',
@@ -2044,7 +2044,7 @@
       // (have at least one round entry). Severance personas or non-participants
       // should not show in the debate circle.
       if (session.rounds && session.rounds.length > 0) {
-        // Include all round participants (including hiring-manager synthesis round)
+        // Include all round participants (including chairman synthesis round)
         const participantIds = new Set(
           session.rounds
             .filter(r => r.response)
@@ -2061,9 +2061,9 @@
             }
           }
           // Also pull in any participants not currently in seats (e.g. was in severance)
-          // hiring-manager (Ibrahim) is excluded from seats — he lives in the center node only
+          // chairman (Ibrahim) is excluded from seats — he lives in the center node only
           const seatedIds = new Set(seats.filter(Boolean).map(s => s.id));
-          const unseated = [...participantIds].filter(id => !seatedIds.has(id) && id !== 'hiring-manager');
+          const unseated = [...participantIds].filter(id => !seatedIds.has(id) && id !== 'chairman');
           if (unseated.length > 0) {
             // Try to get their info from allActivePersonas or firedPool
             unseated.forEach(id => {
@@ -2103,7 +2103,7 @@
 
       // Detect round transitions — clear bubbles when moving to a new round
       const debaterCount = seats.filter(Boolean).length || 3;
-      const debateEntries = session.rounds.filter(r => r.identity !== 'hiring-manager');
+      const debateEntries = session.rounds.filter(r => r.identity !== 'chairman');
       const currentRound = debateEntries.length > 0
         ? Math.floor((debateEntries.length - 1) / debaterCount) + 1
         : 0;
@@ -2682,7 +2682,7 @@
       const labelEl = bubbleEl.querySelector('.bubble-label');
 
       const p = seats[seatIdx];
-      const isIbrahim = identity === 'hiring-manager';
+      const isIbrahim = identity === 'chairman';
 
       if (!done && chunk) {
         // Show streaming text in bubble
@@ -2743,12 +2743,12 @@
 
   // ── Streaming feed placeholder helpers ────────────────────────────────────
   // Returns the column that a streaming placeholder should live in.
-  // For synthesis (hiring-manager) use the synthesis column; for debaters use
+  // For synthesis (chairman) use the synthesis column; for debaters use
   // the last debate column (creating a new one if there isn't one yet).
   function getOrCreateStreamingCol(identity) {
     const feed = document.getElementById('debateFeed');
     if (!feed) return feed;
-    if (identity === 'hiring-manager') {
+    if (identity === 'chairman') {
       let col = feed.querySelector('.debate-round-col.synthesis-col');
       if (!col) {
         col = document.createElement('div');
@@ -2828,7 +2828,7 @@
   }
 
   function buildStreamingPlaceholder(identity, persona) {
-    const isSynthesis = identity === 'hiring-manager';
+    const isSynthesis = identity === 'chairman';
     const div = document.createElement('div');
     div.className = 'feed-entry streaming-placeholder' + (isSynthesis ? ' synthesis-entry' : '');
 
@@ -2901,11 +2901,11 @@
       text = '⏳ Waiting for Round 1: Initial Positions';
       cls = 'deliberating';
     } else {
-      // Count non-hiring-manager rounds to determine which round we're in
-      const debateEntries = rounds.filter(r => r.identity !== 'hiring-manager');
-      const synthesisEntries = rounds.filter(r => r.identity === 'hiring-manager');
+      // Count non-chairman rounds to determine which round we're in
+      const debateEntries = rounds.filter(r => r.identity !== 'chairman');
+      const synthesisEntries = rounds.filter(r => r.identity === 'chairman');
       if (synthesisEntries.length > 0) {
-        text = '⚖️ Synthesis — hiring manager deliberating';
+        text = '⚖️ Synthesis — chairman deliberating';
         cls = 'deliberating';
       } else {
         const roundNum = Math.floor((debateEntries.length - 1) / debaterCount) + 1;
@@ -2942,7 +2942,7 @@
     seats.forEach(p => { if (p) personaMap[p.id] = p; }); // seats override fired entries
     if (moderatorPersona) personaMap[moderatorPersona.id || moderatorPersona.name] = moderatorPersona; // Ibrahim in synthesis entries
 
-    // Seat order for consistent per-column ordering (hiring-manager excluded from seats)
+    // Seat order for consistent per-column ordering (chairman excluded from seats)
     const debaterOrder = seats.filter(Boolean).map(s => s.id || s.name);
 
     // Helper: detect vote entries (response starts with AGREE or DISAGREE)
@@ -2954,7 +2954,7 @@
     }
 
     // Assign round numbers by detecting when identities repeat.
-    // First occurrence of each non-hiring-manager identity = round 1, second = round 2, etc.
+    // First occurrence of each non-chairman identity = round 1, second = round 2, etc.
     // Vote entries (AGREE/DISAGREE responses) are separated out, not assigned to debate rounds.
     const identityRoundCount = {};
     const roundEntriesMap = {}; // roundNum -> [{entry}]
@@ -2963,7 +2963,7 @@
     let debateStarted = false; // tracks whether any debater entry has been seen yet
 
     rounds.forEach(entry => {
-      if (entry.identity === 'hiring-manager') {
+      if (entry.identity === 'chairman') {
         // Only include as synthesis if debate has already started, entry doesn't start with
         // PERSONA: (evolution) or TASK: (task extraction), and has sentence-like prose.
         // The seat selector appears before any debate and is just newline-separated names.
@@ -3191,7 +3191,7 @@
 
   function buildFeedEntry(entry, roundTag, personaMap) {
     const p = personaMap[entry.identity];
-    const isSynthesis = entry.identity === 'hiring-manager';
+    const isSynthesis = entry.identity === 'chairman';
     const div = document.createElement('div');
     div.className = 'feed-entry' + (isSynthesis ? ' synthesis-entry' : '');
 
