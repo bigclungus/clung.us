@@ -1466,6 +1466,11 @@
       color: #a3e635;
       border: 1px solid color-mix(in srgb, #a3e635 50%, transparent);
     }
+    .pt-status-pill.meme {
+      background: color-mix(in srgb, #f472b6 15%, transparent);
+      color: #f472b6;
+      border: 1px solid color-mix(in srgb, #f472b6 50%, transparent);
+    }
     .pt-verdict-chip {
       font-size: 0.5rem;
       padding: 1px 6px;
@@ -1691,6 +1696,7 @@
         <label class="pf-label" for="pf-status">Status</label>
         <select class="pf-select" id="pf-status">
           <option value="eligible">eligible</option>
+          <option value="meme">meme (meme congress only)</option>
           <option value="ineligible">ineligible (retired)</option>
         </select>
       </div>
@@ -3543,11 +3549,12 @@
       const res = await fetch('/api/agents');
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      // Combine all personas: eligible (active), ineligible (fired), moderator — sort eligible first, then moderator, then ineligible
+      // Combine all personas: eligible, meme, moderator, ineligible — sort in that order
       const eligible = (data.eligible || []).map(p => ({ ...p, status: 'eligible' }));
+      const meme = (data.meme || []).map(p => ({ ...p, status: 'meme' }));
       const ineligible = (data.ineligible || []).map(p => ({ ...p, status: 'ineligible' }));
       const moderator = data.moderator ? [{ ...data.moderator, status: 'moderator' }] : [];
-      const personas = [...eligible, ...moderator, ...ineligible];
+      const personas = [...eligible, ...meme, ...moderator, ...ineligible];
       renderPersonasTable(personas, wrap);
     } catch (e) {
       wrap.innerHTML = '<div style="font-size:0.72rem;color:var(--accent);">Could not load personas: ' + e.message + '</div>';
@@ -3627,11 +3634,11 @@
       tdRole.textContent = p.role || p.title || '';
       tr.appendChild(tdRole);
 
-      // Status pill — uses eligible/ineligible/moderator CSS classes
+      // Status pill — uses eligible/ineligible/moderator/meme CSS classes
       const tdStatus = document.createElement('td');
       const pill = document.createElement('span');
       pill.className = 'pt-status-pill ' + status;
-      const statusLabel = { eligible: 'eligible', ineligible: 'retired', moderator: 'moderator' };
+      const statusLabel = { eligible: 'eligible', ineligible: 'retired', moderator: 'moderator', meme: 'meme only' };
       pill.textContent = statusLabel[status] || status;
       tdStatus.appendChild(pill);
       tr.appendChild(tdStatus);
@@ -3666,6 +3673,19 @@
       tdActions.appendChild(editBtn);
 
       if (status === 'eligible') {
+        const retireBtn = document.createElement('button');
+        retireBtn.className = 'pt-btn fire-btn';
+        retireBtn.textContent = 'Retire';
+        retireBtn.title = 'Mark ineligible (retired)';
+        retireBtn.onclick = () => quickStatusChange(p.name, 'ineligible');
+        tdActions.appendChild(retireBtn);
+      } else if (status === 'meme') {
+        const restoreBtn = document.createElement('button');
+        restoreBtn.className = 'pt-btn restore-btn';
+        restoreBtn.textContent = 'Restore';
+        restoreBtn.title = 'Mark eligible (full congress)';
+        restoreBtn.onclick = () => quickStatusChange(p.name, 'eligible');
+        tdActions.appendChild(restoreBtn);
         const retireBtn = document.createElement('button');
         retireBtn.className = 'pt-btn fire-btn';
         retireBtn.textContent = 'Retire';
