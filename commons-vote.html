@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Commons — Congressional Building Vote</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/sitenav.css?v=b6d00bc">
+  <script src="/sitenav.js?v=b6d00bc" defer></script>
+  <style>
+    body {
+      margin: 0;
+      background: #0d0d1a;
+      color: #e0e0ff;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .vote-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 12px 48px;
+      flex: 1;
+    }
+    .vote-title {
+      font-size: 20px;
+      letter-spacing: 0.15em;
+      color: #4ecca3;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .vote-subtitle {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 32px;
+      letter-spacing: 0.08em;
+    }
+    .variants {
+      display: flex;
+      gap: 40px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .variant {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    canvas {
+      border: 1px solid #2a2a4a;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    .variant-label {
+      font-size: 28px;
+      font-weight: bold;
+      color: #4ecca3;
+      letter-spacing: 0.1em;
+    }
+    .variant-desc {
+      font-size: 11px;
+      color: #a0a0c0;
+      text-align: center;
+      max-width: 160px;
+      line-height: 1.5;
+      letter-spacing: 0.04em;
+    }
+    .vote-btn {
+      background: #4ecca3;
+      color: #0d0d1a;
+      border: 2px solid transparent;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      font-weight: bold;
+      padding: 8px 20px;
+      cursor: pointer;
+      transition: opacity 0.15s, box-shadow 0.2s, border-color 0.2s;
+      letter-spacing: 0.05em;
+    }
+    .vote-btn:hover {
+      opacity: 0.85;
+    }
+    .vote-btn.voted {
+      background: #2aa884;
+    }
+    .vote-btn.winner-glow {
+      border-color: #4ecca3;
+      box-shadow: 0 0 10px 2px #4ecca3aa;
+    }
+    .vote-count {
+      font-size: 11px;
+      color: #6a9a88;
+      letter-spacing: 0.05em;
+      min-height: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="vote-wrap">
+    <div class="vote-title">The Commons — Congressional Building Vote</div>
+    <div class="vote-subtitle">click to vote — results update live</div>
+    <div class="variants">
+      <div class="variant">
+        <canvas id="canvasA" width="160" height="120"></canvas>
+        <div class="variant-label">A</div>
+        <div class="variant-desc">Classical Pillars — stone columns, pediment, carved steps</div>
+        <button class="vote-btn" id="btnA" onclick="castVote('A')">Vote A</button>
+        <div class="vote-count" id="countA">— votes</div>
+      </div>
+      <div class="variant">
+        <canvas id="canvasB" width="160" height="120"></canvas>
+        <div class="variant-label">B</div>
+        <div class="variant-desc">Brutalist Block — concrete banding, twin towers, slit windows</div>
+        <button class="vote-btn" id="btnB" onclick="castVote('B')">Vote B</button>
+        <div class="vote-count" id="countB">— votes</div>
+      </div>
+      <div class="variant">
+        <canvas id="canvasC" width="160" height="120"></canvas>
+        <div class="variant-label">C</div>
+        <div class="variant-desc">Gothic Spire — central tower, arched windows, gargoyle sentinels</div>
+        <button class="vote-btn" id="btnC" onclick="castVote('C')">Vote C</button>
+        <div class="vote-count" id="countC">— votes</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  const T = 8; // tile size
+
+  function px(ctx, col, row, w, h, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(col * T, row * T, w * T, h * T);
+  }
+
+  // ─── VARIANT A: Classical Pillars ─────────────────────────────────────────
+  (function drawA() {
+    const ctx = document.getElementById('canvasA').getContext('2d');
+    const W = 20, H = 15;
+
+    // Background
+    ctx.fillStyle = '#0d0d1a';
+    ctx.fillRect(0, 0, W * T, H * T);
+
+    const wall   = '#5a5a7a';
+    const col    = '#7a7a9a';
+    const shadow = '#3a3a5a';
+    const dark   = '#1a1a2a';
+    const amber  = '#c08020';
+    const lite   = '#9a9aba';
+    const step   = '#4a4a6a';
+
+    // Main body of building (rows 4–13, cols 1–18)
+    px(ctx, 1, 4, 18, 10, wall);
+
+    // Shadow base under building
+    px(ctx, 1, 13, 18, 1, shadow);
+
+    // Pediment (triangular roof) — pixel staircase approximation
+    // Row 2: center 2 tiles wide
+    px(ctx, 9, 2, 2, 1, wall);
+    // Row 3: wider
+    px(ctx, 6, 3, 8, 1, wall);
+    // Row 4 top edge (merges with body)
+    // Pediment outline highlight
+    px(ctx, 9, 2, 2, 1, lite);
+    px(ctx, 6, 3, 8, 1, lite);
+    // Pediment top shadow interior fill
+    px(ctx, 7, 3, 6, 1, shadow);
+    px(ctx, 9, 2, 2, 1, shadow);
+
+    // Wide entablature (beam above columns) rows 4–5
+    px(ctx, 1, 4, 18, 2, lite);
+    px(ctx, 1, 5, 18, 1, shadow);
+
+    // Four columns (2 tiles wide each), rows 5–12
+    const colPositions = [2, 6, 10, 14];
+    for (const c of colPositions) {
+      px(ctx, c, 5, 2, 8, col);
+      // Highlight left edge
+      px(ctx, c, 5, 1, 8, lite);
+      // Shadow right edge
+      px(ctx, c + 1, 5, 1, 8, shadow);
+    }
+
+    // Wall fills between columns
+    px(ctx, 4, 5, 2, 8, wall);
+    px(ctx, 8, 5, 2, 8, wall);
+    px(ctx, 12, 5, 2, 8, wall);
+
+    // Left and right flanks
+    px(ctx, 1, 5, 1, 8, wall);
+    px(ctx, 16, 5, 2, 8, wall);
+
+    // Central doorway rows 8–12, cols 8–11
+    px(ctx, 8, 8, 4, 5, dark);
+    // Door frame
+    px(ctx, 8, 8, 4, 1, shadow);
+    px(ctx, 8, 8, 1, 5, shadow);
+    px(ctx, 11, 8, 1, 5, shadow);
+    // Amber glow inside door
+    px(ctx, 9, 9, 2, 4, amber);
+    ctx.globalAlpha = 0.35;
+    px(ctx, 9, 9, 2, 4, '#ffdd88');
+    ctx.globalAlpha = 1.0;
+
+    // Steps: 3 rows, each slightly wider
+    px(ctx, 4, 13, 12, 1, step);    // top step
+    px(ctx, 3, 13, 14, 1, shadow);  // shadow under
+    px(ctx, 3, 13, 14, 1, step);
+    px(ctx, 2, 14, 16, 1, step);
+    px(ctx, 2, 14, 16, 1, lite);
+    ctx.globalAlpha = 0.4;
+    px(ctx, 2, 14, 16, 1, '#0d0d1a');
+    ctx.globalAlpha = 1.0;
+
+    // Step details
+    px(ctx, 3, 13, 14, 1, step);
+    px(ctx, 2, 14, 16, 1, '#4a4a6e');
+    px(ctx, 1, 13, 1, 2, shadow);
+    px(ctx, 18, 13, 1, 2, shadow);
+
+    // "COUNCIL" text above columns — pixel font, row 6 in the entablature area
+    // Using 1-pixel-wide marks (each letter ~1 tile wide, 1 tile tall)
+    // We'll render it as small colored pixels spelling "COUNCIL" in 1×1 tiles at row 4
+    const letters_council = [
+      // C
+      [[0,0],[0,1],[0,2],[1,0],[1,2]],
+      // O
+      [[0,0],[0,1],[0,2],[1,0],[1,2],[2,0],[2,1],[2,2]],
+      // U
+      [[0,0],[0,1],[0,2],[1,2],[2,0],[2,1],[2,2]],
+      // N
+      [[0,0],[0,1],[0,2],[1,1],[2,0],[2,1],[2,2]],
+      // C
+      [[0,0],[0,1],[0,2],[1,0],[1,2]],
+      // I
+      [[0,0],[0,1],[0,2]],
+      // L
+      [[0,0],[0,1],[0,2],[1,2],[2,2]],
+    ];
+    // Scale: each dot = 1px (not tile-based), render at top of entablature
+    const startX = 28, startY = 35; // pixel coords inside the entablature strip
+    const dotSize = 1;
+    const letterSpacing = 6;
+    ctx.fillStyle = '#c0c0e0';
+    letters_council.forEach((letter, li) => {
+      const ox = startX + li * letterSpacing;
+      letter.forEach(([dc, dr]) => {
+        ctx.fillRect(ox + dc * dotSize, startY + dr * dotSize, dotSize, dotSize);
+      });
+    });
+
+    // Column capitals (top of columns)
+    for (const c of colPositions) {
+      px(ctx, c, 5, 2, 1, lite);
+    }
+
+    // Roof highlight line
+    px(ctx, 1, 4, 18, 1, '#8a8aaa');
+  })();
+
+
+  // ─── VARIANT B: Brutalist Block ────────────────────────────────────────────
+  (function drawB() {
+    const ctx = document.getElementById('canvasB').getContext('2d');
+    const W = 20, H = 15;
+
+    // Background
+    ctx.fillStyle = '#0d0d1a';
+    ctx.fillRect(0, 0, W * T, H * T);
+
+    const band1  = '#2a2050';
+    const band2  = '#3a3068';
+    const shadow = '#1a1038';
+    const lite   = '#4a4080';
+    const dark   = '#0e0a28';
+    const name_c = '#7070a8';
+
+    // Main body: rows 2–13, cols 2–17 (16 wide, 12 tall)
+    // Horizontal banding — alternating every 2 rows
+    for (let r = 2; r <= 13; r++) {
+      const band = (Math.floor((r - 2) / 2) % 2 === 0) ? band1 : band2;
+      px(ctx, 2, r, 16, 1, band);
+    }
+
+    // Shadow edges
+    px(ctx, 2, 2, 16, 1, lite);     // top highlight
+    px(ctx, 2, 2, 1, 12, lite);     // left highlight
+    px(ctx, 17, 2, 1, 12, shadow);  // right shadow
+    px(ctx, 2, 13, 16, 1, shadow);  // bottom shadow
+
+    // Two flanking towers: rows 1–13 (taller by 1), cols 2–4 and 15–17
+    for (let r = 1; r <= 13; r++) {
+      const band = (Math.floor((r - 1) / 2) % 2 === 0) ? band1 : band2;
+      px(ctx, 2, r, 3, 1, band);
+      px(ctx, 15, r, 3, 1, band);
+    }
+    // Tower tops
+    px(ctx, 2, 1, 3, 1, lite);
+    px(ctx, 15, 1, 3, 1, lite);
+    px(ctx, 2, 1, 1, 13, lite);
+    px(ctx, 15, 1, 1, 13, lite);
+    px(ctx, 4, 1, 1, 13, shadow);
+    px(ctx, 17, 1, 1, 13, shadow);
+
+    // Slit windows on towers — thin verticals
+    // Left tower
+    px(ctx, 3, 3, 1, 3, dark);
+    px(ctx, 3, 8, 1, 3, dark);
+    // Right tower
+    px(ctx, 16, 3, 1, 3, dark);
+    px(ctx, 16, 8, 1, 3, dark);
+
+    // Slit windows on main body
+    px(ctx, 6,  4, 1, 2, dark);
+    px(ctx, 8,  4, 1, 2, dark);
+    px(ctx, 11, 4, 1, 2, dark);
+    px(ctx, 13, 4, 1, 2, dark);
+
+    px(ctx, 6,  8, 1, 2, dark);
+    px(ctx, 8,  8, 1, 2, dark);
+    px(ctx, 11, 8, 1, 2, dark);
+    px(ctx, 13, 8, 1, 2, dark);
+
+    // Large recessed entryway center rows 9–13, cols 8–11
+    px(ctx, 7, 9, 6, 5, shadow);
+    px(ctx, 8, 9, 4, 5, dark);
+    // Recessed frame
+    px(ctx, 7, 9, 1, 5, '#1a1840');
+    px(ctx, 12, 9, 1, 5, '#1a1840');
+    px(ctx, 7, 9, 6, 1, '#1a1840');
+
+    // Ground base
+    px(ctx, 1, 13, 18, 1, shadow);
+    px(ctx, 1, 14, 18, 1, '#18102e');
+
+    // Name "CONGRESS" etched in facade — pixel dots, stark
+    // Render at row 6 area in a simple dot pattern
+    const letters_congress = [
+      // C
+      [[0,0],[0,1],[0,2],[1,0],[1,2]],
+      // O
+      [[0,0],[1,0],[2,0],[0,1],[2,1],[0,2],[1,2],[2,2]],
+      // N
+      [[0,0],[0,1],[0,2],[1,1],[2,0],[2,1],[2,2]],
+      // G
+      [[0,0],[1,0],[0,1],[0,2],[1,2],[2,2],[2,1]],
+      // R
+      [[0,0],[0,1],[0,2],[1,0],[2,0],[1,1],[2,2]],
+      // E
+      [[0,0],[1,0],[2,0],[0,1],[0,2],[1,2],[2,2]],
+      // S
+      [[0,0],[1,0],[2,0],[0,1],[1,1],[2,2],[1,2],[0,2]],
+      // S
+      [[0,0],[1,0],[2,0],[0,1],[1,1],[2,2],[1,2],[0,2]],
+    ];
+    const startX = 11, startY = 49;
+    const dotSize = 1;
+    const letterSpacing = 5;
+    ctx.fillStyle = name_c;
+    letters_congress.forEach((letter, li) => {
+      const ox = startX + li * letterSpacing;
+      letter.forEach(([dc, dr]) => {
+        ctx.fillRect(ox + dc * dotSize, startY + dr * dotSize, dotSize, dotSize);
+      });
+    });
+  })();
+
+
+  // ─── VARIANT C: Gothic Spire ───────────────────────────────────────────────
+  (function drawC() {
+    const ctx = document.getElementById('canvasC').getContext('2d');
+    const W = 20, H = 15;
+
+    // Background
+    ctx.fillStyle = '#0d0d1a';
+    ctx.fillRect(0, 0, W * T, H * T);
+
+    const stone  = '#1e1e3a';
+    const hi     = '#3a4a8a';
+    const mid    = '#2a2a50';
+    const dark   = '#0e0e22';
+    const win    = '#2a3a6a';
+    const garg   = '#1a1a30';
+    const spire  = '#2a3860';
+
+    // Main body: rows 5–13, cols 3–16 (14 wide, 9 tall)
+    px(ctx, 3, 5, 14, 9, stone);
+
+    // Stone texture — subtle horizontal lines
+    for (let r = 5; r <= 13; r += 2) {
+      px(ctx, 3, r, 14, 1, mid);
+    }
+
+    // Edges / depth
+    px(ctx, 3, 5, 1, 9, hi);
+    px(ctx, 16, 5, 1, 9, dark);
+    px(ctx, 3, 13, 14, 1, dark);
+    px(ctx, 3, 5, 14, 1, hi);
+
+    // Central tower: rows 1–5, cols 8–11
+    px(ctx, 8, 1, 4, 5, spire);
+    px(ctx, 8, 1, 1, 5, hi);
+    px(ctx, 11, 1, 1, 5, dark);
+    px(ctx, 8, 1, 4, 1, hi);
+
+    // Spire tip: rows 0 (1 tile wide at col 9)
+    px(ctx, 9, 0, 2, 1, hi);
+    // Spire taper
+    px(ctx, 8, 1, 4, 1, spire);
+
+    // Side towers / buttresses
+    px(ctx, 3, 3, 2, 3, spire);
+    px(ctx, 15, 3, 2, 3, spire);
+    px(ctx, 3, 3, 1, 3, hi);
+    px(ctx, 16, 3, 1, 3, dark);
+    px(ctx, 3, 3, 2, 1, hi);
+    px(ctx, 15, 3, 2, 1, hi);
+
+    // Arched gothic windows (left and right of entrance)
+    // Left arch window: cols 4–5, rows 6–10
+    px(ctx, 4, 7, 2, 4, win);
+    px(ctx, 4, 6, 2, 1, win);  // arch top
+    px(ctx, 4, 6, 1, 1, hi);
+    px(ctx, 5, 6, 1, 1, hi);
+    // Arch peak pixel
+    ctx.fillStyle = hi;
+    ctx.fillRect(4 * T + 4, 6 * T, 8, 4);
+
+    // Right arch window: cols 13–14, rows 6–10
+    px(ctx, 13, 7, 2, 4, win);
+    px(ctx, 13, 6, 2, 1, win);
+    px(ctx, 13, 6, 1, 1, hi);
+    px(ctx, 14, 6, 1, 1, hi);
+    ctx.fillStyle = hi;
+    ctx.fillRect(13 * T + 4, 6 * T, 8, 4);
+
+    // Window tracery (cross dividers)
+    ctx.fillStyle = stone;
+    ctx.fillRect(4 * T + 3, 7 * T + 4, 2, 16);
+    ctx.fillRect(4 * T + 3, 8 * T + 4, 12, 2);
+    ctx.fillRect(13 * T + 3, 7 * T + 4, 2, 16);
+    ctx.fillRect(13 * T + 3, 8 * T + 4, 12, 2);
+
+    // Central doorway: arched, cols 8–11, rows 9–13
+    px(ctx, 8, 9, 4, 5, dark);
+    // Arch top of door
+    ctx.fillStyle = dark;
+    ctx.fillRect(8 * T + 2, 9 * T - 4, T * 4 - 4, 8);
+    // Door frame highlight
+    px(ctx, 8, 9, 1, 5, hi);
+    px(ctx, 11, 9, 1, 5, dark);
+    px(ctx, 8, 9, 4, 1, hi);
+    // Faint blue glow inside
+    ctx.fillStyle = '#1a2860';
+    ctx.globalAlpha = 0.6;
+    ctx.fillRect(9 * T, 10 * T, 2 * T, 3 * T);
+    ctx.globalAlpha = 1.0;
+
+    // Gargoyle blobs — corners of main body
+    // Left gargoyle: col 2–3, row 4–5
+    px(ctx, 2, 4, 2, 2, garg);
+    // Horns
+    ctx.fillStyle = dark;
+    ctx.fillRect(2 * T, 4 * T, T, T / 2);   // left horn
+    ctx.fillRect(3 * T, 4 * T, T, T / 2);   // right horn
+    ctx.fillStyle = hi;
+    ctx.fillRect(2 * T + 2, 4 * T + 4, 4, 4); // glowing eye
+    // Right gargoyle
+    px(ctx, 15, 4, 2, 2, garg);
+    ctx.fillStyle = dark;
+    ctx.fillRect(15 * T, 4 * T, T, T / 2);
+    ctx.fillRect(16 * T, 4 * T, T, T / 2);
+    ctx.fillStyle = hi;
+    ctx.fillRect(15 * T + 2, 4 * T + 4, 4, 4);
+
+    // Ground base
+    px(ctx, 2, 13, 16, 1, dark);
+    px(ctx, 2, 14, 16, 1, '#12122a');
+
+    // "COUNCIL" arched above door — pixel text at row 8 center area
+    const letters_council = [
+      // C
+      [[0,0],[0,1],[0,2],[1,0],[1,2]],
+      // O
+      [[0,0],[1,0],[2,0],[0,1],[2,1],[0,2],[1,2],[2,2]],
+      // U
+      [[0,0],[0,1],[0,2],[1,2],[2,0],[2,1],[2,2]],
+      // N
+      [[0,0],[0,1],[0,2],[1,1],[2,0],[2,1],[2,2]],
+      // C
+      [[0,0],[0,1],[0,2],[1,0],[1,2]],
+      // I
+      [[0,0],[0,1],[0,2]],
+      // L
+      [[0,0],[0,1],[0,2],[1,2],[2,2]],
+    ];
+    const startX = 30, startY = 67;
+    ctx.fillStyle = '#4a5a9a';
+    letters_council.forEach((letter, li) => {
+      const ox = startX + li * 5;
+      letter.forEach(([dc, dr]) => {
+        ctx.fillRect(ox + dc, startY + dr, 1, 1);
+      });
+    });
+
+    // Tower cross motif at top
+    ctx.fillStyle = hi;
+    ctx.fillRect(9 * T + 3, 1 * T + 2, 2, 5);
+    ctx.fillRect(9 * T, 1 * T + 4, 8, 2);
+  })();
+  </script>
+
+  <script>
+  const POLL_ID = 'congress-building-v1';
+  const OPTIONS = ['A', 'B', 'C'];
+
+  function updateUI(data) {
+    const counts = data.counts || {};
+    const winner = data.winner || null;
+    const yourVote = data.your_vote || null;
+
+    for (const opt of OPTIONS) {
+      const btn = document.getElementById('btn' + opt);
+      const countEl = document.getElementById('count' + opt);
+      const n = counts[opt] || 0;
+      countEl.textContent = n + (n === 1 ? ' vote' : ' votes');
+
+      // Reset classes
+      btn.classList.remove('voted', 'winner-glow');
+      if (yourVote === opt) {
+        btn.textContent = '✓ you voted ' + opt;
+        btn.classList.add('voted');
+      } else {
+        btn.textContent = 'Vote ' + opt;
+      }
+      if (winner === opt) {
+        btn.classList.add('winner-glow');
+      }
+    }
+  }
+
+  async function castVote(option) {
+    try {
+      const resp = await fetch('/api/vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ poll_id: POLL_ID, option }),
+        credentials: 'same-origin',
+      });
+      if (!resp.ok) { console.error('vote failed:', resp.status); return; }
+      const data = await resp.json();
+      updateUI(data);
+    } catch (e) {
+      console.error('vote error:', e);
+    }
+  }
+
+  async function pollCounts() {
+    try {
+      const resp = await fetch('/api/vote/' + POLL_ID, { credentials: 'same-origin' });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      updateUI(data);
+    } catch (e) {
+      console.error('poll error:', e);
+    }
+  }
+
+  // Initial load + periodic refresh
+  pollCounts();
+  setInterval(pollCounts, 5000);
+  </script>
+</body>
+</html>
