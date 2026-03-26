@@ -775,7 +775,7 @@
         pill.classList.toggle('active-filter', f === currentFilter && currentFilter !== null);
         pill.addEventListener('click', function() {
           currentFilter = (currentFilter === f && f !== null) ? null : f;
-          render(_lastTasks);
+          render(_lastTasks, _lastMeta, _lastTotals);
         });
       });
 
@@ -790,6 +790,7 @@
     var currentPage = 1;
     var PAGE_LIMIT = 50;
     var _lastMeta = { total: 0, pages: 1 };
+    var _lastTotals = null;
 
     function stateKey(tasks) {
       return tasks.map(function(t) { return t.id + ':' + t.status; }).join(',');
@@ -819,6 +820,7 @@
 
     function render(tasks, meta, totals) {
       _lastTasks = tasks;
+      if (totals != null) _lastTotals = totals;
       tasks = tasks.filter(function(t) { return t.status !== 'milestone'; });
 
       // Detect whether task count or states changed
