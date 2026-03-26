@@ -959,7 +959,7 @@
     }
 
     fetchTasks();
-    var pollInterval = setInterval(function() {
+    setInterval(function() {
       // Don't poll if we're showing the auth prompt
       if (document.getElementById('auth-prompt') && document.getElementById('auth-prompt').innerHTML) return;
       fetchTasks();
