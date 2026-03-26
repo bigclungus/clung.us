@@ -538,7 +538,7 @@ function NPC(persona, startTx, startTy) {
   var isWolf = this.name === 'wolf';
   var isUncle = this.name === 'uncle-bob';
 
-  this.speed = isGalactus ? 0.4 : isIbrahim ? 0.5 : isKid ? 2.2 : isWolf ? 1.6 : 0.8; // px per frame
+  this.speed = isGalactus ? 0.2 : isIbrahim ? 0.25 : isKid ? 1.2 : isWolf ? 0.8 : 0.4; // px per frame
   this.isGalactus = isGalactus;
   this.isKid = isKid;
   this.isIbrahim = isIbrahim;
@@ -756,7 +756,7 @@ NPC.prototype.update = function (npcs) {
           this.stepsLeft--;
         }
       } else {
-        var pause = this.isKid ? 2 : this.isGalactus ? 40 : this.isIbrahim ? 60 : 15 + Math.floor(Math.random() * 30);
+        var pause = this.isKid ? 2 : this.isGalactus ? 30 : this.isIbrahim ? 40 : 8 + Math.floor(Math.random() * 20);
         this.waitFrames = pause;
         this.pickNewDir(npcs);
       }
