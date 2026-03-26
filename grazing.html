@@ -1833,6 +1833,9 @@ var SPAWN_TILES = [
 // ── NPC list ─────────────────────────────────────────────────────────────────
 var npcs = [];
 
+// ── Last known mouse position in canvas coords (for per-frame tooltip update) ─
+var lastMouseCanvas = null; // null | { mx, my }
+
 // ── Tooltip ──────────────────────────────────────────────────────────────────
 var tooltip = document.getElementById('tooltip');
 var ttName = document.getElementById('tt-name');
@@ -1841,6 +1844,7 @@ var ttAvatar = document.getElementById('tt-avatar');
 
 canvas.addEventListener('mouseleave', function() {
   tooltip.style.display = 'none';
+  lastMouseCanvas = null;
   if (!dragState) canvas.style.cursor = 'default';
   // Resume any paused audition walker when mouse leaves canvas (unless card is open)
   if (auditionHoveredId && !auditionCard.classList.contains('active')) {
@@ -1959,6 +1963,15 @@ canvas.addEventListener('mousedown', function(e) {
 });
 
 canvas.addEventListener('mousemove', function(e) {
+  // Track mouse position in canvas coords for per-frame tooltip updates
+  var rect0 = canvas.getBoundingClientRect();
+  lastMouseCanvas = {
+    mx: (e.clientX - rect0.left) * (W / rect0.width),
+    my: (e.clientY - rect0.top) * (H / rect0.height),
+    clientX: e.clientX,
+    clientY: e.clientY,
+  };
+
   // Tooltip logic (only when not dragging)
   if (!dragState || !dragState.dragging) {
     var rect = canvas.getBoundingClientRect();
@@ -2677,10 +2690,16 @@ function drawLocalPlayer() {
   }
   var cy = Math.round(localPlayer.py) - 14 + hopOffset;
 
-  // White glow to distinguish from NPCs
-  ctx.save();
-  ctx.shadowColor = '#ffffff';
-  ctx.shadowBlur = 8;
+  // White glow halo (radial gradient, drawn under character — avoids shadowBlur bleeding onto map)
+  var glowCy = cy + 14; // center at feet level (cy is top-of-sprite; feet at cy+14)
+  var grad = ctx.createRadialGradient(cx, glowCy, 2, cx, glowCy, 16);
+  grad.addColorStop(0, 'rgba(255,255,255,0.30)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.beginPath();
+  ctx.arc(cx, glowCy, 16, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  // Draw character on top of halo (no shadow)
   if (localPlayer.facing === 'left') {
     ctx.save();
     ctx.translate(cx * 2, 0);
@@ -2690,7 +2709,6 @@ function drawLocalPlayer() {
   } else {
     drawCharacter(cx, cy, localPlayer.color, 1, false);
   }
-  ctx.restore();
 
   // Name label above
   ctx.save();
@@ -2995,6 +3013,30 @@ function loop() {
   // Update all NPCs
   for (var i = 0; i < npcs.length; i++) {
     npcs[i].update(npcs);
+  }
+
+  // Per-frame tooltip staleness check: NPCs move each frame, so the tooltip
+  // can become stale if an NPC walks out from under a stationary mouse cursor.
+  // Re-run hit detection each frame using the last known mouse position.
+  if (lastMouseCanvas && !dragState) {
+    var _mx = lastMouseCanvas.mx, _my = lastMouseCanvas.my;
+    var _found = null;
+    for (var _i = 0; _i < npcs.length; _i++) {
+      var _n = npcs[_i];
+      var _dx = _mx - _n.px, _dy = _my - (_n.py - 8);
+      if (Math.abs(_dx) < 14 && Math.abs(_dy) < 20) { _found = _n; break; }
+    }
+    if (_found) {
+      ttName.textContent = _found.displayName;
+      ttRole.textContent = _found.role;
+      if (_found.avatarUrl) { ttAvatar.src = _found.avatarUrl; ttAvatar.style.display = 'block'; }
+      else { ttAvatar.style.display = 'none'; }
+      tooltip.style.display = 'block';
+      tooltip.style.left = (lastMouseCanvas.clientX + 14) + 'px';
+      tooltip.style.top = (lastMouseCanvas.clientY - 10) + 'px';
+    } else {
+      tooltip.style.display = 'none';
+    }
   }
 
   // Update local player (keyboard movement)
