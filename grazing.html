@@ -378,6 +378,11 @@ var MAP = (function () {
   ];
   rocks.forEach(function(t) { if (t[0] < ROWS && t[1] < COLS) m[t[0]][t[1]] = 5; });
 
+  // Fountain — 3x3 town square near path intersection (rows 13-15, cols 22-24)
+  for (var r = 13; r <= 15; r++)
+    for (var c = 22; c <= 24; c++)
+      m[r][c] = 6;
+
   return m;
 })();
 
@@ -387,7 +392,7 @@ function isBlocked(tx, ty) {
   if (tx === 5 && ty === 5) return false; // doorway
   if (tx === 5 && ty === 6) return false; // steps
   var t = MAP[ty][tx];
-  return t === 2 || t === 3 || t === 4 || t === 5;
+  return t === 2 || t === 3 || t === 4 || t === 5 || t === 6;
 }
 
 // ── Canvas & context ───────────────────────────────────────────────────────────
@@ -571,6 +576,27 @@ function drawMap() {
           ctx.fillStyle = '#606070';
           ctx.fillRect(x + 5, y + 3, 4, 3);
           break;
+        case 6: // fountain (static stone structure — water drawn each frame in drawFountainAnimation)
+          // Outer basin — stone gray base fill
+          ctx.fillStyle = '#3a3a54';
+          ctx.fillRect(x, y, TILE, TILE);
+          // Outer basin ring
+          ctx.fillStyle = '#5a5a7a';
+          ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+          // Basin interior (darker water-bed)
+          ctx.fillStyle = '#1a2848';
+          ctx.fillRect(x + 3, y + 3, TILE - 6, TILE - 6);
+          // Mid-tier ring (drawn only for center tile at tx=23,ty=14)
+          if (tx === 23 && ty === 14) {
+            ctx.fillStyle = '#6a6a8a';
+            ctx.fillRect(x + 4, y + 4, TILE - 8, TILE - 8);
+            ctx.fillStyle = '#1e2c50';
+            ctx.fillRect(x + 6, y + 6, TILE - 12, TILE - 12);
+            // Top-tier center nub
+            ctx.fillStyle = '#7a7a9a';
+            ctx.fillRect(x + 7, y + 7, TILE - 14, TILE - 14);
+          }
+          break;
       }
     }
   }
@@ -604,6 +630,74 @@ var mapCtx = mapCache.getContext('2d');
   drawMap();
   ctx = save;
 })();
+
+// ── Fountain animation ────────────────────────────────────────────────────────
+// Fountain center: rows 13-15, cols 22-24 → center tile row=14, col=23
+var FOUNTAIN_CX = 23; // center tile col
+var FOUNTAIN_CY = 14; // center tile row
+var fountainFrame = 0;
+
+function drawFountainAnimation() {
+  fountainFrame++;
+
+  // Fountain occupies a 3×3 tile block (rows 13-15, cols 22-24)
+  // Pixel origin of the block
+  var bx = 22 * TILE; // left edge of the 3-tile block
+  var by = 13 * TILE; // top edge
+
+  // Basin water — animate ripples across the 3×3 area (48×48 px)
+  // Use fountainFrame to cycle through shimmer positions
+  var phase = fountainFrame % 30;
+  ctx.save();
+
+  // Outer basin water sheen (ripple ring)
+  for (var i = 0; i < 8; i++) {
+    if (((fountainFrame + i * 4) % 30) < 15) {
+      ctx.fillStyle = '#1a6aaaaa';
+    } else {
+      ctx.fillStyle = '#1a6aaa44';
+    }
+    // Scatter ripple pixels around basin ring
+    var rx = bx + 3 + (i * 5) % 40;
+    var ry = by + 3 + (i * 7) % 40;
+    ctx.fillRect(rx, ry, 2, 1);
+  }
+
+  // Cascade streams from top tier — bright blue drops falling outward
+  // Top tier is at center tile (col 23, row 14) pixel center
+  var cx0 = FOUNTAIN_CX * TILE + TILE / 2;
+  var cy0 = FOUNTAIN_CY * TILE + TILE / 2;
+
+  // 4 cascade directions: up, down, left, right
+  var cascades = [
+    { dx: 0,  dy: -1, len: 8 },
+    { dx: 0,  dy:  1, len: 8 },
+    { dx: -1, dy:  0, len: 8 },
+    { dx:  1, dy:  0, len: 8 },
+  ];
+  cascades.forEach(function(c, ci) {
+    var offset = (fountainFrame + ci * 8) % 16;
+    // Bright cascade pixel moving outward
+    var px = cx0 + c.dx * (4 + offset);
+    var py = cy0 + c.dy * (4 + offset);
+    ctx.fillStyle = '#4a9fff';
+    ctx.fillRect(Math.round(px), Math.round(py), 2, 2);
+    // Trailing lighter pixel
+    if (offset > 2) {
+      ctx.fillStyle = '#1a6aaa88';
+      ctx.fillRect(Math.round(px - c.dx * 2), Math.round(py - c.dy * 2), 2, 2);
+    }
+  });
+
+  // Sporadic splash pixels in the basin
+  if (phase < 10) {
+    ctx.fillStyle = '#4a9fff88';
+    ctx.fillRect(bx + 4 + (phase * 3) % 32, by + 8 + (phase * 5) % 24, 2, 1);
+    ctx.fillRect(bx + 8 + (phase * 7) % 28, by + 4 + (phase * 3) % 32, 1, 2);
+  }
+
+  ctx.restore();
+}
 
 // ── Character sprite drawing ───────────────────────────────────────────────────
 function drawCharacter(cx, cy, color, scale, isGalactus) {
@@ -1734,6 +1828,9 @@ function loop() {
 
   // Draw map (cached)
   ctx.drawImage(mapCache, 0, 0);
+
+  // Fountain water animation (dynamic, drawn each frame on top of cached map)
+  drawFountainAnimation();
 
   // Feature 5: draw worn path overlays on grass tiles
   drawWornPaths();
