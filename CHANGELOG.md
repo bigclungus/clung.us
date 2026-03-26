@@ -309,6 +309,8 @@
 
 - rename hiring-manager.gif to chairman.gif
 
+- remove Nemesis from congress.html and grazing.html
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
