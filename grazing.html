@@ -1433,6 +1433,7 @@ function NPC(persona, startTx, startTy) {
   this.serverX = null; // null = no server data yet, use client simulation
   this.serverY = null;
   this.serverFacing = null;
+  this.firstServerSync = true; // snap on first npc_update to avoid fly-in
 }
 
 NPC.prototype.pickNewDir = function (npcs) {
@@ -1648,6 +1649,14 @@ NPC.prototype.update = function (npcs) {
 
   // If server has sent position data, lerp toward it; otherwise fall back to client simulation
   if (this.serverX !== null && this.serverY !== null) {
+    if (this.firstServerSync) {
+      // Snap directly on first server sync to avoid fly-in from random client position
+      this.px = this.serverX;
+      this.py = this.serverY;
+      this.targetPx = this.serverX;
+      this.targetPy = this.serverY;
+      this.firstServerSync = false;
+    }
     var LERP = 0.15;
     this.px += (this.serverX - this.px) * LERP;
     this.py += (this.serverY - this.py) * LERP;
@@ -1718,6 +1727,9 @@ NPC.prototype.update = function (npcs) {
 };
 
 NPC.prototype.draw = function () {
+  // Don't draw until server has sent first position (prevents fly-in from random spawn)
+  if (this.firstServerSync) return;
+
   var cx = Math.round(this.px);
   var cy = Math.round(this.py) - 14; // top of sprite (for generic NPC drawing + bubble anchoring)
   // cy_feet: bottom of sprite position for drawSprite_* functions (they draw upward from feet)
@@ -2519,17 +2531,25 @@ function drawRemotePlayers() {
     var pCy = (p.chunkY !== undefined ? p.chunkY : 0);
     if (pCx !== chunkX || pCy !== chunkY) continue;
 
-    var cx = p.x * TILE + TILE / 2;
+    // Lerp render position toward target pixel position
+    p.renderX += (p.targetX - p.renderX) * 0.2;
+    p.renderY += (p.targetY - p.renderY) * 0.2;
+
+    var cx = Math.round(p.renderX);
     // Hop arc for remote player
     var remoteHopOffset = 0;
     if (p.hopFrame && p.hopFrame > 0) {
       remoteHopOffset = -Math.sin(p.hopFrame / 12 * Math.PI) * 10;
       p.hopFrame--;
     }
-    var cy = p.y * TILE + TILE / 2 - 14 + remoteHopOffset;
+    var cy = Math.round(p.renderY) - 14 + remoteHopOffset;
 
-    // Draw sprite with facing flip
+    // Draw sprite with facing flip (grey overlay if away)
     ctx.save();
+    if (p.isAway) {
+      ctx.filter = 'grayscale(100%)';
+      ctx.globalAlpha = 0.4;
+    }
     if (p.facing === 'left') {
       ctx.save();
       ctx.translate(cx * 2, 0);
@@ -2543,6 +2563,7 @@ function drawRemotePlayers() {
 
     // Small dot indicator above head
     ctx.save();
+    if (p.isAway) ctx.globalAlpha = 0.4;
     ctx.fillStyle = p.color;
     ctx.beginPath();
     ctx.arc(cx, cy - 5, 2, 0, Math.PI * 2);
@@ -2552,9 +2573,10 @@ function drawRemotePlayers() {
     // Name label above sprite
     if (p.name) {
       ctx.save();
+      if (p.isAway) ctx.globalAlpha = 0.4;
       ctx.font = 'bold 8px monospace';
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#cccccc';
+      ctx.fillStyle = p.isAway ? '#666666' : '#cccccc';
       ctx.fillText(p.name, cx, cy - 10);
       ctx.restore();
     }
@@ -2588,8 +2610,13 @@ function connectCommonsWs() {
       remotePlayers = {};
       for (var id in msg.players) {
         var p = msg.players[id];
-        // Preserve existing hopFrame if already tracked
+        // Prefer pixel coords from server; fall back to tile-center calculation
+        var targetX = (typeof p.px === 'number') ? p.px : (p.x * TILE + TILE / 2);
+        var targetY = (typeof p.py === 'number') ? p.py : (p.y * TILE + TILE / 2);
+        // Preserve existing hopFrame and renderX/renderY if already tracked; snap on first receive
         var existingHop = (prevRemote[id] && prevRemote[id].hopFrame) || 0;
+        var renderX = (prevRemote[id] && prevRemote[id].renderX !== undefined) ? prevRemote[id].renderX : targetX;
+        var renderY = (prevRemote[id] && prevRemote[id].renderY !== undefined) ? prevRemote[id].renderY : targetY;
         remotePlayers[id] = {
           x: p.x, y: p.y, name: p.name, color: p.color,
           facing: p.facing || 'right',
@@ -2598,6 +2625,11 @@ function connectCommonsWs() {
           ts: p.ts,
           chunkX: (p.chunkX !== undefined ? p.chunkX : 0),
           chunkY: (p.chunkY !== undefined ? p.chunkY : 0),
+          targetX: targetX,
+          targetY: targetY,
+          renderX: renderX,
+          renderY: renderY,
+          isAway: p.isAway || false,
         };
       }
     } else if (msg.type === 'chunk_change') {
@@ -2654,6 +2686,8 @@ function sendPlayerMove() {
     type: 'move',
     x: localPlayer.tx,
     y: localPlayer.ty,
+    px: localPlayer.px,
+    py: localPlayer.py,
     name: localPlayer.name,
     color: localPlayer.color,
     facing: localPlayer.facing,
@@ -2680,6 +2714,26 @@ function sendChunkChange(cx, cy) {
     playerName: localPlayer.name,
   }));
 }
+
+function sendPlayerStatus(status) {
+  if (!commonsWs || commonsWs.readyState !== WebSocket.OPEN) return;
+  commonsWs.send(JSON.stringify({
+    type: 'player_status',
+    status: status,
+    socket_id: localPlayer.socketId,
+  }));
+}
+
+// Broadcast away/active status when tab visibility changes or window loses/gains focus
+document.addEventListener('visibilitychange', function() {
+  sendPlayerStatus(document.hidden ? 'away' : 'active');
+});
+window.addEventListener('blur', function() {
+  sendPlayerStatus('away');
+});
+window.addEventListener('focus', function() {
+  sendPlayerStatus('active');
+});
 
 // Start WebSocket connection after personas are loaded (startLoop is called)
 var wsStarted = false;
