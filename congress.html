@@ -1892,11 +1892,11 @@
       const res = await fetch('/api/agents');
       if (!res.ok) throw new Error('status ' + res.status);
       const data = await res.json();
-      // Full roster: all active non-moderator personas (no slice — we want them all for the panel)
-      allActivePersonas = (data.active || []).filter(p => !p.is_moderator);
+      // Full roster: all eligible non-moderator personas (no slice — we want them all for the panel)
+      allActivePersonas = (data.eligible || []).filter(p => !p.is_moderator);
       // Use first SEAT_COUNT for the default circle seats
       for (let i = 0; i < SEAT_COUNT; i++) seats[i] = allActivePersonas[i] || null;
-      retiredPool = data.fired || [];
+      retiredPool = data.ineligible || [];
       moderatorPersona = data.moderator || null;
     } catch (e) {
       console.warn('[congress] /api/agents failed, trying fallback:', e);
@@ -3544,8 +3544,8 @@
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       // Combine all personas: eligible (active), ineligible (fired), moderator — sort eligible first, then moderator, then ineligible
-      const eligible = (data.active || []).map(p => ({ ...p, status: 'eligible' }));
-      const ineligible = (data.fired || []).map(p => ({ ...p, status: 'ineligible' }));
+      const eligible = (data.eligible || []).map(p => ({ ...p, status: 'eligible' }));
+      const ineligible = (data.ineligible || []).map(p => ({ ...p, status: 'ineligible' }));
       const moderator = data.moderator ? [{ ...data.moderator, status: 'moderator' }] : [];
       const personas = [...eligible, ...moderator, ...ineligible];
       renderPersonasTable(personas, wrap);
