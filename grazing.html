@@ -3024,8 +3024,12 @@ function loop() {
   fetchAuditionWalkers();
   drawAuditionWalkers();
 
-  // Draw Warthog (under players)
-  drawWarthog(Math.round(warthog.x), Math.round(warthog.y), warthog.facing, warthog.seats);
+  // Draw Warthog (under players); apply hop offset if driver is hopping
+  var warthogHopOffset = 0;
+  if (inVehicle && localPlayer.hopFrame > 0) {
+    warthogHopOffset = -Math.sin(localPlayer.hopFrame / 12 * Math.PI) * 10;
+  }
+  drawWarthog(Math.round(warthog.x), Math.round(warthog.y) + warthogHopOffset, warthog.facing, warthog.seats);
 
   // "E to drive" hint when near warthog and not in vehicle
   if (!inVehicle) {
