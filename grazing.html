@@ -1349,7 +1349,7 @@ NPC.prototype.draw = function () {
       } else {
         ctx.save();
         ctx.translate(cx, cy_feet);
-        ctx.scale(1.5, 1.5);
+        ctx.scale(1.25, 1.25);
         spriteFn(ctx, 0, 0);
         ctx.restore();
       }
@@ -2096,25 +2096,19 @@ function loop() {
     ctx.restore();
   }
 
-  // ── Congress badge ────────────────────────────────────────────────────────
+  // ── Congress flag (above congress building when in session) ──────────────
   if (congressState.active) {
     ctx.save();
-    var badgeText = '⚖️ in session';
-    ctx.font = 'bold 11px monospace';
-    var bw = ctx.measureText(badgeText).width + 16;
-    var bh = 20;
-    var bx = W - bw - 6;
-    var by = 6;
-    ctx.fillStyle = '#1a0a3a';
-    ctx.beginPath();
-    ctx.roundRect(bx, by, bw, bh, 4);
-    ctx.fill();
-    ctx.strokeStyle = '#a78bfa';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.fillStyle = '#e0d0ff';
-    ctx.textAlign = 'left';
-    ctx.fillText(badgeText, bx + 8, by + bh - 5);
+    var fx = 5 * TILE; // flag pole x (center of building)
+    var fy = TILE;     // above building (row 1)
+    ctx.fillStyle = '#222';
+    ctx.fillRect(fx, fy, 2, TILE); // pole
+    ctx.fillStyle = '#f87171'; // red flag
+    ctx.fillRect(fx + 2, fy, 12, 8); // flag body
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(fx + 4, fy + 2, 2, 4); // simplified scale icon — left arm
+    ctx.fillRect(fx + 8, fy + 2, 2, 4); // right arm
+    ctx.fillRect(fx + 6, fy + 1, 2, 2); // centre top
     ctx.restore();
   }
 
