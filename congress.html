@@ -1450,15 +1450,20 @@
       letter-spacing: 0.07em;
       white-space: nowrap;
     }
-    .pt-status-pill.active {
+    .pt-status-pill.eligible {
       background: color-mix(in srgb, var(--teal) 15%, transparent);
       color: var(--teal);
       border: 1px solid color-mix(in srgb, var(--teal) 50%, transparent);
     }
-    .pt-status-pill.fired {
+    .pt-status-pill.ineligible {
       background: color-mix(in srgb, var(--accent) 15%, transparent);
       color: var(--accent);
       border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+    }
+    .pt-status-pill.moderator {
+      background: color-mix(in srgb, #a3e635 15%, transparent);
+      color: #a3e635;
+      border: 1px solid color-mix(in srgb, #a3e635 50%, transparent);
     }
     .pt-verdict-chip {
       font-size: 0.5rem;
@@ -3524,16 +3529,14 @@
     const wrap = document.getElementById('personasTableWrap');
     wrap.innerHTML = '<div style="font-size:0.72rem;color:var(--text-muted);opacity:0.6;">Loading…</div>';
     try {
-      const res = await fetch('/api/personas');
-      if (!res.ok) {
-        if (res.status === 403) {
-          wrap.innerHTML = '<div style="font-size:0.72rem;color:var(--accent);">Not authorised — <a href="/auth/github?next=/congress" style="color:var(--teal)">log in via GitHub</a></div>';
-          return;
-        }
-        throw new Error('HTTP ' + res.status);
-      }
+      const res = await fetch('/api/agents');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      const personas = data.personas || [];
+      // Combine all personas: eligible (active), ineligible (fired), moderator — sort eligible first, then moderator, then ineligible
+      const eligible = (data.active || []).map(p => ({ ...p, status: 'eligible' }));
+      const ineligible = (data.fired || []).map(p => ({ ...p, status: 'ineligible' }));
+      const moderator = data.moderator ? [{ ...data.moderator, status: 'moderator' }] : [];
+      const personas = [...eligible, ...moderator, ...ineligible];
       renderPersonasTable(personas, wrap);
     } catch (e) {
       wrap.innerHTML = '<div style="font-size:0.72rem;color:var(--accent);">Could not load personas: ' + e.message + '</div>';
@@ -3560,9 +3563,13 @@
     const tbody = document.createElement('tbody');
     personas.forEach(p => {
       const tr = document.createElement('tr');
-      const status = p.status || 'active';
+      // /api/agents uses eligible/ineligible/moderator
+      const status = p.status || 'eligible';
       const lastVerdict = p.last_verdict || '';
-      const totalCongresses = p.total_congresses || 0;
+      const totalCongresses = (p.stats_retained || 0) + (p.stats_evolved || 0) + (p.stats_fired || 0);
+
+      // Dim ineligible rows slightly
+      if (status === 'ineligible') tr.style.opacity = '0.65';
 
       // Avatar cell
       const tdAvatar = document.createElement('td');
@@ -3609,15 +3616,15 @@
       tdRole.textContent = p.role || p.title || '';
       tr.appendChild(tdRole);
 
-      // Status pill
+      // Status pill — uses eligible/ineligible/moderator CSS classes
       const tdStatus = document.createElement('td');
       const pill = document.createElement('span');
-      pill.className = 'pt-status-pill ' + (status === 'active' ? 'active' : 'fired');
-      pill.textContent = status === 'active' ? 'active' : 'severance';
+      pill.className = 'pt-status-pill ' + status;
+      pill.textContent = status;
       tdStatus.appendChild(pill);
       tr.appendChild(tdStatus);
 
-      // Congress count
+      // Congress count (sum of verdict history from session files)
       const tdCount = document.createElement('td');
       tdCount.style.cssText = 'font-size:0.72rem;text-align:center;';
       tdCount.textContent = totalCongresses || '—';
@@ -3636,7 +3643,7 @@
       }
       tr.appendChild(tdVerdict);
 
-      // Actions
+      // Actions — moderator has no fire/restore
       const tdActions = document.createElement('td');
       tdActions.className = 'pt-actions';
 
@@ -3646,18 +3653,18 @@
       editBtn.onclick = () => openPersonaModalEdit(p.name);
       tdActions.appendChild(editBtn);
 
-      if (status === 'active') {
+      if (status === 'eligible') {
         const fireBtn = document.createElement('button');
         fireBtn.className = 'pt-btn fire-btn';
         fireBtn.textContent = 'Fire';
-        fireBtn.title = 'Move to severance';
+        fireBtn.title = 'Mark ineligible';
         fireBtn.onclick = () => quickStatusChange(p.name, 'fired');
         tdActions.appendChild(fireBtn);
-      } else {
+      } else if (status === 'ineligible') {
         const restoreBtn = document.createElement('button');
         restoreBtn.className = 'pt-btn restore-btn';
         restoreBtn.textContent = 'Restore';
-        restoreBtn.title = 'Move back to active';
+        restoreBtn.title = 'Mark eligible';
         restoreBtn.onclick = () => quickStatusChange(p.name, 'active');
         tdActions.appendChild(restoreBtn);
       }
