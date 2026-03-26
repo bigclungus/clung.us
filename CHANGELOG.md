@@ -61,6 +61,26 @@
 
 - music bar fixed to viewport bottom; filter congress:false from roster snapshot
 
+- bypass HMAC cookie auth for /api/congress/* when request is from localhost
+
+- fix P1 UI bugs: add adelbert/hume/wolf to personas.db, /personas redirect, update EMOJI/COLOR maps
+
+- replace CONGRESS_COOKIE with X-Internal-Token for service auth
+
+- fix gigaclungus avatars: infinite loop
+
+- use server-side totals in task summary pills
+
+- neutral age-pill color for terminal-status tasks
+
+- handle paginated /api/tasks response on homepage
+
+- show sign-in link in last-pulse and active-list when API returns 403
+
+- congress UI roster/avatar broken by eligible/active status mismatch
+
+- congress personas tab — use /api/agents, update terminology, show avatars
+
 
 ### Changes
 - add /tasks endpoint and tasks.html dashboard
@@ -72,6 +92,12 @@
 - add The Kid pixel art avatar
 
 - add Uncle Bob pixel art avatar
+
+- add gigaclungus avatar variants
+
+- remove serve.py.archived — history preserved in git
+
+- remove old python server remnants
 
 
 ### Chores
@@ -225,6 +251,64 @@
 
 - verify HMAC-signed auth cookie
 
+- Migrate hello.clung.us → clung.us
+
+- Add cache-busting to sitenav.js/css: bump ?v= to git hash b6d00bc, add Cache-Control no-cache header for JS/CSS static files
+
+- Add Morgan avatar (morgan.gif)
+
+- Add model-specific Grok routing for congress personas
+
+- Fix congress start endpoint to persist discord_user in session JSON
+
+- Update Gemini alias to gemini-2.5-pro
+
+- Add Punished Trump avatar
+
+- Update Gemini alias to latest available model (gemini-3-pro-preview)
+
+- Congress cards: add model tag, role, sex, and verdict badges
+
+- module-level MODEL_ALIASES, raise on unknown model, remove dead _call_gemini_cli wrapper
+
+- include model in congress roster snapshots; backfill 24 sessions
+
+- Add /api/personas CRUD endpoints
+
+- Track congress participation and verdicts in personas.db
+
+- add Personas admin tab with table and CRUD UI
+
+- Shorten congress debate responses to 3-5 sentences per persona
+
+- Set Ibrahim portrait to G (stark void)
+
+- Include moderator in /api/agents response and fix Ibrahim portrait display
+
+- Increase portrait size on personas page
+
+- Reduce congress response length: 600 → 300 tokens, add brevity prompt
+
+- Log routed model in congress session round records
+
+- Add The Commons grazing page with RPG pixel art NPC world
+
+- Fix _PERSONA_META stale cache with 60s TTL refresh
+
+- remove redundant mid-module time imports in serve.py
+
+- replace deprecated utcnow() with timezone-aware datetime.now(timezone.utc)
+
+- fix INTERNAL_TOKEN default, add cache lock, fix task_titles PATCH allowlist
+
+- archive serve.py: cutover to clunger complete
+
+- collapse duplicate age-fresh cls branches in makeAgePill
+
+- rename hiring-manager → chairman in frontend HTML
+
+- rename hiring-manager.gif to chairman.gif
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
@@ -273,6 +357,12 @@
 
 - hide sidebar dot for failed/terminated sessions
 
+- make seat card avatars larger and more prominent
+
+- larger portraits for center debate seats
+
+- congress reform: add chairman.gif avatar
+
 
 ### Features
 - add summary stats header to tasks page
@@ -313,11 +403,17 @@
 
 - move OAuth issuer to clung.us, add /terminal redirect, retire hello.clung.us
 
+- add unified _call_llm dispatch layer with LiteLLM installed
+
+- tasks page pagination
+
 
 ### Refactoring
 - shared sitenav component, terminal as subheader
 
 - refactor congress layout to 3-column: sessions | arena | roster
+
+- extract _LOCALHOST_ADDRS constant in serve.py
 
 
 ### Tasks

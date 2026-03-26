@@ -99,7 +99,6 @@ var QUIPS = {
   'critic':         ["That's wrong.", "Prove it works.", "No.", "Show your data.", "Unacceptable.", "Rejected."],
   'architect':      ["Consider the load.", "What scales here?", "Draw the diagram.", "Single source.", "Decouple this.", "The foundation matters."],
   'ux':             ["Is this usable?", "Who's the user?", "Friction is failure.", "Test with humans.", "Accessibility first.", "Can my gran do it?"],
-  'nemesis':        ["Noted.", "The stakeholder sees all.", "I am watching.", "This will be filed.", "Nothing escapes.", "Observe."],
   'wolf':           ["*awoo*", "rewrite it in Rust", "*grr*", "FASTER", "*howls*", "Ship. Now."],
   'galactus':       ["I HUNGER.", "YOUR SYSTEMS WILL FEED ME.", "INCONSEQUENTIAL.", "I HAVE SEEN BILLIONS OF STACKS.", "MORTAL CODE.", "FEED ME YOUR DATA."],
   'designer':       ["Aesthetically, no.", "More contrast.", "Wrong font.", "The kerning is off.", "Iterate the palette.", "Beauty is function."],
@@ -119,7 +118,6 @@ var COLOR_OVERRIDES = {
   'critic':         '#f87171',
   'architect':      '#f59e0b',
   'ux':             '#60a5fa',
-  'nemesis':        '#7c3aed',
   'wolf':           '#f97316',
   'galactus':       '#6366f1',
   'designer':       '#ec4899',
@@ -417,7 +415,6 @@ function NPC(persona, startTx, startTy) {
   this.isKid = isKid;
   this.isIbrahim = isIbrahim;
   this.isUncle = isUncle;
-  this.isNemesis = this.name === 'nemesis';
   this.isDesigner = this.name === 'designer';
   this.isAdelbert = this.name === 'adelbert';
 
@@ -456,21 +453,6 @@ NPC.prototype.pickNewDir = function (npcs) {
     return;
   }
 
-  // Nemesis: prefer staying near edges
-  if (this.isNemesis) {
-    var edgeDirs = [];
-    DIRS.forEach(function(d) {
-      var nx = self.tx + d.dx, ny = self.ty + d.dy;
-      if (!isBlocked(nx, ny) && (nx < 4 || nx > COLS-5 || ny < 4 || ny > ROWS-5)) {
-        edgeDirs.push(d);
-      }
-    });
-    if (edgeDirs.length > 0) {
-      this.dir = edgeDirs[Math.floor(Math.random() * edgeDirs.length)];
-      this.stepsLeft = 3 + Math.floor(Math.random() * 4);
-      return;
-    }
-  }
 
   // Designer: circular-ish motion
   if (this.isDesigner) {
