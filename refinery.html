@@ -1,6 +1,6 @@
 <!-- refinery.html — Poll UI for clung.us
      Displays all active polls from /api/polls, grouped by category prefix.
-     Users vote on sprite variants, emoji choices, etc. Results feed into site features.
+     Users vote on sprite variants and other poll types. Results feed into site features.
      Add new poll types by creating poll files in /mnt/data/hello-world/polls/ -->
 <!DOCTYPE html>
 <html lang="en">
@@ -204,84 +204,6 @@
       image-rendering: crisp-edges;
     }
     .sprite-variant-label {
-      font-size: 18px;
-      font-weight: bold;
-      color: #4ecca3;
-      letter-spacing: 0.1em;
-    }
-    .emoji-section {
-      width: 100%;
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 12px 48px;
-    }
-    .emoji-section-title {
-      font-size: 20px;
-      letter-spacing: 0.15em;
-      color: #4ecca3;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      text-align: center;
-    }
-    .emoji-section-subtitle {
-      font-size: 12px;
-      color: #888;
-      margin-bottom: 32px;
-      letter-spacing: 0.08em;
-      text-align: center;
-    }
-    .emoji-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 40px;
-      justify-content: center;
-    }
-    .emoji-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      background: #13132a;
-      border: 1px solid #2a2a4a;
-      border-radius: 6px;
-      padding: 16px 12px 14px;
-      min-width: 280px;
-    }
-    .emoji-card-name {
-      font-size: 13px;
-      font-weight: bold;
-      color: #4ecca3;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      margin-bottom: 2px;
-    }
-    .emoji-card-desc {
-      font-size: 11px;
-      color: #888;
-      letter-spacing: 0.05em;
-      text-align: center;
-      margin-bottom: 4px;
-    }
-    .emoji-variants {
-      display: flex;
-      gap: 24px;
-      align-items: flex-end;
-    }
-    .emoji-variant {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-    }
-    .emoji-display {
-      font-size: 48px;
-      line-height: 1;
-      height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .emoji-variant-label {
       font-size: 18px;
       font-weight: bold;
       color: #4ecca3;
@@ -1171,73 +1093,6 @@
     return card;
   }
 
-  // ── Build an emoji display card for an emoji-* poll ────────────────────────
-  function buildEmojiCard(pollData) {
-    const { poll_id, title, description, options, vote_counts, winner } = pollData;
-    const variants = Object.keys(options || {}).sort();
-
-    const btnPrefix   = 'emjbtn-'   + poll_id + '-';
-    const countPrefix = 'emjcount-' + poll_id + '-';
-    POLL_UI_MAP[poll_id] = { prefix: btnPrefix, countPrefix: countPrefix, options: variants };
-
-    const card = document.createElement('div');
-    card.className = 'emoji-card';
-    card.setAttribute('data-poll-id', poll_id);
-
-    const nameEl = document.createElement('div');
-    nameEl.className = 'emoji-card-name';
-    nameEl.textContent = title || poll_id;
-    card.appendChild(nameEl);
-
-    if (description) {
-      const descEl = document.createElement('div');
-      descEl.className = 'emoji-card-desc';
-      descEl.textContent = description;
-      card.appendChild(descEl);
-    }
-
-    const variantsRow = document.createElement('div');
-    variantsRow.className = 'emoji-variants';
-
-    variants.forEach((v) => {
-      const varDiv = document.createElement('div');
-      varDiv.className = 'emoji-variant';
-
-      const emojiDisplay = document.createElement('div');
-      emojiDisplay.className = 'emoji-display';
-      emojiDisplay.textContent = options[v];
-
-      const label = document.createElement('div');
-      label.className = 'emoji-variant-label';
-      label.textContent = v;
-
-      const btn = document.createElement('button');
-      btn.id = btnPrefix + v;
-      btn.className = 'vote-btn';
-      btn.textContent = 'Vote ' + v;
-      btn.onclick = () => castVote(poll_id, v);
-
-      const countEl = document.createElement('div');
-      countEl.id = countPrefix + v;
-      countEl.className = 'vote-count';
-      countEl.textContent = '— votes';
-
-      varDiv.appendChild(emojiDisplay);
-      varDiv.appendChild(label);
-      varDiv.appendChild(btn);
-      varDiv.appendChild(countEl);
-      variantsRow.appendChild(varDiv);
-    });
-
-    card.appendChild(variantsRow);
-
-    if (vote_counts) {
-      applyPollState(poll_id, vote_counts, winner, yourVotes[poll_id] ?? null);
-    }
-
-    return card;
-  }
-
   // ── Build a canvas-rendered card for polls with bespoke pixel art ───────────
   // Uses CANVAS_RENDERERS[poll_id] to find draw/anim functions per option.
   function buildCanvasCard(pollData) {
@@ -1444,26 +1299,6 @@
         grid.className = 'sprite-grid';
         for (const poll of groupPolls) {
           grid.appendChild(buildSpriteCard(poll));
-        }
-        section.appendChild(grid);
-        container.appendChild(section);
-        applyLayoutBuckets(grid);
-
-      } else if (prefix === 'emoji') {
-        // Emoji section: grid of emoji reaction cards
-        section.className = 'emoji-section';
-        const titleEl = document.createElement('div');
-        titleEl.className = 'emoji-section-title';
-        titleEl.textContent = 'Emoji Reactions';
-        section.appendChild(titleEl);
-        const subtitleEl = document.createElement('div');
-        subtitleEl.className = 'emoji-section-subtitle';
-        subtitleEl.textContent = 'vote for which emoji BigClungus should use for each reaction type';
-        section.appendChild(subtitleEl);
-        const grid = document.createElement('div');
-        grid.className = 'emoji-grid';
-        for (const poll of groupPolls) {
-          grid.appendChild(buildEmojiCard(poll));
         }
         section.appendChild(grid);
         container.appendChild(section);
