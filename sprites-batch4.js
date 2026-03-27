@@ -540,3 +540,189 @@ function drawSprite_ronpaul_C(ctx, cx, cy) {
   ctx.fillRect(x - 2, y - 31, 4, 1);
   ctx.fillRect(x + 1, y - 32, 1, 1);
 }
+
+
+// --- DECKARD-CAIN sprites (auto-generated) ---
+
+// Variant A: Hooded elder with long robe and gnarled walking staff
+function drawSprite_deckard_cain_A(ctx, cx, cy) {
+  // Staff (left side)
+  ctx.fillStyle = '#5C3A1E';
+  ctx.fillRect(cx - 12, cy - 42, 2, 38);
+  ctx.fillStyle = '#8B6914';
+  ctx.fillRect(cx - 13, cy - 44, 4, 3);
+
+  // Robe body
+  ctx.fillStyle = '#4A3728';
+  ctx.fillRect(cx - 8, cy - 24, 16, 20);
+  ctx.fillRect(cx - 10, cy - 8, 20, 8);
+  // Robe hem detail
+  ctx.fillStyle = '#3A2A1C';
+  ctx.fillRect(cx - 10, cy - 2, 20, 2);
+
+  // Sleeves
+  ctx.fillStyle = '#4A3728';
+  ctx.fillRect(cx - 12, cy - 22, 4, 10);
+  ctx.fillRect(cx + 8, cy - 22, 4, 10);
+  // Hands
+  ctx.fillStyle = '#D4A574';
+  ctx.fillRect(cx - 12, cy - 12, 3, 3);
+  ctx.fillRect(cx + 9, cy - 12, 3, 3);
+
+  // Hood
+  ctx.fillStyle = '#3A2A1C';
+  ctx.fillRect(cx - 7, cy - 36, 14, 6);
+  ctx.fillRect(cx - 8, cy - 34, 16, 4);
+
+  // Face (under hood)
+  ctx.fillStyle = '#D4A574';
+  ctx.fillRect(cx - 4, cy - 30, 8, 6);
+  // Eyes
+  ctx.fillStyle = '#1A1A2E';
+  ctx.fillRect(cx - 3, cy - 29, 2, 1);
+  ctx.fillRect(cx + 1, cy - 29, 2, 1);
+  // White beard
+  ctx.fillStyle = '#E0D8CC';
+  ctx.fillRect(cx - 3, cy - 25, 6, 4);
+  ctx.fillRect(cx - 2, cy - 21, 4, 3);
+
+  // Belt / sash
+  ctx.fillStyle = '#8B6914';
+  ctx.fillRect(cx - 8, cy - 16, 16, 2);
+
+  // Feet
+  ctx.fillStyle = '#2A1E14';
+  ctx.fillRect(cx - 8, cy - 2, 6, 2);
+  ctx.fillRect(cx + 2, cy - 2, 6, 2);
+}
+
+// Variant B: Seated scholar with open tome, no hood — bald head and spectacles
+function drawSprite_deckard_cain_B(ctx, cx, cy) {
+  // Stool / seat
+  ctx.fillStyle = '#5C3A1E';
+  ctx.fillRect(cx - 8, cy - 10, 16, 3);
+  ctx.fillRect(cx - 9, cy - 7, 2, 7);
+  ctx.fillRect(cx + 7, cy - 7, 2, 7);
+
+  // Robe (seated, shorter)
+  ctx.fillStyle = '#2E4A62';
+  ctx.fillRect(cx - 8, cy - 24, 16, 14);
+  ctx.fillRect(cx - 10, cy - 14, 20, 6);
+
+  // Open book (on lap)
+  ctx.fillStyle = '#F5E6C8';
+  ctx.fillRect(cx - 9, cy - 16, 8, 6);
+  ctx.fillRect(cx + 1, cy - 16, 8, 6);
+  ctx.fillStyle = '#5C3A1E';
+  ctx.fillRect(cx, cy - 16, 1, 6);
+  // Text lines
+  ctx.fillStyle = '#2A1E14';
+  ctx.fillRect(cx - 7, cy - 14, 5, 1);
+  ctx.fillRect(cx - 7, cy - 12, 4, 1);
+  ctx.fillRect(cx + 3, cy - 14, 5, 1);
+  ctx.fillRect(cx + 3, cy - 12, 4, 1);
+
+  // Shoulders
+  ctx.fillStyle = '#2E4A62';
+  ctx.fillRect(cx - 10, cy - 28, 20, 4);
+
+  // Bald head
+  ctx.fillStyle = '#D4A574';
+  ctx.fillRect(cx - 5, cy - 38, 10, 10);
+  // Top of head (bald)
+  ctx.fillStyle = '#C89A6A';
+  ctx.fillRect(cx - 4, cy - 39, 8, 2);
+  // Eyes
+  ctx.fillStyle = '#1A1A2E';
+  ctx.fillRect(cx - 3, cy - 33, 2, 1);
+  ctx.fillRect(cx + 2, cy - 33, 2, 1);
+  // Spectacles
+  ctx.fillStyle = '#A0A0B0';
+  ctx.fillRect(cx - 4, cy - 34, 3, 3);
+  ctx.fillRect(cx + 1, cy - 34, 3, 3);
+  ctx.fillRect(cx, cy - 33, 1, 1);
+  // Long white beard
+  ctx.fillStyle = '#E0D8CC';
+  ctx.fillRect(cx - 3, cy - 30, 6, 3);
+  ctx.fillRect(cx - 2, cy - 27, 4, 4);
+  ctx.fillStyle = '#D0C8BC';
+  ctx.fillRect(cx - 1, cy - 23, 2, 2);
+
+  // Sleeves / arms reaching to book
+  ctx.fillStyle = '#2E4A62';
+  ctx.fillRect(cx - 12, cy - 24, 4, 8);
+  ctx.fillRect(cx + 8, cy - 24, 4, 8);
+  // Hands on book
+  ctx.fillStyle = '#D4A574';
+  ctx.fillRect(cx - 10, cy - 16, 2, 2);
+  ctx.fillRect(cx + 8, cy - 16, 2, 2);
+}
+
+// Variant C: Prophetic stance — arms raised, glowing Horadric runes, mystical aura
+function drawSprite_deckard_cain_C(ctx, cx, cy) {
+  // Mystical glow beneath feet
+  ctx.fillStyle = 'rgba(100, 180, 255, 0.25)';
+  ctx.fillRect(cx - 14, cy - 3, 28, 3);
+  ctx.fillStyle = 'rgba(100, 180, 255, 0.15)';
+  ctx.fillRect(cx - 18, cy - 1, 36, 2);
+
+  // Floating runes (left and right)
+  ctx.fillStyle = '#64B4FF';
+  ctx.fillRect(cx - 16, cy - 30, 2, 2);
+  ctx.fillRect(cx - 17, cy - 26, 2, 2);
+  ctx.fillRect(cx + 14, cy - 32, 2, 2);
+  ctx.fillRect(cx + 15, cy - 28, 2, 2);
+  ctx.fillStyle = '#90D0FF';
+  ctx.fillRect(cx - 15, cy - 34, 1, 1);
+  ctx.fillRect(cx + 16, cy - 36, 1, 1);
+
+  // Robe body
+  ctx.fillStyle = '#5A2E4A';
+  ctx.fillRect(cx - 8, cy - 24, 16, 20);
+  ctx.fillRect(cx - 10, cy - 8, 20, 8);
+  // Gold trim
+  ctx.fillStyle = '#C8A832';
+  ctx.fillRect(cx - 1, cy - 24, 2, 20);
+  ctx.fillRect(cx - 8, cy - 16, 16, 1);
+
+  // Arms raised
+  ctx.fillStyle = '#5A2E4A';
+  ctx.fillRect(cx - 12, cy - 26, 4, 6);
+  ctx.fillRect(cx - 14, cy - 34, 4, 8);
+  ctx.fillRect(cx + 8, cy - 26, 4, 6);
+  ctx.fillRect(cx + 10, cy - 34, 4, 8);
+  // Hands raised
+  ctx.fillStyle = '#D4A574';
+  ctx.fillRect(cx - 14, cy - 36, 3, 3);
+  ctx.fillRect(cx + 11, cy - 36, 3, 3);
+
+  // Glow from hands
+  ctx.fillStyle = 'rgba(100, 180, 255, 0.4)';
+  ctx.fillRect(cx - 15, cy - 38, 5, 5);
+  ctx.fillRect(cx + 10, cy - 38, 5, 5);
+
+  // Hood (deep purple)
+  ctx.fillStyle = '#4A2040';
+  ctx.fillRect(cx - 7, cy - 36, 14, 6);
+  ctx.fillRect(cx - 8, cy - 34, 16, 4);
+
+  // Face
+  ctx.fillStyle = '#D4A574';
+  ctx.fillRect(cx - 4, cy - 30, 8, 5);
+  // Glowing eyes (prophetic)
+  ctx.fillStyle = '#64B4FF';
+  ctx.fillRect(cx - 3, cy - 29, 2, 1);
+  ctx.fillRect(cx + 1, cy - 29, 2, 1);
+  // White beard
+  ctx.fillStyle = '#E0D8CC';
+  ctx.fillRect(cx - 3, cy - 26, 6, 3);
+  ctx.fillRect(cx - 2, cy - 23, 4, 4);
+
+  // Robe hem
+  ctx.fillStyle = '#4A2040';
+  ctx.fillRect(cx - 10, cy - 2, 20, 2);
+  // Feet
+  ctx.fillStyle = '#2A1E14';
+  ctx.fillRect(cx - 7, cy - 2, 5, 2);
+  ctx.fillRect(cx + 2, cy - 2, 5, 2);
+}
