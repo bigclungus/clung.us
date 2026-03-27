@@ -495,7 +495,7 @@
     <p>Authentication required</p>
     <a id="login-link" href="/auth/github">Sign in with GitHub</a>
   </div>
-  <div id="timeline-container">
+  <div id="timeline-container" style="display:none;">
     <div class="timeline-header">
       <h1>BigClungus Timeline</h1>
       <p>Major developments since going online, March 2026</p>
@@ -1005,7 +1005,11 @@
           return r.json();
         })
         .then(function(user) {
-          if (!user) return;
+          if (!user || !user.username) {
+            document.getElementById('auth-prompt').style.display = 'block';
+            document.getElementById('timeline-container').style.display = 'none';
+            return;
+          }
           document.getElementById('auth-prompt').style.display = 'none';
           document.getElementById('timeline-container').style.display = 'flex';
 

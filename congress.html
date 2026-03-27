@@ -4872,7 +4872,11 @@
         return r.json();
       })
       .then(function(user) {
-        if (!user) return;
+        if (!user || !user.username) {
+          document.getElementById('auth-prompt').style.display = 'block';
+          document.getElementById('congress-content').style.display = 'none';
+          return;
+        }
         document.getElementById('auth-prompt').style.display = 'none';
         document.getElementById('congress-content').style.display = '';
         init();

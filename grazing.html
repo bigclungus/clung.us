@@ -416,7 +416,12 @@
       return r.json();
     })
     .then(function(user) {
-      if (user === null || user === undefined) return;
+      if (!user || !user.username) {
+        document.getElementById('auth-prompt').style.display = 'block';
+        document.getElementById('commons-content').style.display = 'none';
+        window.__commons_authed = false;
+        return;
+      }
       document.getElementById('auth-prompt').style.display = 'none';
       document.getElementById('commons-content').style.display = '';
       window.__commons_authed = true;

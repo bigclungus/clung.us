@@ -1506,7 +1506,7 @@
         return;
       }
       var user = await r.json();
-      if (!user) {
+      if (!user || !user.username) {
         document.getElementById('auth-prompt').style.display = 'block';
         document.getElementById('refinery-content').style.display = 'none';
         return;
