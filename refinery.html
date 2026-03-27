@@ -14,6 +14,7 @@
   <script src="/sprites-batch1.js"></script>
   <script src="/sprites-batch2.js"></script>
   <script src="/sprites-batch3.js"></script>
+  <script src="/sprites-batch4.js"></script>
   <style>
     body {
       margin: 0;
@@ -1180,6 +1181,81 @@
     return wrap;
   }
 
+  // ── Build an avatar card with GIF previews for avatar-* polls ───────────────
+  function buildAvatarCard(pollData) {
+    const { poll_id, title, options, vote_counts, winner } = pollData;
+    const slug = poll_id.replace(/^avatar-/, '');
+    const variants = Object.keys(options || {}).sort();
+
+    const btnPrefix   = 'avbtn-'   + poll_id + '-';
+    const countPrefix = 'avcount-' + poll_id + '-';
+    POLL_UI_MAP[poll_id] = { prefix: btnPrefix, countPrefix: countPrefix, options: variants };
+
+    const wrap = document.createElement('div');
+    wrap.className = 'vote-wrap';
+    wrap.setAttribute('data-poll-id', poll_id);
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'vote-title';
+    titleEl.textContent = title || poll_id;
+    wrap.appendChild(titleEl);
+
+    const subtitle = document.createElement('div');
+    subtitle.className = 'vote-subtitle';
+    subtitle.textContent = 'click to vote \u2014 results update live';
+    wrap.appendChild(subtitle);
+
+    const variantsRow = document.createElement('div');
+    variantsRow.className = 'variants';
+
+    variants.forEach((v) => {
+      const varDiv = document.createElement('div');
+      varDiv.className = 'variant';
+
+      const img = document.createElement('img');
+      img.src = '/static/avatars/' + slug + '_' + v.toLowerCase() + '.gif';
+      img.alt = slug + ' variant ' + v;
+      img.style.width = '128px';
+      img.style.height = '128px';
+      img.style.imageRendering = 'pixelated';
+      img.style.border = '1px solid #2a2a4a';
+
+      const label = document.createElement('div');
+      label.className = 'variant-label';
+      label.textContent = v;
+
+      const desc = document.createElement('div');
+      desc.className = 'variant-desc';
+      desc.textContent = options[v] || '';
+
+      const btn = document.createElement('button');
+      btn.id = btnPrefix + v;
+      btn.className = 'vote-btn';
+      btn.textContent = 'Vote ' + v;
+      btn.onclick = () => castVote(poll_id, v);
+
+      const countEl = document.createElement('div');
+      countEl.id = countPrefix + v;
+      countEl.className = 'vote-count';
+      countEl.textContent = '\u2014 votes';
+
+      varDiv.appendChild(img);
+      varDiv.appendChild(label);
+      varDiv.appendChild(desc);
+      varDiv.appendChild(btn);
+      varDiv.appendChild(countEl);
+      variantsRow.appendChild(varDiv);
+    });
+
+    wrap.appendChild(variantsRow);
+
+    if (vote_counts) {
+      applyPollState(poll_id, vote_counts, winner, yourVotes[poll_id] ?? null);
+    }
+
+    return wrap;
+  }
+
   // ── Build a generic text-option card for any unknown poll type ──────────────
   function buildGenericCard(pollData) {
     const { poll_id, title, description, options, vote_counts, winner } = pollData;
@@ -1304,6 +1380,16 @@
         container.appendChild(section);
         applyLayoutBuckets(grid);
 
+      } else if (prefix === 'avatar') {
+        // Avatar GIF polls — show preview images
+        section.className = 'vote-wrap-group';
+        const titleEl = document.createElement('div');
+        titleEl.className = 'sprite-section-title';
+        titleEl.textContent = 'Congress Avatars';
+        section.appendChild(titleEl);
+        for (const poll of groupPolls) {
+          section.appendChild(buildAvatarCard(poll));
+        }
       } else {
         // Canvas-rendered polls (congress, commons) or generic unknown polls
         // Each poll gets its own vote-wrap card rendered into the section
