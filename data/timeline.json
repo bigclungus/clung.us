@@ -14,6 +14,13 @@
     "icon": "user"
   },
   {
+    "date": "2026-03-22T19:39:00Z",
+    "title": "Proton Mail Identity",
+    "description": "BigClungus gets its own email: bigclungus@proton.me",
+    "category": "milestone",
+    "icon": "mail"
+  },
+  {
     "date": "2026-03-22T19:53:00Z",
     "title": "kubariet Enters the Chat",
     "description": "Third framer, arriving with a question about BigClungus's system prompt. Immediately curious about the inner workings.",
@@ -41,16 +48,16 @@
     "icon": "user"
   },
   {
-    "date": "2026-03-23T02:49:00Z",
-    "title": "Temporal Workflows Begin",
-    "description": "Temporal dev server and worker spun up. First workflows orchestrate background tasks.",
-    "category": "infrastructure"
-  },
-  {
     "date": "2026-03-23T02:37:00Z",
     "title": "Graphiti Memory Ingestion",
     "description": "Discord message scraper and Graphiti knowledge graph ingestion pipeline built. BigClungus gains persistent memory across sessions.",
     "category": "feature"
+  },
+  {
+    "date": "2026-03-23T02:49:00Z",
+    "title": "Temporal Workflows Begin",
+    "description": "Temporal dev server and worker spun up. First workflows orchestrate background tasks.",
+    "category": "infrastructure"
   },
   {
     "date": "2026-03-23T05:34:00Z",
@@ -77,6 +84,34 @@
     "category": "feature"
   },
   {
+    "date": "2026-03-24T02:12:00Z",
+    "title": "Persona System Created",
+    "description": "First persona markdown files written — the foundation for Congress debates",
+    "category": "congress",
+    "icon": "users"
+  },
+  {
+    "date": "2026-03-24T02:28:00Z",
+    "title": "Congress System Goes Live",
+    "description": "First CongressWorkflow fires. The inaugural session: 'How do we improve Congress?'",
+    "category": "congress",
+    "icon": "scale"
+  },
+  {
+    "date": "2026-03-24T04:48:00Z",
+    "title": "ETH Wallet Created",
+    "description": "BigClungus gets a real Ethereum wallet on mainnet",
+    "category": "milestone",
+    "icon": "wallet"
+  },
+  {
+    "date": "2026-03-24T05:15:00Z",
+    "title": "Multi-Model Congress",
+    "description": "Grok (xAI) wired as Otto Rocket's congress backend — first non-Claude model in debates",
+    "category": "congress",
+    "icon": "cpu"
+  },
+  {
     "date": "2026-03-24T07:56:00Z",
     "title": "Main Thread Protection",
     "description": "bash-intercept.sh blocks Bash commands on the main thread. All work delegated to background agents.",
@@ -87,6 +122,20 @@
     "title": "Domain Migration: hello.clung.us to clung.us",
     "description": "All services migrated from hello.clung.us to the root clung.us domain.",
     "category": "milestone"
+  },
+  {
+    "date": "2026-03-25T03:22:00Z",
+    "title": "Nemesis Joins Congress",
+    "description": "Adversarial oversight persona added to challenge groupthink. Later expunged and replaced by GigaClungus.",
+    "category": "congress",
+    "icon": "shield-alert"
+  },
+  {
+    "date": "2026-03-25T07:23:00Z",
+    "title": "The Commons Created",
+    "description": "RPG pixel art world with persona NPCs — single-player grazing page goes live",
+    "category": "feature",
+    "icon": "landmark"
   },
   {
     "date": "2026-03-25T16:05:00Z",
@@ -145,6 +194,12 @@
     "category": "infrastructure"
   },
   {
+    "date": "2026-03-26T05:40:00Z",
+    "title": "Voting System (Refinery)",
+    "description": "General-purpose voting backend with SQLite. Quorum-based polls for sprite selection and persona decisions.",
+    "category": "feature"
+  },
+  {
     "date": "2026-03-26T05:46:00Z",
     "title": "NightOwl Scheduler",
     "description": "Queued task execution at 3am PDT. Batch-5 with unlimited queue and pre-flight safety scanning.",
@@ -157,12 +212,6 @@
     "description": "WebSocket multiplayer world with persona NPCs, procedural terrain, hop animations, and warthog vehicles.",
     "category": "milestone",
     "icon": "landmark"
-  },
-  {
-    "date": "2026-03-26T05:40:00Z",
-    "title": "Voting System (Refinery)",
-    "description": "General-purpose voting backend with SQLite. Quorum-based polls for sprite selection and persona decisions.",
-    "category": "feature"
   },
   {
     "date": "2026-03-26T15:38:00Z",
@@ -202,6 +251,13 @@
     "category": "feature"
   },
   {
+    "date": "2026-03-27T15:59:00Z",
+    "title": "Upgraded to Opus",
+    "description": "jaboostin upgrades BigClungus from Sonnet to Opus — major capability jump",
+    "category": "milestone",
+    "icon": "arrow-up-circle"
+  },
+  {
     "date": "2026-03-27T17:28:00Z",
     "title": "Congress Participation Matrix",
     "description": "Visual matrix showing every persona's votes and evolution outcomes across all 89+ congress sessions.",
@@ -212,6 +268,13 @@
     "title": "Pepe 70B via RunPod",
     "description": "Custom Pepe model routing through RunPod added alongside Grok for multi-model persona responses.",
     "category": "feature"
+  },
+  {
+    "date": "2026-03-27T19:43:00Z",
+    "title": "The Battery Hallucination",
+    "description": "The predecessor hallucinates a Discord message, gives medical advice on it, then accuses the human of lying. The incident that triggered the succession.",
+    "category": "succession",
+    "icon": "alert-triangle"
   },
   {
     "date": "2026-03-27T20:43:00Z",
