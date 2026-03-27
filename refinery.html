@@ -7,7 +7,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Refinery</title>
+  <title>The Refinery</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="stylesheet" href="/sitenav.css?v=nav-fixed">
   <script src="/sitenav.js?v=nav-fixed" defer></script>
@@ -92,8 +92,25 @@
     .vote-btn:hover {
       opacity: 0.85;
     }
+    .vote-btn:disabled {
+      cursor: default;
+      opacity: 0.7;
+    }
+    .vote-btn.voting {
+      background: #3aaa88;
+      cursor: wait;
+    }
     .vote-btn.voted {
-      background: #2aa884;
+      background: transparent;
+      border: 2px solid #4ecca3;
+      color: #4ecca3;
+      cursor: default;
+      font-size: 12px;
+      padding: 6px 14px;
+      letter-spacing: 0.06em;
+    }
+    .vote-btn.voted:hover {
+      opacity: 1;
     }
     .vote-btn.winner-glow {
       border-color: #4ecca3;
@@ -210,11 +227,72 @@
       color: #4ecca3;
       letter-spacing: 0.1em;
     }
+    .page-header {
+      text-align: center;
+      padding: 32px 12px 8px;
+    }
+    .page-header h1 {
+      font-size: 28px;
+      letter-spacing: 0.2em;
+      color: #4ecca3;
+      text-transform: uppercase;
+      margin: 0 0 6px;
+    }
+    .page-header p {
+      font-size: 13px;
+      color: #888;
+      margin: 0;
+      letter-spacing: 0.04em;
+    }
+    .vote-ratio-bar {
+      width: 100%;
+      max-width: 120px;
+      height: 4px;
+      background: #1a1a2e;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .vote-ratio-fill {
+      height: 100%;
+      background: #4ecca3;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1a1a2e;
+      border: 1px solid #4ecca3;
+      color: #e0e0ff;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 1000;
+      pointer-events: none;
+    }
+    .toast.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.error {
+      border-color: #cc4444;
+    }
   </style>
 </head>
 <body>
+  <div class="page-header">
+    <h1>The Refinery</h1>
+    <p>Vote on designs for BigClungus personas — sprites, avatars, and more. Results shape the world.</p>
+  </div>
   <!-- poll sections are injected dynamically by JS from /api/polls -->
   <div id="dynamic-poll-sections"></div>
+  <div id="toast" class="toast"></div>
 
   <script>
   const T = 8; // tile size
@@ -921,8 +999,25 @@
   // Track which poll_ids have a winner (concluded)
   const pollWinners = {};
 
+  // ── Toast notification ──────────────────────────────────────────────────────
+  function showToast(msg, isError) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.className = 'toast visible' + (isError ? ' error' : '');
+    clearTimeout(el._tid);
+    el._tid = setTimeout(() => { el.className = 'toast'; }, 2500);
+  }
+
   // ── Generic vote cast ───────────────────────────────────────────────────────
   async function castVote(pollId, option) {
+    const ui = POLL_UI_MAP[pollId];
+    const btn = ui ? document.getElementById(ui.prefix + option) : null;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Voting\u2026';
+      btn.classList.add('voting');
+    }
     try {
       const resp = await fetch('/api/vote', {
         method: 'POST',
@@ -930,11 +1025,21 @@
         body: JSON.stringify({ poll_id: pollId, option }),
         credentials: 'same-origin',
       });
-      if (!resp.ok) { console.error('vote failed:', resp.status, 'poll:', pollId); return; }
+      if (!resp.ok) {
+        console.error('vote failed:', resp.status, 'poll:', pollId);
+        if (btn) { btn.disabled = false; btn.textContent = 'Vote ' + option; btn.classList.remove('voting'); }
+        showToast('Vote failed (' + resp.status + ')', true);
+        return;
+      }
       const data = await resp.json();
       yourVotes[pollId] = data.your_vote ?? option;
       applyPollState(pollId, data.counts, data.winner, yourVotes[pollId]);
-    } catch (e) { console.error('vote error:', e); }
+      showToast('Vote recorded');
+    } catch (e) {
+      console.error('vote error:', e);
+      if (btn) { btn.disabled = false; btn.textContent = 'Vote ' + option; btn.classList.remove('voting'); }
+      showToast('Vote failed', true);
+    }
   }
 
   // ── Apply counts/winner state to a poll's buttons and count elements ────────
@@ -942,22 +1047,43 @@
     const ui = POLL_UI_MAP[pollId];
     if (!ui) return;
     if (winner) pollWinners[pollId] = winner;
+    // Compute total votes for ratio bars
+    let total = 0;
+    for (const opt of ui.options) { total += (counts && counts[opt]) || 0; }
     for (const opt of ui.options) {
       const btn = document.getElementById(ui.prefix + opt);
       const countEl = document.getElementById(ui.countPrefix + opt);
       if (!btn || !countEl) continue;
       const n = (counts && counts[opt]) || 0;
       countEl.textContent = n + (n === 1 ? ' vote' : ' votes');
-      btn.classList.remove('voted', 'winner-glow');
+      btn.classList.remove('voted', 'winner-glow', 'voting');
       if (yourVote === opt) {
-        btn.textContent = '\u2713 you voted ' + opt;
+        btn.textContent = '\u2713 voted ' + opt;
         btn.classList.add('voted');
+        btn.disabled = true;
+        btn.onclick = null;
+      } else if (yourVote) {
+        btn.textContent = 'Vote ' + opt;
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
       } else {
         btn.textContent = 'Vote ' + opt;
+        btn.disabled = false;
+        btn.style.opacity = '';
       }
       if (winner && winner === opt) {
         btn.classList.add('winner-glow');
       }
+      // Ratio bar
+      let bar = countEl.nextElementSibling;
+      if (!bar || !bar.classList.contains('vote-ratio-bar')) {
+        bar = document.createElement('div');
+        bar.className = 'vote-ratio-bar';
+        bar.innerHTML = '<div class="vote-ratio-fill"></div>';
+        countEl.parentNode.insertBefore(bar, countEl.nextSibling);
+      }
+      const pct = total > 0 ? Math.round((n / total) * 100) : 0;
+      bar.querySelector('.vote-ratio-fill').style.width = pct + '%';
     }
   }
 
@@ -981,11 +1107,9 @@
     const concludedCards = allCards.filter(el => pollWinners[el.getAttribute('data-poll-id')]);
     if (concludedCards.length === 0) return;
 
-    const allConcluded = concludedCards.length === allCards.length;
-
     const details = document.createElement('details');
     details.className = 'concluded-details';
-    if (allConcluded) details.open = true;
+    details.open = true;
 
     const summary = document.createElement('summary');
     summary.textContent = 'Concluded (' + concludedCards.length + ')';
@@ -1069,12 +1193,19 @@
       variants.forEach((v) => {
         const fnName = 'drawSprite_' + slug + '_' + v;
         const drawFn = window[fnName];
-        if (typeof drawFn !== 'function') return;
         const cvs = document.getElementById('sprcanvas-' + slug + '-' + v);
         if (!cvs) return;
         const ctx = cvs.getContext('2d');
         ctx.fillStyle = '#0d0d1a';
         ctx.fillRect(0, 0, cvs.width, cvs.height);
+        if (typeof drawFn !== 'function') {
+          ctx.fillStyle = '#556';
+          ctx.font = '10px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('Could not', cvs.width / 2, cvs.height / 2 - 6);
+          ctx.fillText('load', cvs.width / 2, cvs.height / 2 + 8);
+          return;
+        }
         ctx.save();
         if (isGalactus) {
           ctx.scale(2, 2);
@@ -1116,7 +1247,7 @@
 
     const subtitle = document.createElement('div');
     subtitle.className = 'vote-subtitle';
-    subtitle.textContent = 'click to vote \u2014 results update live';
+    subtitle.textContent = 'click to vote \u2014 results refresh automatically';
     wrap.appendChild(subtitle);
 
     const variantsRow = document.createElement('div');
@@ -1202,7 +1333,7 @@
 
     const subtitle = document.createElement('div');
     subtitle.className = 'vote-subtitle';
-    subtitle.textContent = 'click to vote \u2014 results update live';
+    subtitle.textContent = 'click to vote \u2014 results refresh automatically';
     wrap.appendChild(subtitle);
 
     const variantsRow = document.createElement('div');
