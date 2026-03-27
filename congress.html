@@ -2250,6 +2250,7 @@
         <div class="legend-item"><span class="legend-symbol cell-evo-created" style="border:1px solid var(--panel-border);">&nbsp;</span> created</div>
         <span style="border-left:1px solid var(--panel-border);margin:0 4px;"></span>
         <div class="legend-item"><span class="legend-symbol" style="background:rgba(168,85,247,0.28);border:1px solid var(--panel-border);color:#c084fc;font-size:9px;">M</span> meme</div>
+        <div class="legend-item"><span class="legend-symbol" style="background:rgba(245,158,11,0.28);border:1px solid var(--panel-border);color:#fbbf24;font-size:9px;">T</span> trial</div>
         <div class="legend-item"><span class="legend-symbol" style="background:rgba(233,69,96,0.32);border:1px solid var(--panel-border);color:#f87171;font-size:9px;">!</span> failed</div>
       </div>
       <div id="matrixLoading" style="display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text-muted);font-size:13px;">
@@ -4350,13 +4351,15 @@
     function tooltipContent(cell, session, persona) {
       if (!cell) return '';
       var typeLabel = '';
-      var sm = (session.mode || '').toLowerCase();
+      var sf = (session.flavor || session.mode || '').toLowerCase();
       var ss = (session.status || '').toLowerCase();
-      if (sm === 'meme') typeLabel = ' <span style="color:#c084fc;">[meme]</span>';
-      else if (sm === 'trial') typeLabel = ' <span style="color:#fbbf24;">[trial]</span>';
+      if (sf === 'meme') typeLabel = ' <span style="color:#c084fc;">[meme]</span>';
+      else if (sf === 'trial') typeLabel = ' <span style="color:#fbbf24;">[trial]</span>';
       if (ss === 'failed' || ss === 'cancelled' || ss === 'stalled') typeLabel += ' <span style="color:#f87171;">[' + ss + ']</span>';
-      var displayNum = session.session_number || '';
-      var prefix = (sm === 'trial') ? 'Trial T' : 'Congress #';
+      var sidMatch = (session.session_id || '').match(/^(congress|trial|session)-(\d+)$/);
+      var isTrial = sf === 'trial';
+      var displayNum = isTrial ? (sidMatch ? parseInt(sidMatch[2], 10) : '') : (session.session_number || '');
+      var prefix = isTrial ? 'Trial T' : 'Congress #';
       var html = '<span class="tt-session">' + prefix + displayNum + typeLabel + '</span>';
       var topicStr = session.topic || '';
       html += '<span class="tt-topic">' + escHtml(topicStr.length > 120 ? topicStr.slice(0,120) + '...' : topicStr) + '</span>';
@@ -4411,9 +4414,10 @@
       function colClass(session) {
         var cls = '';
         var st = (session.status || '').toLowerCase();
+        var fl = (session.flavor || '').toLowerCase();
         if (st === 'failed' || st === 'cancelled' || st === 'stalled' || st === 'aborted') cls = 'col-failed';
-        else if ((session.mode || '').toLowerCase() === 'meme') cls = 'col-meme';
-        else if ((session.mode || '').toLowerCase() === 'trial') cls = 'col-trial';
+        else if (fl === 'meme' || (session.mode || '').toLowerCase() === 'meme') cls = 'col-meme';
+        else if (fl === 'trial' || (session.mode || '').toLowerCase() === 'trial') cls = 'col-trial';
         return cls;
       }
       for (var i = 0; i < sessions.length; i++) {
@@ -4480,14 +4484,14 @@
           row.appendChild(statTd);
         }
         for (var s = 0; s < sessions.length; s++) {
-          var cell = personaCells[sessions[s].session_number];
+          var cell = personaCells[sessions[s].session_id];
           var dataTd = document.createElement('td');
           var cc3 = colClass(sessions[s]);
           dataTd.className = 'data-cell ' + cellClass(cell) + (cc3 ? ' ' + cc3 : '');
           dataTd.textContent = cellSymbol(cell);
           if (cell) {
             dataTd.dataset.pid = persona.id;
-            dataTd.dataset.snum = sessions[s].session_number;
+            dataTd.dataset.sid = sessions[s].session_id;
           }
           row.appendChild(dataTd);
         }
@@ -4499,10 +4503,10 @@
         var td = e.target.closest('td.data-cell');
         if (!td || !td.dataset.pid) { tooltip.className = 'matrix-tooltip'; return; }
         var pid = td.dataset.pid;
-        var snum = parseInt(td.dataset.snum);
+        var sidKey = td.dataset.sid;
         var persona = personas.find(function(pp) { return pp.id === pid; });
-        var session = sessions.find(function(ss) { return ss.session_number === snum; });
-        var cell = cells[pid] ? cells[pid][snum] : null;
+        var session = sessions.find(function(ss) { return ss.session_id === sidKey; });
+        var cell = cells[pid] ? cells[pid][sidKey] : null;
         if (!cell || !session || !persona) { tooltip.className = 'matrix-tooltip'; return; }
         tooltip.innerHTML = tooltipContent(cell, session, persona);
         tooltip.className = 'matrix-tooltip visible';
