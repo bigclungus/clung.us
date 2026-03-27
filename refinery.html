@@ -1387,9 +1387,14 @@
         titleEl.className = 'sprite-section-title';
         titleEl.textContent = 'Congress Avatars';
         section.appendChild(titleEl);
+        const subtitleEl = document.createElement('div');
+        subtitleEl.className = 'sprite-section-subtitle';
+        subtitleEl.textContent = 'vote for your favourite congress avatar';
+        section.appendChild(subtitleEl);
         for (const poll of groupPolls) {
           section.appendChild(buildAvatarCard(poll));
         }
+        container.appendChild(section);
       } else {
         // Canvas-rendered polls (congress, commons) or generic unknown polls
         // Each poll gets its own vote-wrap card rendered into the section
