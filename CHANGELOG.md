@@ -155,6 +155,14 @@
 
 - matrix UX — stronger header border, zebra rows, vote+evolution both visible
 
+- replace generated avatar GIFs with emoji placeholders on black
+
+- merge duplicate concluded sections in refinery
+
+- refinery UX improvements — context, vote feedback, error handling, visual polish
+
+- use American English spelling across HTML files
+
 
 ### Changes
 - add /tasks endpoint and tasks.html dashboard
@@ -449,6 +457,14 @@
 
 - standardize congress session schema across all 89 sessions
 
+- extract normalizeRosterEntry helper, fix var→const inconsistency
+
+- Add missing persona avatars and sprites with Refinery polls
+
+- Fix avatar polls not showing on Refinery page
+
+- extract resetVoteBtn helper to deduplicate error-recovery code in castVote
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
@@ -604,6 +620,8 @@
 - integrate participation matrix as third tab in congress page
 
 - color matrix columns by congress type and failed status
+
+- add timeline page at clung.us/timeline
 
 
 ### Refactoring

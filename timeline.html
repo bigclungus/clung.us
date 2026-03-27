@@ -265,10 +265,67 @@
     }
 
     @media (max-width: 768px) {
-      .timeline { padding: 180px 40px; }
-      .timeline-event { width: 160px; }
-      .event-card { width: 160px; }
-      .scroll-wrapper { padding: 0 20px 30px; }
+      .scroll-hint { display: none; }
+
+      .scroll-wrapper {
+        overflow-x: visible;
+        overflow-y: auto;
+        padding: 0 20px 40px;
+      }
+
+      .timeline {
+        flex-direction: column;
+        align-items: flex-start;
+        min-width: unset;
+        padding: 20px 0 20px 40px;
+      }
+
+      .timeline-line {
+        top: 0;
+        bottom: 0;
+        left: 40px;
+        right: auto;
+        width: 3px;
+        height: auto;
+        transform: none;
+      }
+
+      .timeline-event {
+        width: 100%;
+        margin: 16px 0;
+        padding-left: 30px;
+      }
+
+      .event-dot {
+        left: -30px;
+        top: 8px;
+        transform: translate(-50%, 0);
+      }
+      .timeline-event:hover .event-dot {
+        transform: translate(-50%, 0) scale(1.4);
+      }
+
+      .event-stem {
+        display: none;
+      }
+
+      .event-card {
+        position: relative;
+        left: auto;
+        top: auto;
+        bottom: auto;
+        transform: none;
+        width: 100%;
+      }
+      .event-above .event-card,
+      .event-below .event-card {
+        top: auto;
+        bottom: auto;
+      }
+
+      .event-desc {
+        max-height: none;
+      }
     }
   </style>
 </head>
