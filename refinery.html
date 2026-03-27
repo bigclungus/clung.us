@@ -1378,7 +1378,6 @@
         }
         section.appendChild(grid);
         container.appendChild(section);
-        applyLayoutBuckets(grid);
 
       } else if (prefix === 'avatar') {
         // Avatar GIF polls — show preview images
@@ -1406,9 +1405,11 @@
           section.appendChild(card);
         }
         container.appendChild(section);
-        applyLayoutBuckets(section);
       }
     }
+
+    // Single concluded bucket for all groups
+    applyLayoutBuckets(container);
 
     // Start periodic refresh
     setInterval(refreshAllPolls, 5000);
