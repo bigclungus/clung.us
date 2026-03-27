@@ -153,6 +153,8 @@
 
 - warthog sprite flip direction inverted (fixes #77)
 
+- matrix UX — stronger header border, zebra rows, vote+evolution both visible
+
 
 ### Changes
 - add /tasks endpoint and tasks.html dashboard
@@ -443,6 +445,10 @@
 
 - Add congress participation matrix page
 
+- remove dead congress-matrix.html (matrix is now a tab in congress.html)
+
+- standardize congress session schema across all 89 sessions
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
@@ -596,6 +602,8 @@
 - update nav commons link to /commons-v2/
 
 - integrate participation matrix as third tab in congress page
+
+- color matrix columns by congress type and failed status
 
 
 ### Refactoring
