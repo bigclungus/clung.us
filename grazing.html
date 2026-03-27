@@ -2350,14 +2350,14 @@ var warthog = {
 };
 var inVehicle = false;
 var localSeatIndex = -1;
-var WARTHOG_SPEED = 4;
+var WARTHOG_SPEED = 18; // ~10x player foot speed (PLAYER_SPEED=1.8)
 var WARTHOG_W = 60;
 var WARTHOG_H = 30;
 var WARTHOG_BOARD_DIST = 60; // pixels — how close you must be to board/see hint
 
 function drawWarthog(wx, wy, facing, seats) {
   ctx.save();
-  if (facing === 'left') {
+  if (facing === 'right') {
     ctx.translate(wx + WARTHOG_W, wy);
     ctx.scale(-1, 1);
   } else {
@@ -2687,6 +2687,8 @@ function updateLocalPlayer() {
 }
 
 function drawLocalPlayer() {
+  // Hide player avatar while mounted in vehicle
+  if (inVehicle) return;
   var cx = Math.round(localPlayer.px);
   // Hop arc: offset Y upward based on hopFrame (12→0)
   var hopOffset = 0;
