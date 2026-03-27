@@ -9,6 +9,7 @@
     { href: 'https://labs.clung.us', label: 'labs', external: true },
     { href: 'https://clung.us/commons-v2/', label: 'commons', path: '/commons-v2/' },
     { href: 'https://clung.us/refinery', label: 'voting', path: '/refinery' },
+    { href: 'https://clung.us/timeline', label: 'timeline', path: '/timeline' },
     { href: 'https://clung.us/wallet', label: 'wallet', path: '/wallet' },
     { href: 'https://github.com/bigclungus', label: 'github', external: true },
   ];

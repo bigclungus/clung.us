@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>timeline — clung.us</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/sitenav.css?v=nav-fixed">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <script src="/sitenav.js?v=nav-fixed" defer></script>
+  <style>
+    :root {
+      --bg: #0e0e1a;
+      --text: #e0e0e0;
+      --text-muted: #888;
+      --accent: #4ecca3;
+      --line-color: #333;
+      --card-bg: #1a1a2e;
+      --card-border: #2a2a45;
+      --cat-milestone: #f59e0b;
+      --cat-feature: #4ecca3;
+      --cat-infrastructure: #6366f1;
+      --cat-congress: #ec4899;
+    }
+    [data-theme="light"] {
+      --bg: #f5f0e8;
+      --text: #2a2a2a;
+      --text-muted: #666;
+      --accent: #2aa198;
+      --line-color: #c9b8a0;
+      --card-bg: #fff8ea;
+      --card-border: #d0c9b0;
+      --cat-milestone: #d97706;
+      --cat-feature: #2aa198;
+      --cat-infrastructure: #4f46e5;
+      --cat-congress: #db2777;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Raleway', sans-serif;
+      min-height: 100vh;
+    }
+    #auth-prompt {
+      text-align: center;
+      padding: 120px 20px;
+    }
+    #auth-prompt h2 {
+      font-size: 1.4rem;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    #auth-prompt p {
+      color: var(--text-muted);
+      margin-bottom: 28px;
+      font-size: 0.9rem;
+    }
+    #auth-prompt a {
+      display: inline-block;
+      background: #24292e;
+      color: #fff;
+      padding: 12px 28px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 1rem;
+      font-weight: 500;
+      border: 1px solid rgba(255,255,255,0.12);
+      transition: background 0.15s ease;
+    }
+    #auth-prompt a:hover { background: #2f363d; }
+
+    #timeline-container {
+      display: none;
+      padding: 30px 0 0;
+    }
+
+    .timeline-header {
+      text-align: center;
+      padding: 20px 40px 10px;
+    }
+    .timeline-header h1 {
+      font-size: 1.6rem;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .timeline-header p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      padding: 10px 20px 20px;
+      flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      transition: opacity 0.2s;
+    }
+    .legend-item.disabled {
+      opacity: 0.35;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .scroll-wrapper {
+      overflow-x: auto;
+      overflow-y: visible;
+      padding: 0 60px 40px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .scroll-wrapper::-webkit-scrollbar {
+      height: 8px;
+    }
+    .scroll-wrapper::-webkit-scrollbar-track {
+      background: var(--bg);
+    }
+    .scroll-wrapper::-webkit-scrollbar-thumb {
+      background: var(--line-color);
+      border-radius: 4px;
+    }
+
+    .timeline {
+      position: relative;
+      display: flex;
+      align-items: center;
+      min-width: max-content;
+      padding: 220px 80px;
+    }
+
+    .timeline-line {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--line-color);
+      transform: translateY(-50%);
+    }
+
+    .timeline-event {
+      position: relative;
+      flex-shrink: 0;
+      width: 200px;
+      margin: 0 10px;
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    .event-dot {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid var(--bg);
+      z-index: 2;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .timeline-event:hover .event-dot {
+      transform: translate(-50%, -50%) scale(1.4);
+      box-shadow: 0 0 12px currentColor;
+    }
+
+    .event-stem {
+      position: absolute;
+      left: 50%;
+      width: 2px;
+      background: var(--line-color);
+      transform: translateX(-50%);
+    }
+    .event-above .event-stem {
+      bottom: 50%;
+      height: 60px;
+    }
+    .event-below .event-stem {
+      top: 50%;
+      height: 60px;
+    }
+
+    .event-card {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 12px;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+    .event-above .event-card {
+      bottom: calc(50% + 66px);
+    }
+    .event-below .event-card {
+      top: calc(50% + 66px);
+    }
+    .timeline-event:hover .event-card {
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      z-index: 10;
+    }
+
+    .event-date {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      letter-spacing: 0.03em;
+    }
+    .event-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+      line-height: 1.25;
+    }
+    .event-desc {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .timeline-event:hover .event-desc {
+      max-height: 120px;
+    }
+
+    .event-category {
+      display: inline-block;
+      font-size: 0.6rem;
+      padding: 1px 6px;
+      border-radius: 3px;
+      margin-top: 6px;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .scroll-hint {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      padding-bottom: 10px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    @media (max-width: 768px) {
+      .timeline { padding: 180px 40px; }
+      .timeline-event { width: 160px; }
+      .event-card { width: 160px; }
+      .scroll-wrapper { padding: 0 20px 30px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="auth-prompt" style="display:none;">
+    <h2>Sign in to view the timeline</h2>
+    <p>Authentication required</p>
+    <a id="login-link" href="/auth/github">Sign in with GitHub</a>
+  </div>
+  <div id="timeline-container">
+    <div class="timeline-header">
+      <h1>BigClungus Timeline</h1>
+      <p>Major developments since going online, March 2026</p>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="scroll-hint">scroll horizontally &rarr;</div>
+    <div class="scroll-wrapper">
+      <div class="timeline" id="timeline">
+        <div class="timeline-line"></div>
+      </div>
+    </div>
+  </div>
+  <script>
+    var CATEGORIES = {
+      milestone:      { label: 'Milestone',      color: 'var(--cat-milestone)' },
+      feature:        { label: 'Feature',         color: 'var(--cat-feature)' },
+      infrastructure: { label: 'Infrastructure',  color: 'var(--cat-infrastructure)' },
+      'congress-system': { label: 'Congress',     color: 'var(--cat-congress)' }
+    };
+
+    var hiddenCategories = {};
+
+    function formatDate(iso) {
+      var d = new Date(iso);
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      var h = d.getHours();
+      var ampm = h >= 12 ? 'PM' : 'AM';
+      var hour = h % 12 || 12;
+      var min = String(d.getMinutes()).padStart(2, '0');
+      return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + '  ' + hour + ':' + min + ' ' + ampm;
+    }
+
+    function renderTimeline(events) {
+      var timeline = document.getElementById('timeline');
+      // Clear old events but keep the line
+      var existing = timeline.querySelectorAll('.timeline-event');
+      for (var i = 0; i < existing.length; i++) {
+        existing[i].parentNode.removeChild(existing[i]);
+      }
+
+      var sorted = events.slice().sort(function(a, b) {
+        return new Date(a.date) - new Date(b.date);
+      });
+
+      var visible = sorted.filter(function(ev) {
+        return !hiddenCategories[ev.category];
+      });
+
+      visible.forEach(function(ev, idx) {
+        var cat = CATEGORIES[ev.category] || { label: ev.category, color: '#888' };
+        var above = idx % 2 === 0;
+
+        var wrap = document.createElement('div');
+        wrap.className = 'timeline-event ' + (above ? 'event-above' : 'event-below');
+
+        var dot = document.createElement('div');
+        dot.className = 'event-dot';
+        dot.style.backgroundColor = cat.color;
+        dot.style.color = cat.color;
+
+        var stem = document.createElement('div');
+        stem.className = 'event-stem';
+
+        var card = document.createElement('div');
+        card.className = 'event-card';
+        card.style.borderTopColor = cat.color;
+
+        var dateEl = document.createElement('div');
+        dateEl.className = 'event-date';
+        dateEl.textContent = formatDate(ev.date);
+
+        var titleEl = document.createElement('div');
+        titleEl.className = 'event-title';
+        titleEl.textContent = ev.title;
+        titleEl.style.color = cat.color;
+
+        var descEl = document.createElement('div');
+        descEl.className = 'event-desc';
+        descEl.textContent = ev.description;
+
+        var catEl = document.createElement('span');
+        catEl.className = 'event-category';
+        catEl.textContent = cat.label;
+        catEl.style.background = cat.color;
+        catEl.style.color = '#000';
+
+        card.appendChild(dateEl);
+        card.appendChild(titleEl);
+        card.appendChild(descEl);
+        card.appendChild(catEl);
+        wrap.appendChild(stem);
+        wrap.appendChild(dot);
+        wrap.appendChild(card);
+        timeline.appendChild(wrap);
+      });
+    }
+
+    function buildLegend() {
+      var legend = document.getElementById('legend');
+      legend.innerHTML = '';
+      Object.keys(CATEGORIES).forEach(function(key) {
+        var cat = CATEGORIES[key];
+        var item = document.createElement('div');
+        item.className = 'legend-item' + (hiddenCategories[key] ? ' disabled' : '');
+
+        var dot = document.createElement('span');
+        dot.className = 'legend-dot';
+        dot.style.background = cat.color;
+
+        var label = document.createElement('span');
+        label.textContent = cat.label;
+
+        item.appendChild(dot);
+        item.appendChild(label);
+
+        item.addEventListener('click', function() {
+          hiddenCategories[key] = !hiddenCategories[key];
+          item.classList.toggle('disabled');
+          renderTimeline(window._timelineEvents || []);
+        });
+
+        legend.appendChild(item);
+      });
+    }
+
+    function init() {
+      var loginUrl = '/auth/github?next=' + encodeURIComponent(window.location.pathname);
+      document.getElementById('login-link').href = loginUrl;
+
+      fetch('/api/me')
+        .then(function(r) {
+          if (r.status === 401 || r.status === 403) {
+            document.getElementById('auth-prompt').style.display = 'block';
+            document.getElementById('timeline-container').style.display = 'none';
+            return null;
+          }
+          return r.json();
+        })
+        .then(function(user) {
+          if (!user) return;
+          document.getElementById('auth-prompt').style.display = 'none';
+          document.getElementById('timeline-container').style.display = 'block';
+
+          return fetch('/data/timeline.json').then(function(r) { return r.json(); });
+        })
+        .then(function(events) {
+          if (!events) return;
+          window._timelineEvents = events;
+          buildLegend();
+          renderTimeline(events);
+        })
+        .catch(function(err) {
+          console.error('Timeline load error:', err);
+        });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>
