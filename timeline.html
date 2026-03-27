@@ -345,6 +345,50 @@
       background: rgba(0,0,0,0.06);
     }
 
+    .hour-tick {
+      position: absolute;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .hour-tick-line {
+      position: absolute;
+      background: var(--text-muted);
+      opacity: 0.15;
+    }
+    /* Desktop: vertical ticks crossing the horizontal timeline */
+    .hour-tick.desktop .hour-tick-line {
+      width: 1px;
+      height: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    /* Mobile: horizontal ticks crossing the vertical timeline */
+    .hour-tick.mobile .hour-tick-line {
+      height: 1px;
+      width: 18px;
+      left: 31px; /* centered on the 40px-left timeline line */
+      transform: translateX(0);
+    }
+    .hour-tick-label {
+      position: absolute;
+      font-size: 0.5rem;
+      color: var(--text-muted);
+      opacity: 0.25;
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+      font-family: 'Raleway', sans-serif;
+    }
+    .hour-tick.desktop .hour-tick-label {
+      top: calc(50% + 14px);
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .hour-tick.mobile .hour-tick-label {
+      left: 56px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
     .scroll-hint {
       text-align: center;
       color: var(--text-muted);
@@ -573,7 +617,7 @@
     function renderTimeline(events) {
       var timeline = document.getElementById('timeline');
       // Clear old events, gap markers, day labels, and zebra stripes but keep the line
-      var existing = timeline.querySelectorAll('.timeline-event, .time-gap, .day-label, .zebra-stripe');
+      var existing = timeline.querySelectorAll('.timeline-event, .time-gap, .day-label, .zebra-stripe, .hour-tick');
       for (var i = 0; i < existing.length; i++) {
         existing[i].parentNode.removeChild(existing[i]);
       }
@@ -734,9 +778,10 @@
         timeline.appendChild(wrap);
       });
 
-      // Apply zebra stripes after layout (using requestAnimationFrame for correct positions)
+      // Apply zebra stripes and hour ticks after layout (using requestAnimationFrame for correct positions)
       requestAnimationFrame(function() {
         applyZebraStripes(timeline, isMobile);
+        renderHourTicks(timeline, visible, isMobile);
       });
 
       // Activate Lucide icons
@@ -785,6 +830,94 @@
         }
 
         timeline.appendChild(stripe);
+      }
+    }
+
+    function renderHourTicks(timeline, visible, isMobile) {
+      // Remove old ticks
+      var old = timeline.querySelectorAll('.hour-tick');
+      for (var i = 0; i < old.length; i++) old[i].parentNode.removeChild(old[i]);
+
+      if (visible.length < 2) return;
+
+      // Build a map of event timestamps to their pixel positions on the timeline axis
+      var eventEls = timeline.querySelectorAll('.timeline-event');
+      if (eventEls.length !== visible.length) return;
+
+      var points = []; // { time: ms, pos: px }
+      for (var i = 0; i < visible.length; i++) {
+        var el = eventEls[i];
+        var t = new Date(visible[i].date).getTime();
+        var pos = isMobile
+          ? el.offsetTop + (el.offsetHeight / 2)
+          : el.offsetLeft + (el.offsetWidth / 2);
+        points.push({ time: t, pos: pos });
+      }
+
+      // Determine time range
+      var tMin = points[0].time;
+      var tMax = points[points.length - 1].time;
+
+      // Find first hour boundary >= tMin
+      var firstHour = new Date(tMin);
+      firstHour.setMinutes(0, 0, 0);
+      if (firstHour.getTime() < tMin) {
+        firstHour = new Date(firstHour.getTime() + 3600000);
+      }
+
+      // Interpolate position for a given timestamp
+      function interpolatePos(ts) {
+        if (ts <= points[0].time) return points[0].pos;
+        if (ts >= points[points.length - 1].time) return points[points.length - 1].pos;
+        for (var j = 1; j < points.length; j++) {
+          if (ts <= points[j].time) {
+            var frac = (ts - points[j - 1].time) / (points[j].time - points[j - 1].time);
+            return points[j - 1].pos + frac * (points[j].pos - points[j - 1].pos);
+          }
+        }
+        return points[points.length - 1].pos;
+      }
+
+      // Decide which hours get labels (every 2 or 3 hours)
+      var totalHours = (tMax - tMin) / 3600000;
+      var labelInterval = totalHours > 48 ? 6 : totalHours > 24 ? 3 : 2;
+
+      // Render ticks
+      var hTime = firstHour.getTime();
+      while (hTime <= tMax) {
+        var pos = interpolatePos(hTime);
+        var hDate = new Date(hTime);
+        var hour = hDate.getHours();
+
+        var tick = document.createElement('div');
+        tick.className = 'hour-tick ' + (isMobile ? 'mobile' : 'desktop');
+
+        if (isMobile) {
+          tick.style.top = pos + 'px';
+          tick.style.left = '0';
+        } else {
+          tick.style.left = pos + 'px';
+          tick.style.top = '0';
+          tick.style.bottom = '0';
+        }
+
+        var line = document.createElement('div');
+        line.className = 'hour-tick-line';
+        tick.appendChild(line);
+
+        // Add label at intervals
+        if (hour % labelInterval === 0) {
+          var label = document.createElement('div');
+          label.className = 'hour-tick-label';
+          var displayHour = hour === 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+          var ampm = hour < 12 ? 'AM' : 'PM';
+          if (hour === 0) ampm = 'AM';
+          label.textContent = displayHour + ' ' + ampm;
+          tick.appendChild(label);
+        }
+
+        timeline.appendChild(tick);
+        hTime += 3600000;
       }
     }
 
