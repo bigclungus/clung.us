@@ -1362,6 +1362,155 @@
     .page-tab:hover { color: var(--text); }
     .page-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
+    /* ── Matrix tab content ── */
+    #matrixTab {
+      display: none;
+      flex-direction: column;
+      width: 100%;
+      padding: 12px 0 40px;
+      box-sizing: border-box;
+    }
+    #matrixTab.visible { display: flex; }
+    @keyframes mtxspin { to { transform: rotate(360deg); } }
+
+    .matrix-legend {
+      display: flex;
+      gap: 16px;
+      padding: 10px 16px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--panel-border);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .matrix-legend .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .matrix-legend .legend-symbol {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      font-size: 12px;
+      border-radius: 3px;
+    }
+
+    .matrix-wrap {
+      overflow: auto;
+      max-height: calc(100vh - 160px);
+      position: relative;
+    }
+    table.matrix {
+      border-collapse: separate;
+      border-spacing: 0;
+      white-space: nowrap;
+    }
+    table.matrix th,
+    table.matrix td {
+      border: 1px solid var(--panel-border);
+      text-align: center;
+      vertical-align: middle;
+    }
+    table.matrix th.persona-header,
+    table.matrix td.persona-cell {
+      position: sticky;
+      left: 0;
+      z-index: 3;
+      background: var(--bg);
+      text-align: left;
+      padding: 0 10px;
+      min-width: 180px;
+      max-width: 180px;
+      font-size: 11px;
+    }
+    table.matrix th.stats-header,
+    table.matrix td.stats-cell {
+      position: sticky;
+      z-index: 3;
+      background: var(--bg);
+      padding: 0 6px;
+      min-width: 40px;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    table.matrix td.stats-cell {
+      font-variant-numeric: tabular-nums;
+    }
+    table.matrix thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--panel-bg);
+      padding: 4px 2px;
+      font-weight: 700;
+      font-size: 10px;
+    }
+    table.matrix thead th.persona-header,
+    table.matrix thead th.stats-header {
+      z-index: 4;
+    }
+    table.matrix td.data-cell {
+      --cell-size: 28px;
+      width: var(--cell-size);
+      min-width: var(--cell-size);
+      max-width: var(--cell-size);
+      height: var(--cell-size);
+      padding: 0;
+      cursor: default;
+      position: relative;
+      font-size: 14px;
+      line-height: var(--cell-size);
+    }
+    table.matrix td.data-cell:hover {
+      outline: 2px solid var(--teal);
+      outline-offset: -2px;
+    }
+    .cell-participated { color: #666; }
+    .cell-agree { color: var(--teal); }
+    .cell-disagree { color: #e94560; }
+    .cell-evolved { color: #f59e0b; }
+    .cell-fired { color: #e94560; font-weight: 700; }
+    .cell-created { color: #60a5fa; }
+
+    table.matrix thead th a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    table.matrix thead th a:hover {
+      color: var(--teal);
+    }
+    table.matrix tr.summary-row td {
+      background: var(--panel-bg);
+      font-size: 9px;
+      color: var(--text-muted);
+      font-weight: 700;
+      height: 22px;
+    }
+
+    .matrix-tooltip {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      background: #111;
+      border: 1px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      max-width: 340px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text);
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .matrix-tooltip.visible { display: block; }
+    .matrix-tooltip .tt-session { color: var(--teal); font-weight: 700; }
+    .matrix-tooltip .tt-topic { color: var(--text-muted); display: block; margin: 2px 0; }
+    .matrix-tooltip .tt-vote { display: block; }
+    .matrix-tooltip .tt-evo { display: block; margin-top: 4px; }
+    .matrix-tooltip .tt-detail { color: var(--text-muted); display: block; font-size: 10px; margin-top: 2px; }
+
     /* ── Personas tab content (fullscreen center col overlay) ── */
     #personasTab {
       display: none;
@@ -1744,6 +1893,7 @@
     <div class="page-tab-bar">
       <button class="page-tab active" id="tabSessions" onclick="switchTab('sessions')">Sessions</button>
       <button class="page-tab" id="tabPersonas" onclick="switchTab('personas')">Personas</button>
+      <button class="page-tab" id="tabMatrix" onclick="switchTab('matrix')">Matrix</button>
     </div>
 
     <!-- Session view wrapper -->
@@ -1823,6 +1973,25 @@
       <div id="personasTableWrap">
         <div style="font-size:0.72rem;color:var(--text-muted);opacity:0.6;">Loading personas…</div>
       </div>
+    </div>
+
+    <!-- Matrix tab -->
+    <div id="matrixTab">
+      <div class="matrix-legend">
+        <div class="legend-item"><span class="legend-symbol cell-participated">&bull;</span> participated</div>
+        <div class="legend-item"><span class="legend-symbol cell-agree">&uarr;</span> voted agree</div>
+        <div class="legend-item"><span class="legend-symbol cell-disagree">&darr;</span> voted disagree</div>
+        <div class="legend-item"><span class="legend-symbol cell-evolved">&starf;</span> evolved</div>
+        <div class="legend-item"><span class="legend-symbol cell-fired">&times;</span> fired</div>
+        <div class="legend-item"><span class="legend-symbol cell-created">+</span> created</div>
+      </div>
+      <div id="matrixLoading" style="display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text-muted);font-size:13px;">
+        <span style="display:inline-block;width:16px;height:16px;border:2px solid var(--card-border);border-top-color:var(--teal);border-radius:50%;animation:mtxspin 0.8s linear infinite;margin-right:10px;"></span> Loading matrix data...
+      </div>
+      <div class="matrix-wrap" id="matrixWrap" style="display:none">
+        <table class="matrix" id="matrixTable"></table>
+      </div>
+      <div class="matrix-tooltip" id="matrixTooltip"></div>
     </div>
 
   </div>
@@ -3520,22 +3689,215 @@
   window.switchTab = function(tab) {
     const sessionsView = document.getElementById('sessionsView');
     const personasTab = document.getElementById('personasTab');
+    const matrixTab = document.getElementById('matrixTab');
     const tabSessions = document.getElementById('tabSessions');
     const tabPersonas = document.getElementById('tabPersonas');
+    const tabMatrix = document.getElementById('tabMatrix');
+
+    // Hide all
+    sessionsView.style.display = 'none';
+    personasTab.classList.remove('visible');
+    matrixTab.classList.remove('visible');
+    tabSessions.classList.remove('active');
+    tabPersonas.classList.remove('active');
+    tabMatrix.classList.remove('active');
 
     if (tab === 'personas') {
-      sessionsView.style.display = 'none';
       personasTab.classList.add('visible');
-      tabSessions.classList.remove('active');
       tabPersonas.classList.add('active');
       loadPersonasTable();
+    } else if (tab === 'matrix') {
+      matrixTab.classList.add('visible');
+      tabMatrix.classList.add('active');
+      loadMatrixTab();
     } else {
       sessionsView.style.display = 'contents';
-      personasTab.classList.remove('visible');
       tabSessions.classList.add('active');
-      tabPersonas.classList.remove('active');
     }
   };
+
+  // ── Matrix tab logic ───────────────────────────────────────────────────────
+  let _matrixLoaded = false;
+
+  function loadMatrixTab() {
+    if (_matrixLoaded) return;
+    _matrixLoaded = true;
+    var tooltip = document.getElementById('matrixTooltip');
+
+    function cellSymbol(cell) {
+      if (!cell) return '';
+      if (cell.evolution === 'fired') return '\u00d7';
+      if (cell.evolution === 'created') return '+';
+      if (cell.evolution === 'evolved') return '\u2605';
+      if (cell.vote === 'agree') return '\u2191';
+      if (cell.vote === 'disagree') return '\u2193';
+      if (cell.participated) return '\u2022';
+      return '';
+    }
+    function cellClass(cell) {
+      if (!cell) return '';
+      if (cell.evolution === 'fired') return 'cell-fired';
+      if (cell.evolution === 'created') return 'cell-created';
+      if (cell.evolution === 'evolved') return 'cell-evolved';
+      if (cell.vote === 'agree') return 'cell-agree';
+      if (cell.vote === 'disagree') return 'cell-disagree';
+      if (cell.participated) return 'cell-participated';
+      return '';
+    }
+    function escHtml(s) {
+      var d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+    function tooltipContent(cell, session, persona) {
+      if (!cell) return '';
+      var html = '<span class="tt-session">Congress #' + session.session_number + '</span>';
+      html += '<span class="tt-topic">' + escHtml(session.topic.length > 120 ? session.topic.slice(0,120) + '...' : session.topic) + '</span>';
+      html += '<span class="tt-vote"><b>' + escHtml(persona.display_name) + '</b>';
+      var parts = [];
+      if (cell.participated) parts.push('participated');
+      if (cell.vote) parts.push('voted ' + cell.vote);
+      if (cell.evolution && cell.evolution !== 'retained') parts.push(cell.evolution);
+      if (cell.evolution === 'retained') parts.push('reviewed, retained');
+      html += ' &mdash; ' + parts.join(', ') + '</span>';
+      if (cell.evolutionDetail) {
+        html += '<span class="tt-detail">' + escHtml(cell.evolutionDetail) + '</span>';
+      }
+      return html;
+    }
+
+    fetch('/api/congress/matrix')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        document.getElementById('matrixLoading').style.display = 'none';
+        document.getElementById('matrixWrap').style.display = 'block';
+        buildMatrix(data);
+      })
+      .catch(function(err) {
+        document.getElementById('matrixLoading').innerHTML = 'Failed to load matrix data: ' + err.message;
+      });
+
+    function buildMatrix(data) {
+      var sessions = data.sessions;
+      var personas = data.personas;
+      var cells = data.cells;
+      var table = document.getElementById('matrixTable');
+      var statsLeftBase = 180;
+
+      var thead = document.createElement('thead');
+      var headerRow = document.createElement('tr');
+      var thPersona = document.createElement('th');
+      thPersona.className = 'persona-header';
+      thPersona.textContent = 'persona';
+      headerRow.appendChild(thPersona);
+
+      var statLabels = ['#', 'E', 'F'];
+      var statTitles = ['total sessions', 'times evolved', 'times fired'];
+      for (var si = 0; si < statLabels.length; si++) {
+        var thStat = document.createElement('th');
+        thStat.className = 'stats-header';
+        thStat.textContent = statLabels[si];
+        thStat.title = statTitles[si];
+        thStat.style.left = (statsLeftBase + si * 40) + 'px';
+        headerRow.appendChild(thStat);
+      }
+      for (var i = 0; i < sessions.length; i++) {
+        var th = document.createElement('th');
+        var a = document.createElement('a');
+        a.href = '/congress?session=' + sessions[i].session_id;
+        a.textContent = sessions[i].session_number;
+        a.title = sessions[i].topic.length > 80 ? sessions[i].topic.slice(0,80) + '...' : sessions[i].topic;
+        th.appendChild(a);
+        headerRow.appendChild(th);
+      }
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      var tbody = document.createElement('tbody');
+
+      var summaryRow = document.createElement('tr');
+      summaryRow.className = 'summary-row';
+      var summTd = document.createElement('td');
+      summTd.className = 'persona-cell';
+      summTd.textContent = 'participants';
+      summTd.style.fontStyle = 'italic';
+      summTd.style.fontSize = '10px';
+      summaryRow.appendChild(summTd);
+      for (var si2 = 0; si2 < 3; si2++) {
+        var sTd = document.createElement('td');
+        sTd.className = 'stats-cell';
+        sTd.style.left = (statsLeftBase + si2 * 40) + 'px';
+        summaryRow.appendChild(sTd);
+      }
+      for (var j = 0; j < sessions.length; j++) {
+        var td = document.createElement('td');
+        td.className = 'data-cell';
+        td.textContent = sessions[j].participant_count;
+        td.style.fontSize = '9px';
+        td.style.color = 'var(--text-muted)';
+        summaryRow.appendChild(td);
+      }
+      tbody.appendChild(summaryRow);
+
+      for (var p = 0; p < personas.length; p++) {
+        var persona = personas[p];
+        var personaCells = cells[persona.id] || {};
+        var row = document.createElement('tr');
+        var nameTd = document.createElement('td');
+        nameTd.className = 'persona-cell';
+        nameTd.textContent = persona.display_name;
+        nameTd.title = persona.display_name;
+        row.appendChild(nameTd);
+        var statsVals = [persona.total_sessions, persona.times_evolved, persona.times_fired];
+        for (var si3 = 0; si3 < statsVals.length; si3++) {
+          var statTd = document.createElement('td');
+          statTd.className = 'stats-cell';
+          statTd.style.left = (statsLeftBase + si3 * 40) + 'px';
+          statTd.textContent = statsVals[si3] || '';
+          if (si3 === 1 && statsVals[si3] > 0) statTd.style.color = 'var(--gold, #f59e0b)';
+          if (si3 === 2 && statsVals[si3] > 0) statTd.style.color = '#e94560';
+          row.appendChild(statTd);
+        }
+        for (var s = 0; s < sessions.length; s++) {
+          var cell = personaCells[sessions[s].session_number];
+          var dataTd = document.createElement('td');
+          dataTd.className = 'data-cell ' + cellClass(cell);
+          dataTd.textContent = cellSymbol(cell);
+          if (cell) {
+            dataTd.dataset.pid = persona.id;
+            dataTd.dataset.snum = sessions[s].session_number;
+          }
+          row.appendChild(dataTd);
+        }
+        tbody.appendChild(row);
+      }
+      table.appendChild(tbody);
+
+      table.addEventListener('mouseover', function(e) {
+        var td = e.target.closest('td.data-cell');
+        if (!td || !td.dataset.pid) { tooltip.className = 'matrix-tooltip'; return; }
+        var pid = td.dataset.pid;
+        var snum = parseInt(td.dataset.snum);
+        var persona = personas.find(function(pp) { return pp.id === pid; });
+        var session = sessions.find(function(ss) { return ss.session_number === snum; });
+        var cell = cells[pid] ? cells[pid][snum] : null;
+        if (!cell || !session || !persona) { tooltip.className = 'matrix-tooltip'; return; }
+        tooltip.innerHTML = tooltipContent(cell, session, persona);
+        tooltip.className = 'matrix-tooltip visible';
+        var rect = td.getBoundingClientRect();
+        var ttWidth = 340;
+        var left = rect.right + 8;
+        if (left + ttWidth > window.innerWidth) left = rect.left - ttWidth - 8;
+        var top = rect.top;
+        if (top + 120 > window.innerHeight) top = window.innerHeight - 130;
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
+      });
+      table.addEventListener('mouseout', function(e) {
+        if (!e.target.closest('td.data-cell')) tooltip.className = 'matrix-tooltip';
+      });
+    }
+  }
 
   // ── Personas tab logic ──────────────────────────────────────────────────────
   let _personaEditName = null;  // null = create mode, string = edit mode
