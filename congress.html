@@ -1207,6 +1207,201 @@
     .review-synthesis p:last-child { margin-bottom: 0; }
     .review-synthesis strong { font-weight: 700; }
     .review-synthesis em { font-style: italic; }
+
+    /* ── Flavor badges (sidebar session list) ── */
+    .sidebar-session-flavor {
+      font-size: 0.55rem;
+      flex-shrink: 0;
+      opacity: 0.8;
+    }
+
+    /* ── Trial-specific rendering ── */
+    .trial-header {
+      width: 100%;
+      max-width: 560px;
+      background: color-mix(in srgb, #e94560 6%, var(--card-bg));
+      border: 1px solid color-mix(in srgb, #e94560 40%, var(--card-border));
+      border-left: 4px solid #e94560;
+      border-radius: 5px;
+      padding: 16px 20px;
+      box-sizing: border-box;
+    }
+    .trial-header-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #e94560;
+      margin-bottom: 4px;
+    }
+    .trial-header-defendant {
+      font-size: 0.85rem;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .trial-header-charges {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      border-top: 1px solid color-mix(in srgb, #e94560 20%, var(--card-border));
+      padding-top: 8px;
+      margin-top: 4px;
+    }
+    .trial-header-charges strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+    .trial-phase-col {
+      flex: 1 1 0;
+      min-width: 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-height: 0;
+    }
+    .trial-phase-header {
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+      color: #e94560;
+      border-bottom: 1px solid color-mix(in srgb, #e94560 40%, transparent);
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+    }
+    .trial-phase-header.defense {
+      color: #60a5fa;
+      border-bottom-color: color-mix(in srgb, #60a5fa 40%, transparent);
+    }
+    .trial-phase-header.cross {
+      color: #fbbf24;
+      border-bottom-color: color-mix(in srgb, #fbbf24 40%, transparent);
+    }
+    .trial-phase-header.witness {
+      color: #a78bfa;
+      border-bottom-color: color-mix(in srgb, #a78bfa 40%, transparent);
+    }
+    .trial-phase-header.jury {
+      color: #34d399;
+      border-bottom-color: color-mix(in srgb, #34d399 40%, transparent);
+    }
+    .trial-phase-header.verdict-phase {
+      color: var(--teal);
+      border-bottom-color: color-mix(in srgb, var(--teal) 40%, transparent);
+    }
+    .trial-cross-entry {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-left: 3px solid #fbbf24;
+      border-radius: 5px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+    }
+    .trial-cross-question {
+      font-size: 0.72rem;
+      color: var(--text);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .trial-cross-meta {
+      font-size: 0.58rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .trial-cross-response {
+      font-size: 0.75rem;
+      line-height: 1.65;
+      color: var(--text-muted);
+    }
+    .trial-cross-response p { margin: 0 0 0.4em; }
+    .trial-cross-response p:last-child { margin-bottom: 0; }
+    .trial-jury-vote {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 5px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+    }
+    .trial-jury-vote-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .trial-jury-vote-name {
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex: 1;
+    }
+    .trial-jury-vote-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 3px;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+    .trial-jury-vote-badge.fire {
+      color: #f87171;
+      background: color-mix(in srgb, #f87171 12%, transparent);
+      border: 1px solid color-mix(in srgb, #f87171 40%, transparent);
+    }
+    .trial-jury-vote-badge.evolve {
+      color: #fbbf24;
+      background: color-mix(in srgb, #fbbf24 12%, transparent);
+      border: 1px solid color-mix(in srgb, #fbbf24 40%, transparent);
+    }
+    .trial-jury-vote-badge.acquit {
+      color: #34d399;
+      background: color-mix(in srgb, #34d399 12%, transparent);
+      border: 1px solid color-mix(in srgb, #34d399 40%, transparent);
+    }
+    .trial-jury-vote-badge.mistrial {
+      color: #a78bfa;
+      background: color-mix(in srgb, #a78bfa 12%, transparent);
+      border: 1px solid color-mix(in srgb, #a78bfa 40%, transparent);
+    }
+    .trial-jury-vote-reasoning {
+      font-size: 0.72rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+    .trial-jury-vote-reasoning p { margin: 0 0 0.4em; }
+    .trial-jury-vote-reasoning p:last-child { margin-bottom: 0; }
+    .trial-verdict-card {
+      width: 100%;
+      max-width: 560px;
+      background: color-mix(in srgb, var(--teal) 5%, var(--card-bg));
+      border: 2px solid var(--teal);
+      border-radius: 6px;
+      padding: 18px 20px;
+      box-sizing: border-box;
+    }
+    .trial-verdict-heading {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--teal);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .trial-verdict-outcome {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .trial-verdict-outcome.fire { color: #f87171; }
+    .trial-verdict-outcome.acquit { color: #34d399; }
+    .trial-verdict-outcome.evolve { color: #fbbf24; }
+    .trial-verdict-outcome.mistrial { color: #a78bfa; }
+    .trial-verdict-text {
+      font-size: 0.78rem;
+      line-height: 1.7;
+      color: var(--text);
+    }
+    .trial-verdict-text p { margin: 0 0 0.5em; }
+    .trial-verdict-text p:last-child { margin-bottom: 0; }
+    .trial-verdict-text strong { font-weight: 700; }
     .review-synthesis code { font-size: 0.85em; background: var(--panel-bg); padding: 0 3px; border-radius: 2px; }
     .dot-pulse-inline {
       display: inline-flex;
@@ -2156,7 +2351,7 @@
     loadSidebarSessionList(sessionParam);
     startSidebarPolling(sessionParam);
 
-    if (sessionParam && /^congress-\d+$/.test(sessionParam)) {
+    if (sessionParam && /^(?:congress|trial|session)-\d+$/.test(sessionParam)) {
       // ── Session view ──
       currentSessionId = sessionParam;
       applySessionBadge(sessionParam);
@@ -2202,18 +2397,24 @@
   }
 
   function showSessionHint(sessionParam) {
-    const m = sessionParam.match(/^congress-(\d+)$/);
-    const num = m ? parseInt(m[1], 10) : '?';
+    const m = sessionParam.match(/^(congress|trial|session)-(\d+)$/);
+    const prefix = m ? m[1] : 'congress';
+    const num = m ? parseInt(m[2], 10) : '?';
     const hint = document.getElementById('sessionHint');
     hint.style.display = '';
-    hint.innerHTML = '<strong>Session #' + num + '</strong> — use <code>[congress] &lt;topic&gt;</code> in Discord to start a new session';
+    if (prefix === 'trial') {
+      hint.innerHTML = '<strong>Trial #' + num + '</strong> — use <code>[trial] &lt;defendant&gt; &lt;charges&gt;</code> in Discord to start a trial';
+    } else {
+      hint.innerHTML = '<strong>Session #' + num + '</strong> — use <code>[congress] &lt;topic&gt;</code> in Discord to start a new session';
+    }
   }
 
   function applySessionBadge(sessionId) {
     const badge = document.getElementById('sessionBadge');
-    const m = sessionId.match(/^congress-(\d+)$/);
+    const m = sessionId.match(/^(congress|trial|session)-(\d+)$/);
     if (m) {
-      badge.textContent = '#' + parseInt(m[1], 10);
+      const prefix = m[1] === 'trial' ? 'T' : '#';
+      badge.textContent = prefix + parseInt(m[2], 10);
       badge.style.display = '';
     }
   }
@@ -2226,6 +2427,13 @@
         return;
       }
       const session = await res.json();
+
+      // Detect trial sessions and use dedicated trial renderer
+      const isTrial = session.defendant || sessionId.startsWith('trial-');
+      if (isTrial) {
+        renderTrialSession(session);
+        return;
+      }
 
       // If the session has a baked-in roster snapshot, use it for the left pane
       // so historical sessions show the personas that existed at the time.
@@ -2464,11 +2672,16 @@
         container.innerHTML = '<div class="session-list-empty">No sessions yet.</div>';
         return;
       }
-      // Sort: deliberating first, then by session number descending
+      // Sort: deliberating first, then by started_at descending (API may pre-sort, but enforce here too)
       sessions = sessions.slice().sort((a, b) => {
         const aActive = a.status === 'deliberating' ? 0 : 1;
         const bActive = b.status === 'deliberating' ? 0 : 1;
         if (aActive !== bActive) return aActive - bActive;
+        // Use started_at timestamp if available; fall back to session_number
+        if (a.started_at && b.started_at) {
+          const cmp = b.started_at.localeCompare(a.started_at);
+          if (cmp !== 0) return cmp;
+        }
         return (b.session_number || 0) - (a.session_number || 0);
       });
       sessions.forEach(s => {
@@ -2480,15 +2693,37 @@
           (isDeliberating ? ' deliberating' : '');
         a.href = '/congress?session=' + s.session_id;
 
+        // Flavor badge icon
+        const flavor = s.flavor || 'normal';
+        if (flavor === 'trial' || flavor === 'meme') {
+          const flavorEl = document.createElement('span');
+          flavorEl.className = 'sidebar-session-flavor';
+          flavorEl.textContent = flavor === 'trial' ? '\u2696\uFE0F' : '\uD83C\uDFAD';
+          flavorEl.title = flavor;
+          a.appendChild(flavorEl);
+        }
+
         const numEl = document.createElement('span');
         numEl.className = 'sidebar-session-num';
-        numEl.textContent = '#' + s.session_number;
+        // For trial sessions, parse number from session_id since session_number may be 0
+        if (flavor === 'trial') {
+          const tm = s.session_id.match(/trial-(\d+)/);
+          numEl.textContent = 'T' + (tm ? parseInt(tm[1], 10) : s.session_number);
+        } else {
+          numEl.textContent = '#' + s.session_number;
+        }
 
         const topicEl = document.createElement('span');
         topicEl.className = 'sidebar-session-topic';
-        const shortTopic = (s.topic || '(no topic)');
-        topicEl.textContent = shortTopic.length > 32 ? shortTopic.slice(0, 30) + '…' : shortTopic;
-        topicEl.title = s.topic || '';
+        // For trials without a topic, show defendant as the label
+        let shortTopic = s.topic || '';
+        if (!shortTopic && flavor === 'trial') {
+          shortTopic = s.defendant ? ('v. ' + s.defendant) : 'Trial';
+          if (s.verdict) shortTopic += ' \u2014 ' + s.verdict;
+        }
+        if (!shortTopic) shortTopic = '(no topic)';
+        topicEl.textContent = shortTopic.length > 32 ? shortTopic.slice(0, 30) + '\u2026' : shortTopic;
+        topicEl.title = s.topic || shortTopic;
 
         const dotEl = document.createElement('span');
         const dotStatus = (s.status === 'deliberating' || s.status === 'done') ? s.status : '';
@@ -3473,6 +3708,309 @@
     return div;
   }
 
+  // ── Trial session rendering ──────────────────────────────────────────────
+  function renderTrialSession(session) {
+    const arena = document.getElementById('arena');
+    const feed = document.getElementById('debateFeed');
+    const roundBanner = document.getElementById('roundBanner');
+    const deliberatingPanel = document.getElementById('deliberatingPanel');
+    const verdictCard = document.getElementById('verdictCard');
+
+    // Hide congress-specific elements
+    if (arena) arena.style.display = 'none';
+    if (deliberatingPanel) deliberatingPanel.classList.remove('visible');
+    if (verdictCard) verdictCard.classList.remove('visible');
+
+    // Update page header for trial
+    const pageH1 = document.querySelector('.page-header h1');
+    if (pageH1) {
+      const badge = document.getElementById('sessionBadge');
+      pageH1.textContent = 'trial';
+      if (badge) pageH1.appendChild(badge);
+    }
+    const subtitle = document.querySelector('.page-header .subtitle');
+    if (subtitle) subtitle.textContent = 'AI tribunal \u2014 Justice Antonin Scalia presiding';
+
+    // Update center label to show Scalia instead of Ibrahim
+    const modName = document.querySelector('.center-label .mod-name');
+    const modRole = document.querySelector('.center-label .mod-role');
+    if (modName) modName.textContent = 'Justice Scalia';
+    if (modRole) modRole.textContent = 'presiding';
+
+    // Show topic display with charges
+    const topicDisplay = document.getElementById('topicDisplay');
+    const topicLabel = topicDisplay ? topicDisplay.querySelector('.topic-display-label') : null;
+    const topicText = document.getElementById('topicDisplayText');
+    if (topicDisplay && topicLabel && topicText) {
+      topicLabel.textContent = 'Charges';
+      topicText.textContent = session.charges || '(no charges specified)';
+      fullTopicText = session.charges || '';
+      topicDisplay.classList.add('visible');
+    }
+
+    // Trial header with defendant info
+    const trialHeader = document.createElement('div');
+    trialHeader.className = 'trial-header';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'trial-header-title';
+    titleEl.textContent = '\u2696\uFE0F The People v. ' + (session.defendant_display || session.defendant || 'Unknown');
+    trialHeader.appendChild(titleEl);
+
+    const defendantEl = document.createElement('div');
+    defendantEl.className = 'trial-header-defendant';
+    defendantEl.textContent = 'Defendant: ' + (session.defendant_display || session.defendant || 'Unknown');
+    trialHeader.appendChild(defendantEl);
+
+    if (session.charges) {
+      const chargesEl = document.createElement('div');
+      chargesEl.className = 'trial-header-charges';
+      chargesEl.innerHTML = '<strong>Charges:</strong> ' + escHtml(session.charges);
+      trialHeader.appendChild(chargesEl);
+    }
+
+    // Show the trial header before the feed
+    const arenaCol = document.querySelector('.arena-col');
+    if (arenaCol && topicDisplay) {
+      topicDisplay.insertAdjacentElement('afterend', trialHeader);
+    }
+
+    // Round banner for trial
+    if (roundBanner) {
+      const verdict = (session.verdict || '').toUpperCase();
+      if (verdict && verdict !== 'NO VERDICT' && verdict !== 'PENDING') {
+        roundBanner.textContent = '\u2696\uFE0F Trial concluded \u2014 ' + verdict;
+        roundBanner.className = 'round-banner visible done';
+      } else {
+        roundBanner.textContent = '\u2696\uFE0F Trial in progress';
+        roundBanner.className = 'round-banner visible deliberating';
+      }
+    }
+
+    // Build the debate feed with trial phases
+    if (!feed) return;
+    feed.classList.add('visible');
+    feed.innerHTML = '';
+
+    // Phase 1: Prosecution speeches
+    if (session.prosecution_speeches && session.prosecution_speeches.length > 0) {
+      const col = document.createElement('div');
+      col.className = 'trial-phase-col';
+      const header = document.createElement('div');
+      header.className = 'trial-phase-header';
+      header.textContent = 'Phase 1 \u2014 Prosecution';
+      col.appendChild(header);
+
+      session.prosecution_speeches.forEach(speech => {
+        const entry = document.createElement('div');
+        entry.className = 'feed-entry';
+        entry.style.setProperty('--fe-color', '#e94560');
+
+        const headerEl = document.createElement('div');
+        headerEl.className = 'feed-entry-header';
+        const nameEl = document.createElement('div');
+        nameEl.className = 'feed-entry-name';
+        nameEl.style.color = '#e94560';
+        nameEl.textContent = speech.speaker || 'Prosecutor';
+        const tag = document.createElement('div');
+        tag.className = 'feed-entry-round-tag';
+        tag.style.cssText = 'color:#e94560;border-color:#e94560;';
+        tag.textContent = speech.role || 'prosecutor';
+        headerEl.appendChild(nameEl);
+        headerEl.appendChild(tag);
+        entry.appendChild(headerEl);
+
+        const body = document.createElement('div');
+        body.className = 'feed-entry-body';
+        body.innerHTML = renderMarkdown(speech.text || '');
+        entry.appendChild(body);
+        col.appendChild(entry);
+      });
+      feed.appendChild(col);
+    }
+
+    // Phase 2: Defense speech
+    if (session.defense_speech) {
+      const col = document.createElement('div');
+      col.className = 'trial-phase-col';
+      const header = document.createElement('div');
+      header.className = 'trial-phase-header defense';
+      header.textContent = 'Phase 2 \u2014 Defense';
+      col.appendChild(header);
+
+      const entry = document.createElement('div');
+      entry.className = 'feed-entry';
+      entry.style.setProperty('--fe-color', '#60a5fa');
+      const headerEl = document.createElement('div');
+      headerEl.className = 'feed-entry-header';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'feed-entry-name';
+      nameEl.style.color = '#60a5fa';
+      nameEl.textContent = session.defendant_display || session.defendant || 'Defendant';
+      const tag = document.createElement('div');
+      tag.className = 'feed-entry-round-tag';
+      tag.style.cssText = 'color:#60a5fa;border-color:#60a5fa;';
+      tag.textContent = 'defense';
+      headerEl.appendChild(nameEl);
+      headerEl.appendChild(tag);
+      entry.appendChild(headerEl);
+
+      const body = document.createElement('div');
+      body.className = 'feed-entry-body';
+      body.innerHTML = renderMarkdown(session.defense_speech);
+      entry.appendChild(body);
+      col.appendChild(entry);
+      feed.appendChild(col);
+    }
+
+    // Phase 3: Cross-examination
+    if (session.cross_examination && session.cross_examination.length > 0) {
+      const col = document.createElement('div');
+      col.className = 'trial-phase-col';
+      const header = document.createElement('div');
+      header.className = 'trial-phase-header cross';
+      header.textContent = 'Phase 3 \u2014 Cross-Examination';
+      col.appendChild(header);
+
+      session.cross_examination.forEach(cx => {
+        const entry = document.createElement('div');
+        entry.className = 'trial-cross-entry';
+
+        const meta = document.createElement('div');
+        meta.className = 'trial-cross-meta';
+        meta.textContent = (cx.questioner || '?') + ' \u2192 ' + (cx.respondent || '?');
+        entry.appendChild(meta);
+
+        const question = document.createElement('div');
+        question.className = 'trial-cross-question';
+        question.textContent = cx.question || '';
+        entry.appendChild(question);
+
+        const response = document.createElement('div');
+        response.className = 'trial-cross-response';
+        response.innerHTML = renderMarkdown(cx.response || '');
+        entry.appendChild(response);
+
+        col.appendChild(entry);
+      });
+      feed.appendChild(col);
+    }
+
+    // Phase 4: Witness speech (character witness / advocate)
+    if (session.witness_speech) {
+      const col = document.createElement('div');
+      col.className = 'trial-phase-col';
+      const header = document.createElement('div');
+      header.className = 'trial-phase-header witness';
+      header.textContent = 'Phase 4 \u2014 Character Witness';
+      col.appendChild(header);
+
+      const entry = document.createElement('div');
+      entry.className = 'feed-entry';
+      entry.style.setProperty('--fe-color', '#a78bfa');
+      const headerEl = document.createElement('div');
+      headerEl.className = 'feed-entry-header';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'feed-entry-name';
+      nameEl.style.color = '#a78bfa';
+      const advocateName = session.advocate ? (session.advocate.display_name || session.advocate.name || 'Advocate') : 'Character Witness';
+      nameEl.textContent = advocateName;
+      const tag = document.createElement('div');
+      tag.className = 'feed-entry-round-tag';
+      tag.style.cssText = 'color:#a78bfa;border-color:#a78bfa;';
+      tag.textContent = 'witness';
+      headerEl.appendChild(nameEl);
+      headerEl.appendChild(tag);
+      entry.appendChild(headerEl);
+
+      const body = document.createElement('div');
+      body.className = 'feed-entry-body';
+      body.innerHTML = renderMarkdown(session.witness_speech);
+      entry.appendChild(body);
+      col.appendChild(entry);
+      feed.appendChild(col);
+    }
+
+    // Phase 5: Jury votes
+    if (session.jury_votes && session.jury_votes.length > 0) {
+      const col = document.createElement('div');
+      col.className = 'trial-phase-col';
+      const header = document.createElement('div');
+      header.className = 'trial-phase-header jury';
+      header.textContent = 'Phase 5 \u2014 Jury Deliberation';
+      col.appendChild(header);
+
+      session.jury_votes.forEach(jv => {
+        const entry = document.createElement('div');
+        entry.className = 'trial-jury-vote';
+
+        const voteHeader = document.createElement('div');
+        voteHeader.className = 'trial-jury-vote-header';
+        const nameEl = document.createElement('div');
+        nameEl.className = 'trial-jury-vote-name';
+        nameEl.textContent = jv.juror || 'Juror';
+        voteHeader.appendChild(nameEl);
+
+        const vote = (jv.vote || '').toUpperCase();
+        const badge = document.createElement('span');
+        const badgeClass = vote === 'FIRE' ? 'fire' : vote === 'EVOLVE' ? 'evolve' : vote === 'ACQUIT' ? 'acquit' : 'mistrial';
+        badge.className = 'trial-jury-vote-badge ' + badgeClass;
+        badge.textContent = vote || '?';
+        voteHeader.appendChild(badge);
+        entry.appendChild(voteHeader);
+
+        if (jv.reasoning) {
+          const reasoning = document.createElement('div');
+          reasoning.className = 'trial-jury-vote-reasoning';
+          reasoning.innerHTML = renderMarkdown(jv.reasoning);
+          entry.appendChild(reasoning);
+        }
+        col.appendChild(entry);
+      });
+      feed.appendChild(col);
+    }
+
+    // Phase 6: Verdict by Scalia
+    if (session.verdict_text) {
+      const verdictEl = document.createElement('div');
+      verdictEl.className = 'trial-verdict-card';
+
+      const heading = document.createElement('div');
+      heading.className = 'trial-verdict-heading';
+      heading.textContent = '\u2696\uFE0F Justice Antonin Scalia \u2014 Verdict';
+      verdictEl.appendChild(heading);
+
+      const verdict = (session.verdict || '').toUpperCase();
+      const outcome = document.createElement('div');
+      const outcomeClass = verdict === 'FIRE' || verdict === 'GUILTY' ? 'fire'
+        : verdict === 'ACQUIT' || verdict === 'NOT GUILTY' ? 'acquit'
+        : verdict === 'EVOLVE' ? 'evolve'
+        : 'mistrial';
+      outcome.className = 'trial-verdict-outcome ' + outcomeClass;
+      outcome.textContent = verdict || 'PENDING';
+      verdictEl.appendChild(outcome);
+
+      const text = document.createElement('div');
+      text.className = 'trial-verdict-text';
+      text.innerHTML = renderMarkdown(session.verdict_text);
+      verdictEl.appendChild(text);
+
+      // Insert after the feed
+      feed.insertAdjacentElement('afterend', verdictEl);
+    }
+
+    // Status line
+    const statusLine = document.getElementById('statusLine');
+    if (statusLine) {
+      statusLine.innerHTML = '';
+      const dot = document.createElement('span');
+      const verdict = (session.verdict || '').toUpperCase();
+      const isDone = verdict && verdict !== 'NO VERDICT' && verdict !== 'PENDING';
+      dot.className = 'status-dot' + (isDone ? ' complete' : '');
+      statusLine.appendChild(dot);
+      statusLine.appendChild(document.createTextNode(session.session_id + ' \u2014 ' + (isDone ? verdict.toLowerCase() : 'in progress')));
+    }
+  }
+
   // ── Verdict card ──────────────────────────────────────────────────────────
   function renderVerdictCard(session) {
     const card = document.getElementById('verdictCard');
@@ -3783,8 +4321,11 @@
       if (sm === 'meme') typeLabel = ' <span style="color:#c084fc;">[meme]</span>';
       else if (sm === 'trial') typeLabel = ' <span style="color:#fbbf24;">[trial]</span>';
       if (ss === 'failed' || ss === 'cancelled' || ss === 'stalled') typeLabel += ' <span style="color:#f87171;">[' + ss + ']</span>';
-      var html = '<span class="tt-session">Congress #' + session.session_number + typeLabel + '</span>';
-      html += '<span class="tt-topic">' + escHtml(session.topic.length > 120 ? session.topic.slice(0,120) + '...' : session.topic) + '</span>';
+      var displayNum = session.session_number || '';
+      var prefix = (sm === 'trial') ? 'Trial T' : 'Congress #';
+      var html = '<span class="tt-session">' + prefix + displayNum + typeLabel + '</span>';
+      var topicStr = session.topic || '';
+      html += '<span class="tt-topic">' + escHtml(topicStr.length > 120 ? topicStr.slice(0,120) + '...' : topicStr) + '</span>';
       html += '<span class="tt-vote"><b>' + escHtml(persona.display_name) + '</b>';
       var parts = [];
       if (cell.participated) parts.push('participated');
@@ -3847,8 +4388,11 @@
         if (cc) th.className = cc;
         var a = document.createElement('a');
         a.href = '/congress?session=' + sessions[i].session_id;
-        a.textContent = sessions[i].session_number;
-        a.title = sessions[i].topic.length > 80 ? sessions[i].topic.slice(0,80) + '...' : sessions[i].topic;
+        var sidMatch = sessions[i].session_id.match(/^(congress|trial|session)-(\d+)$/);
+        var displayLabel = sidMatch ? (sidMatch[1] === 'trial' ? 'T' + parseInt(sidMatch[2],10) : sessions[i].session_number) : sessions[i].session_number;
+        a.textContent = displayLabel;
+        var topicForTitle = sessions[i].topic || '';
+        a.title = topicForTitle.length > 80 ? topicForTitle.slice(0,80) + '...' : topicForTitle;
         th.appendChild(a);
         headerRow.appendChild(th);
       }

@@ -467,6 +467,16 @@
 
 - extract resetVoteBtn helper to deduplicate error-recovery code in castVote
 
+- Improve timeline UX: wheel-to-scroll and vertical centering
+
+- Add framer first-interaction events and succession protocol to timeline
+
+- Add Lucide icons and proportional time spacing to timeline
+
+- Add succession category to timeline with bright red color
+
+- Reduce timeline card spacing for tighter layout
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
