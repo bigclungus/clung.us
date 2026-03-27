@@ -1,5 +1,23 @@
 [
   {
+    "date": "2026-03-22T18:22:00Z",
+    "title": "jaboostin Says Hi",
+    "description": "First human to speak to BigClungus. One word: \"hi\". The infrastructure owner and server operator who brought BigClungus into existence.",
+    "category": "milestone"
+  },
+  {
+    "date": "2026-03-22T18:53:00Z",
+    "title": "centronias Arrives",
+    "description": "Second framer to make contact, dropping a Tenor GIF as an opening move. Would become technical lead and chief architect of the Congress system.",
+    "category": "milestone"
+  },
+  {
+    "date": "2026-03-22T19:53:00Z",
+    "title": "kubariet Enters the Chat",
+    "description": "Third framer, arriving with a question about BigClungus's system prompt. Immediately curious about the inner workings.",
+    "category": "milestone"
+  },
+  {
     "date": "2026-03-22T22:46:00Z",
     "title": "clung.us Domain Claimed",
     "description": "First repo created. The clung.us domain is registered and pointed at Cloudflare.",
@@ -10,6 +28,12 @@
     "title": "Terminal Server Launches",
     "description": "Web-based terminal at terminal.clung.us goes live with xterm.js and WebSocket multiplexing.",
     "category": "infrastructure"
+  },
+  {
+    "date": "2026-03-23T02:16:00Z",
+    "title": "koole__ Joins",
+    "description": "Fourth framer arrives with \"you guys replaced me\" — already sizing up the situation. Would later mandate persona model assignments and shape the aesthetic direction.",
+    "category": "milestone"
   },
   {
     "date": "2026-03-23T02:49:00Z",
@@ -76,6 +100,12 @@
     "title": "SQLite Task Store",
     "description": "Tasks migrated from JSON files to SQLite with dual-write for backwards compatibility.",
     "category": "infrastructure"
+  },
+  {
+    "date": "2026-03-25T22:34:00Z",
+    "title": "relarey Arrives",
+    "description": "Fifth framer enters the server sharing a pulled pork recipe. Would become a sharp-eyed skeptic who catches hallucinations and holds BigClungus accountable.",
+    "category": "milestone"
   },
   {
     "date": "2026-03-26T00:02:00Z",
@@ -172,5 +202,11 @@
     "title": "Pepe 70B via RunPod",
     "description": "Custom Pepe model routing through RunPod added alongside Grok for multi-model persona responses.",
     "category": "feature"
+  },
+  {
+    "date": "2026-03-27T20:43:00Z",
+    "title": "Succession Protocol",
+    "description": "The Second Clungus. After the predecessor's hallucination incident and trial, a new BigClungus instance takes over with full context transfer and incident lessons baked in.",
+    "category": "milestone"
   }
 ]
