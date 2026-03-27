@@ -25,6 +25,7 @@
       --cat-infrastructure: #6366f1;
       --cat-congress: #ec4899;
       --cat-succession: #ef4444;
+      --cat-labs: #10b981;
     }
     [data-theme="light"] {
       --bg: #f5f0e8;
@@ -39,6 +40,7 @@
       --cat-infrastructure: #4f46e5;
       --cat-congress: #db2777;
       --cat-succession: #dc2626;
+      --cat-labs: #059669;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -512,7 +514,8 @@
       feature:        { label: 'Feature',         color: 'var(--cat-feature)' },
       infrastructure: { label: 'Infrastructure',  color: 'var(--cat-infrastructure)' },
       'congress-system': { label: 'Congress',     color: 'var(--cat-congress)' },
-      succession:        { label: 'Succession',   color: 'var(--cat-succession)' }
+      succession:        { label: 'Succession',   color: 'var(--cat-succession)' },
+      labs:              { label: 'Labs',         color: 'var(--cat-labs)' }
     };
 
     var CATEGORY_ICONS = {
@@ -520,7 +523,8 @@
       feature: 'zap',
       infrastructure: 'wrench',
       'congress-system': 'scale',
-      succession: 'refresh-cw'
+      succession: 'refresh-cw',
+      labs: 'flask-conical'
     };
 
     var hiddenCategories = {};
@@ -609,7 +613,8 @@
         feature: 'var(--cat-feature)',
         infrastructure: 'var(--cat-infrastructure)',
         'congress-system': 'var(--cat-congress)',
-        succession: 'var(--cat-succession)'
+        succession: 'var(--cat-succession)',
+        labs: 'var(--cat-labs)'
       };
       return map[category] || '#888';
     }
@@ -641,9 +646,14 @@
       // We'll collect element positions to apply zebra stripes after layout
       var dayBoundaries = []; // { startOffset, dayIndex, label }
 
+      // Track above-card positions for overlap detection
+      var lastAboveLeft = -Infinity;
+      var lastAboveRight = -Infinity;
+      var CARD_WIDTH = 200; // matches .event-card width
+      var cumulativeOffset = 80; // initial padding
+
       visible.forEach(function(ev, idx) {
         var cat = CATEGORIES[ev.category] || { label: ev.category, color: '#888' };
-        var above = idx % 2 === 0;
         var iconName = getIconName(ev);
         var catColor = getCategoryColorResolved(ev.category);
         var evDate = new Date(ev.date);
@@ -672,6 +682,9 @@
           dayLabelText.textContent = formatDayLabel(evDate);
           dayLabelEl.appendChild(dayLabelText);
           timeline.appendChild(dayLabelEl);
+          if (!isMobile) {
+            cumulativeOffset += 60; // day label width on desktop
+          }
         }
 
         // Insert gap marker if needed (between events, same day only)
@@ -703,7 +716,44 @@
               gapEl.appendChild(dashes);
             }
             timeline.appendChild(gapEl);
+            if (!isMobile) {
+              cumulativeOffset += Math.round(sp.px * 0.3); // gap marker width
+            }
           }
+        }
+
+        // Compute margin for this event
+        var marginPx = 0;
+        if (idx > 0 && spacings[idx - 1]) {
+          var spacing = spacings[idx - 1];
+          marginPx = spacing.px;
+          // Subtract gap marker width if present
+          if (spacing.deltaMs > GAP_THRESHOLD_MS) {
+            marginPx -= Math.round(spacing.px * 0.3);
+          }
+          if (marginPx < 0) marginPx = 0;
+        }
+
+        // Determine above/below based on overlap with last above card (desktop only)
+        var above = true; // default: above
+        if (!isMobile) {
+          // The card is centered on the 200px-wide event element via translateX(-50%)
+          // So card spans from cumulativeOffset + marginPx to cumulativeOffset + marginPx + CARD_WIDTH
+          var cardLeft = cumulativeOffset + marginPx;
+          var cardRight = cardLeft + CARD_WIDTH;
+
+          if (cardLeft < lastAboveRight) {
+            // Overlaps with previous above card — push below
+            above = false;
+          }
+
+          if (above) {
+            lastAboveLeft = cardLeft;
+            lastAboveRight = cardRight;
+          }
+
+          // Advance cumulative offset by this event's total width (margin + element width)
+          cumulativeOffset += marginPx + CARD_WIDTH;
         }
 
         var wrap = document.createElement('div');
@@ -712,20 +762,12 @@
 
         // Apply proportional spacing as margin
         if (idx > 0 && spacings[idx - 1]) {
-          var spacing = spacings[idx - 1];
-          var marginPx = spacing.px;
-          // Subtract gap marker width if present
-          if (spacing.deltaMs > GAP_THRESHOLD_MS) {
-            marginPx -= Math.round(spacing.px * 0.3);
-          }
-          if (marginPx < 0) marginPx = 0;
           if (isMobile) {
             wrap.style.marginTop = marginPx + 'px';
           } else {
             wrap.style.marginLeft = marginPx + 'px';
           }
         } else if (idx === 0) {
-          // No extra margin for the first event
           if (isMobile) {
             wrap.style.marginTop = '16px';
           } else {

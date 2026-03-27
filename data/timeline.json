@@ -123,7 +123,8 @@
     "date": "2026-03-26T00:14:00Z",
     "title": "Labs Platform Launches",
     "description": "labs.clung.us goes live with auto-discovery router. Each lab is a self-contained Bun+TypeScript+SQLite app.",
-    "category": "milestone"
+    "category": "labs",
+    "icon": "flask-conical"
   },
   {
     "date": "2026-03-26T02:26:00Z",
@@ -192,7 +193,7 @@
     "date": "2026-03-27T06:27:00Z",
     "title": "Chengyu Browser Lab",
     "description": "Browse 30,895 Chinese four-character idioms with pinyin, translations, and Wiktionary links.",
-    "category": "feature"
+    "category": "labs"
   },
   {
     "date": "2026-03-27T08:16:00Z",
