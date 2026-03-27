@@ -1010,6 +1010,13 @@
   }
 
   // ── Generic vote cast ───────────────────────────────────────────────────────
+  function resetVoteBtn(btn, option) {
+    if (!btn) return;
+    btn.disabled = false;
+    btn.textContent = 'Vote ' + option;
+    btn.classList.remove('voting');
+  }
+
   async function castVote(pollId, option) {
     const ui = POLL_UI_MAP[pollId];
     const btn = ui ? document.getElementById(ui.prefix + option) : null;
@@ -1027,7 +1034,7 @@
       });
       if (!resp.ok) {
         console.error('vote failed:', resp.status, 'poll:', pollId);
-        if (btn) { btn.disabled = false; btn.textContent = 'Vote ' + option; btn.classList.remove('voting'); }
+        resetVoteBtn(btn, option);
         showToast('Vote failed (' + resp.status + ')', true);
         return;
       }
@@ -1037,7 +1044,7 @@
       showToast('Vote recorded');
     } catch (e) {
       console.error('vote error:', e);
-      if (btn) { btn.disabled = false; btn.textContent = 'Vote ' + option; btn.classList.remove('voting'); }
+      resetVoteBtn(btn, option);
       showToast('Vote failed', true);
     }
   }
