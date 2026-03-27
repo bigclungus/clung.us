@@ -25,9 +25,12 @@
 
 /* ── Main nav ── */
 .sitenav {
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 100;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: space-between;

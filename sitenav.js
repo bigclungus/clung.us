@@ -130,6 +130,19 @@
     var body = document.body;
     body.insertBefore(nav, body.firstChild);
 
+    // Nav is fixed-position — push body content down so nothing hides beneath it.
+    // Measure actual nav height and apply as padding-top only if less is already set.
+    function applyNavOffset() {
+      var navHeight = nav.getBoundingClientRect().height;
+      var existing = parseFloat(window.getComputedStyle(body).paddingTop) || 0;
+      if (existing < navHeight) {
+        body.style.paddingTop = navHeight + 'px';
+      }
+    }
+    applyNavOffset();
+    window.addEventListener('load', applyNavOffset);
+    window.addEventListener('resize', applyNavOffset);
+
     var toggleBtn = document.getElementById('theme-toggle');
     initTheme(toggleBtn);
   }
