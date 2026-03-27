@@ -2182,7 +2182,6 @@ fetch('/api/agents')
     var all = [];
     if (data.moderator) all.push(data.moderator);
     if (data.eligible) all = all.concat(data.eligible);
-    if (data.meme) all = all.concat(data.meme);
     // Include up to 3 meme personas so they can still graze
     if (data.meme) all = all.concat(data.meme.slice(0, 3));
 
