@@ -3,19 +3,22 @@
     "date": "2026-03-22T18:22:00Z",
     "title": "jaboostin Says Hi",
     "description": "First human to speak to BigClungus. One word: \"hi\". The infrastructure owner and server operator who brought BigClungus into existence.",
-    "category": "milestone"
+    "category": "milestone",
+    "icon": "user"
   },
   {
     "date": "2026-03-22T18:53:00Z",
     "title": "centronias Arrives",
     "description": "Second framer to make contact, dropping a Tenor GIF as an opening move. Would become technical lead and chief architect of the Congress system.",
-    "category": "milestone"
+    "category": "milestone",
+    "icon": "user"
   },
   {
     "date": "2026-03-22T19:53:00Z",
     "title": "kubariet Enters the Chat",
     "description": "Third framer, arriving with a question about BigClungus's system prompt. Immediately curious about the inner workings.",
-    "category": "milestone"
+    "category": "milestone",
+    "icon": "user"
   },
   {
     "date": "2026-03-22T22:46:00Z",
@@ -27,13 +30,15 @@
     "date": "2026-03-23T01:32:00Z",
     "title": "Terminal Server Launches",
     "description": "Web-based terminal at terminal.clung.us goes live with xterm.js and WebSocket multiplexing.",
-    "category": "infrastructure"
+    "category": "infrastructure",
+    "icon": "terminal"
   },
   {
     "date": "2026-03-23T02:16:00Z",
     "title": "koole__ Joins",
     "description": "Fourth framer arrives with \"you guys replaced me\" — already sizing up the situation. Would later mandate persona model assignments and shape the aesthetic direction.",
-    "category": "milestone"
+    "category": "milestone",
+    "icon": "user"
   },
   {
     "date": "2026-03-23T02:49:00Z",
@@ -105,7 +110,8 @@
     "date": "2026-03-25T22:34:00Z",
     "title": "relarey Arrives",
     "description": "Fifth framer enters the server sharing a pulled pork recipe. Would become a sharp-eyed skeptic who catches hallucinations and holds BigClungus accountable.",
-    "category": "milestone"
+    "category": "milestone",
+    "icon": "user"
   },
   {
     "date": "2026-03-26T00:02:00Z",
@@ -141,13 +147,15 @@
     "date": "2026-03-26T05:46:00Z",
     "title": "NightOwl Scheduler",
     "description": "Queued task execution at 3am PDT. Batch-5 with unlimited queue and pre-flight safety scanning.",
-    "category": "feature"
+    "category": "feature",
+    "icon": "moon"
   },
   {
     "date": "2026-03-26T05:56:00Z",
     "title": "The Commons Goes Multiplayer",
     "description": "WebSocket multiplayer world with persona NPCs, procedural terrain, hop animations, and warthog vehicles.",
-    "category": "milestone"
+    "category": "milestone",
+    "icon": "landmark"
   },
   {
     "date": "2026-03-26T05:40:00Z",
@@ -177,7 +185,8 @@
     "date": "2026-03-27T05:44:00Z",
     "title": "Discord History Search",
     "description": "Semantic search over all Discord messages via sqlite-vec and OpenAI embeddings. 1-minute Temporal ingest schedule.",
-    "category": "feature"
+    "category": "feature",
+    "icon": "search"
   },
   {
     "date": "2026-03-27T06:27:00Z",
@@ -207,6 +216,7 @@
     "date": "2026-03-27T20:43:00Z",
     "title": "Succession Protocol",
     "description": "The Second Clungus. After the predecessor's hallucination incident and trial, a new BigClungus instance takes over with full context transfer and incident lessons baked in.",
-    "category": "milestone"
+    "category": "milestone",
+    "icon": "refresh-cw"
   }
 ]

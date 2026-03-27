@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Raleway:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
   <script src="/sitenav.js?v=d004dbf" defer></script>
   <style>
     :root {
@@ -164,26 +165,33 @@
       position: relative;
       flex-shrink: 0;
       width: 200px;
-      margin: 0 10px;
       cursor: pointer;
       z-index: 1;
     }
 
-    .event-dot {
+    .event-icon {
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 14px;
-      height: 14px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       transform: translate(-50%, -50%);
       border: 2px solid var(--bg);
       z-index: 2;
       transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .timeline-event:hover .event-dot {
-      transform: translate(-50%, -50%) scale(1.4);
-      box-shadow: 0 0 12px currentColor;
+    .event-icon svg {
+      width: 16px;
+      height: 16px;
+      stroke-width: 2.5;
+    }
+    .timeline-event:hover .event-icon {
+      transform: translate(-50%, -50%) scale(1.3);
+      box-shadow: 0 0 14px currentColor;
     }
 
     .event-stem {
@@ -259,6 +267,25 @@
       letter-spacing: 0.05em;
     }
 
+    .time-gap {
+      position: relative;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+    .time-gap-label {
+      background: var(--bg);
+      color: var(--text-muted);
+      font-size: 0.6rem;
+      padding: 2px 10px;
+      border: 1px dashed var(--line-color);
+      border-radius: 10px;
+      white-space: nowrap;
+      letter-spacing: 0.04em;
+    }
+
     .scroll-hint {
       text-align: center;
       color: var(--text-muted);
@@ -302,17 +329,16 @@
 
       .timeline-event {
         width: 100%;
-        margin: 16px 0;
         padding-left: 30px;
       }
 
-      .event-dot {
+      .event-icon {
         left: -30px;
         top: 8px;
         transform: translate(-50%, 0);
       }
-      .timeline-event:hover .event-dot {
-        transform: translate(-50%, 0) scale(1.4);
+      .timeline-event:hover .event-icon {
+        transform: translate(-50%, 0) scale(1.3);
       }
 
       .event-stem {
@@ -335,6 +361,14 @@
 
       .event-desc {
         max-height: none;
+      }
+
+      .time-gap {
+        width: 100%;
+        padding-left: 30px;
+      }
+      .time-gap-label {
+        margin-left: -14px;
       }
     }
   </style>
@@ -366,7 +400,21 @@
       'congress-system': { label: 'Congress',     color: 'var(--cat-congress)' }
     };
 
+    var CATEGORY_ICONS = {
+      milestone: 'star',
+      feature: 'zap',
+      infrastructure: 'wrench',
+      'congress-system': 'scale'
+    };
+
     var hiddenCategories = {};
+
+    // Spacing constants
+    var DESKTOP_MIN_GAP = 200;
+    var DESKTOP_MAX_GAP = 600;
+    var MOBILE_MIN_GAP = 60;
+    var MOBILE_MAX_GAP = 200;
+    var GAP_THRESHOLD_MS = 6 * 60 * 60 * 1000; // 6 hours in ms
 
     function formatDate(iso) {
       var d = new Date(iso);
@@ -378,10 +426,65 @@
       return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + '  ' + hour + ':' + min + ' ' + ampm;
     }
 
+    function formatGapDuration(ms) {
+      var hours = ms / (1000 * 60 * 60);
+      if (hours < 24) {
+        return Math.round(hours) + 'h';
+      }
+      var days = hours / 24;
+      if (days < 2) {
+        return Math.round(hours) + 'h';
+      }
+      return Math.round(days) + 'd';
+    }
+
+    function computeSpacings(events, minGap, maxGap) {
+      if (events.length < 2) return [];
+      var spacings = [];
+      for (var i = 1; i < events.length; i++) {
+        var deltaMs = new Date(events[i].date) - new Date(events[i - 1].date);
+        if (deltaMs < 1) deltaMs = 1;
+        spacings.push(deltaMs);
+      }
+      // Log-scale mapping
+      var logDeltas = spacings.map(function(d) { return Math.log(d + 1); });
+      var logMin = Math.min.apply(null, logDeltas);
+      var logMax = Math.max.apply(null, logDeltas);
+      var logRange = logMax - logMin;
+      if (logRange < 0.001) logRange = 1; // all same spacing
+
+      return spacings.map(function(deltaMs, i) {
+        var t = (logDeltas[i] - logMin) / logRange; // 0..1
+        var px = minGap + t * (maxGap - minGap);
+        return { px: Math.round(px), deltaMs: deltaMs };
+      });
+    }
+
+    function getIconName(ev) {
+      if (ev.icon) return ev.icon;
+      return CATEGORY_ICONS[ev.category] || 'circle';
+    }
+
+    function getCategoryColor(category) {
+      var cat = CATEGORIES[category];
+      return cat ? cat.color : '#888';
+    }
+
+    function getCategoryColorResolved(category) {
+      // Return the actual CSS variable name for inline use
+      var map = {
+        milestone: 'var(--cat-milestone)',
+        feature: 'var(--cat-feature)',
+        infrastructure: 'var(--cat-infrastructure)',
+        'congress-system': 'var(--cat-congress)'
+      };
+      return map[category] || '#888';
+    }
+
     function renderTimeline(events) {
       var timeline = document.getElementById('timeline');
-      // Clear old events but keep the line
-      var existing = timeline.querySelectorAll('.timeline-event');
+      // Clear old events and gap markers but keep the line
+      var existing = timeline.querySelectorAll('.timeline-event, .time-gap');
       for (var i = 0; i < existing.length; i++) {
         existing[i].parentNode.removeChild(existing[i]);
       }
@@ -394,24 +497,85 @@
         return !hiddenCategories[ev.category];
       });
 
+      var isMobile = window.innerWidth <= 768;
+      var minGap = isMobile ? MOBILE_MIN_GAP : DESKTOP_MIN_GAP;
+      var maxGap = isMobile ? MOBILE_MAX_GAP : DESKTOP_MAX_GAP;
+      var spacings = computeSpacings(visible, minGap, maxGap);
+
       visible.forEach(function(ev, idx) {
         var cat = CATEGORIES[ev.category] || { label: ev.category, color: '#888' };
         var above = idx % 2 === 0;
+        var iconName = getIconName(ev);
+        var catColor = getCategoryColorResolved(ev.category);
+
+        // Insert gap marker if needed (between events)
+        if (idx > 0 && spacings[idx - 1]) {
+          var sp = spacings[idx - 1];
+
+          // Add margin spacer
+          if (!isMobile) {
+            // On desktop, use margin on the event itself
+            // We'll set it below after creating the wrap element
+          }
+
+          // If gap > 6 hours, add a visual break marker
+          if (sp.deltaMs > GAP_THRESHOLD_MS) {
+            var gapEl = document.createElement('div');
+            gapEl.className = 'time-gap';
+            if (isMobile) {
+              gapEl.style.height = Math.round(sp.px * 0.3) + 'px';
+            } else {
+              gapEl.style.width = Math.round(sp.px * 0.3) + 'px';
+            }
+            var gapLabel = document.createElement('span');
+            gapLabel.className = 'time-gap-label';
+            gapLabel.textContent = formatGapDuration(sp.deltaMs);
+            gapEl.appendChild(gapLabel);
+            timeline.appendChild(gapEl);
+          }
+        }
 
         var wrap = document.createElement('div');
         wrap.className = 'timeline-event ' + (above ? 'event-above' : 'event-below');
 
-        var dot = document.createElement('div');
-        dot.className = 'event-dot';
-        dot.style.backgroundColor = cat.color;
-        dot.style.color = cat.color;
+        // Apply proportional spacing as margin
+        if (idx > 0 && spacings[idx - 1]) {
+          var spacing = spacings[idx - 1];
+          var marginPx = spacing.px;
+          // Subtract gap marker width if present
+          if (spacing.deltaMs > GAP_THRESHOLD_MS) {
+            marginPx -= Math.round(spacing.px * 0.3);
+          }
+          if (marginPx < 0) marginPx = 0;
+          if (isMobile) {
+            wrap.style.marginTop = marginPx + 'px';
+          } else {
+            wrap.style.marginLeft = marginPx + 'px';
+          }
+        } else if (idx === 0) {
+          // No extra margin for the first event
+          if (isMobile) {
+            wrap.style.marginTop = '16px';
+          } else {
+            wrap.style.marginLeft = '0';
+          }
+        }
+
+        // Icon element (replaces dot)
+        var iconWrap = document.createElement('div');
+        iconWrap.className = 'event-icon';
+        iconWrap.style.backgroundColor = catColor;
+        iconWrap.style.color = '#000';
+        var iconSvg = document.createElement('i');
+        iconSvg.setAttribute('data-lucide', iconName);
+        iconWrap.appendChild(iconSvg);
 
         var stem = document.createElement('div');
         stem.className = 'event-stem';
 
         var card = document.createElement('div');
         card.className = 'event-card';
-        card.style.borderTopColor = cat.color;
+        card.style.borderTopColor = catColor;
 
         var dateEl = document.createElement('div');
         dateEl.className = 'event-date';
@@ -420,7 +584,7 @@
         var titleEl = document.createElement('div');
         titleEl.className = 'event-title';
         titleEl.textContent = ev.title;
-        titleEl.style.color = cat.color;
+        titleEl.style.color = catColor;
 
         var descEl = document.createElement('div');
         descEl.className = 'event-desc';
@@ -429,7 +593,7 @@
         var catEl = document.createElement('span');
         catEl.className = 'event-category';
         catEl.textContent = cat.label;
-        catEl.style.background = cat.color;
+        catEl.style.background = catColor;
         catEl.style.color = '#000';
 
         card.appendChild(dateEl);
@@ -437,10 +601,15 @@
         card.appendChild(descEl);
         card.appendChild(catEl);
         wrap.appendChild(stem);
-        wrap.appendChild(dot);
+        wrap.appendChild(iconWrap);
         wrap.appendChild(card);
         timeline.appendChild(wrap);
       });
+
+      // Activate Lucide icons
+      if (window.lucide) {
+        lucide.createIcons();
+      }
     }
 
     function buildLegend() {
@@ -501,6 +670,17 @@
           console.error('Timeline load error:', err);
         });
     }
+
+    // Re-render on resize (mobile/desktop switch)
+    var resizeTimer;
+    window.addEventListener('resize', function() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function() {
+        if (window._timelineEvents) {
+          renderTimeline(window._timelineEvents);
+        }
+      }, 250);
+    });
 
     // Convert vertical wheel to horizontal scroll on desktop
     (function() {
