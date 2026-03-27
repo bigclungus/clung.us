@@ -630,12 +630,16 @@
           timeline.appendChild(dayLabelEl);
         }
 
-        // Insert gap marker if needed (between events)
+        // Insert gap marker if needed (between events, same day only)
         if (idx > 0 && spacings[idx - 1]) {
           var sp = spacings[idx - 1];
+          var prevDate = new Date(visible[idx - 1].date);
+          var prevDay = getLocalDateString(prevDate);
+          var sameDay = (prevDay === evDay);
 
-          // If gap > threshold, add a visual break marker
-          if (sp.deltaMs > GAP_THRESHOLD_MS) {
+          // Only show gap markers within the same day — if a day boundary
+          // was crossed, the day label already conveys the time jump
+          if (sp.deltaMs > GAP_THRESHOLD_MS && sameDay) {
             var gapEl = document.createElement('div');
             var isMajor = sp.deltaMs > GAP_THRESHOLD_MS;
             gapEl.className = 'time-gap' + (isMajor ? ' major-gap' : '');
