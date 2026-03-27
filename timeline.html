@@ -769,15 +769,15 @@
         stripe.className = 'zebra-stripe odd';
 
         if (isMobile) {
-          var startTop = startEl.offsetTop;
-          var endTop = endEl ? endEl.offsetTop : timeline.scrollHeight;
+          var startTop = startEl.offsetTop + startEl.offsetHeight / 2;
+          var endTop = endEl ? (endEl.offsetTop + endEl.offsetHeight / 2) : timeline.scrollHeight;
           stripe.style.top = startTop + 'px';
           stripe.style.height = (endTop - startTop) + 'px';
           stripe.style.left = '0';
           stripe.style.right = '0';
         } else {
-          var startLeft = startEl.offsetLeft;
-          var endLeft = endEl ? endEl.offsetLeft : timeline.scrollWidth;
+          var startLeft = startEl.offsetLeft + startEl.offsetWidth / 2;
+          var endLeft = endEl ? (endEl.offsetLeft + endEl.offsetWidth / 2) : timeline.scrollWidth;
           stripe.style.left = startLeft + 'px';
           stripe.style.width = (endLeft - startLeft) + 'px';
           stripe.style.top = '0';
