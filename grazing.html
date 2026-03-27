@@ -2357,7 +2357,7 @@ var WARTHOG_BOARD_DIST = 60; // pixels — how close you must be to board/see hi
 
 function drawWarthog(wx, wy, facing, seats) {
   ctx.save();
-  if (facing === 'right') {
+  if (facing === 'left') {
     ctx.translate(wx + WARTHOG_W, wy);
     ctx.scale(-1, 1);
   } else {
