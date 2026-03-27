@@ -287,6 +287,63 @@
       white-space: nowrap;
       letter-spacing: 0.04em;
     }
+    .time-gap.major-gap .time-gap-label {
+      font-size: 0.7rem;
+      padding: 4px 14px;
+      border-width: 2px;
+      border-color: var(--text-muted);
+      color: var(--text);
+      font-weight: 700;
+    }
+    .time-gap.major-gap .time-gap-dashes {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: repeating-linear-gradient(
+        90deg,
+        var(--line-color) 0,
+        var(--line-color) 6px,
+        transparent 6px,
+        transparent 14px
+      );
+      transform: translateY(-50%);
+      z-index: -1;
+    }
+
+    .day-label {
+      position: relative;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+    }
+    .day-label-text {
+      background: var(--accent);
+      color: #000;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 3px 12px;
+      border-radius: 10px;
+      white-space: nowrap;
+      letter-spacing: 0.04em;
+    }
+
+    .zebra-stripe {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .zebra-stripe.odd {
+      background: rgba(255,255,255,0.02);
+    }
+    [data-theme="light"] .zebra-stripe.odd {
+      background: rgba(0,0,0,0.03);
+    }
 
     .scroll-hint {
       text-align: center;
@@ -372,6 +429,17 @@
       .time-gap-label {
         margin-left: -14px;
       }
+      .time-gap.major-gap .time-gap-dashes {
+        display: none;
+      }
+      .day-label {
+        margin-top: 12px;
+        margin-bottom: 4px;
+      }
+      .zebra-stripe {
+        left: 0 !important;
+        right: 0 !important;
+      }
     }
   </style>
 </head>
@@ -414,20 +482,25 @@
     var hiddenCategories = {};
 
     // Spacing constants
-    var DESKTOP_MIN_GAP = 100;
+    var DESKTOP_MIN_GAP = 40;
     var DESKTOP_MAX_GAP = 400;
-    var MOBILE_MIN_GAP = 40;
+    var MOBILE_MIN_GAP = 20;
     var MOBILE_MAX_GAP = 150;
     var GAP_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 hours in ms
 
     function formatDate(iso) {
       var d = new Date(iso);
-      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      var h = d.getHours();
-      var ampm = h >= 12 ? 'PM' : 'AM';
-      var hour = h % 12 || 12;
-      var min = String(d.getMinutes()).padStart(2, '0');
-      return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + '  ' + hour + ':' + min + ' ' + ampm;
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) +
+        '  ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
+    }
+
+    function getLocalDateString(d) {
+      // Returns "YYYY-MM-DD" in user's local timezone for day grouping
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    function formatDayLabel(d) {
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
 
     function formatGapDuration(ms) {
@@ -450,15 +523,26 @@
         if (deltaMs < 1) deltaMs = 1;
         spacings.push(deltaMs);
       }
-      // Log-scale mapping
-      var logDeltas = spacings.map(function(d) { return Math.log(d + 1); });
-      var logMin = Math.min.apply(null, logDeltas);
-      var logMax = Math.max.apply(null, logDeltas);
-      var logRange = logMax - logMin;
-      if (logRange < 0.001) logRange = 1; // all same spacing
-
-      return spacings.map(function(deltaMs, i) {
-        var t = (logDeltas[i] - logMin) / logRange; // 0..1
+      // Aggressive log scale: double-log compresses small gaps tightly,
+      // spreads large gaps. Events within an hour cluster close together;
+      // events days apart get near-max gap.
+      var ONE_HOUR = 3600000;
+      return spacings.map(function(deltaMs) {
+        // Normalize: fraction of one hour (capped at 1 for sub-hour gaps)
+        var hours = deltaMs / ONE_HOUR;
+        // Power curve: sqrt for sub-hour, then log for multi-hour
+        var t;
+        if (hours <= 1) {
+          // Sub-hour: very compressed. sqrt(hours) keeps 30min at ~0.7 of minGap range
+          t = Math.sqrt(hours) * 0.15; // 0..0.15 for 0..1hr
+        } else if (hours <= 4) {
+          // 1-4 hours: moderate spread
+          t = 0.15 + (Math.log(hours) / Math.log(4)) * 0.25; // 0.15..0.40
+        } else {
+          // 4+ hours: log scale up to max
+          t = 0.40 + Math.min(Math.log(hours / 4) / Math.log(200), 1) * 0.60; // 0.40..1.0
+        }
+        if (t > 1) t = 1;
         var px = minGap + t * (maxGap - minGap);
         return { px: Math.round(px), deltaMs: deltaMs };
       });
@@ -488,8 +572,8 @@
 
     function renderTimeline(events) {
       var timeline = document.getElementById('timeline');
-      // Clear old events and gap markers but keep the line
-      var existing = timeline.querySelectorAll('.timeline-event, .time-gap');
+      // Clear old events, gap markers, day labels, and zebra stripes but keep the line
+      var existing = timeline.querySelectorAll('.timeline-event, .time-gap, .day-label, .zebra-stripe');
       for (var i = 0; i < existing.length; i++) {
         existing[i].parentNode.removeChild(existing[i]);
       }
@@ -507,26 +591,54 @@
       var maxGap = isMobile ? MOBILE_MAX_GAP : DESKTOP_MAX_GAP;
       var spacings = computeSpacings(visible, minGap, maxGap);
 
+      // Track day boundaries for zebra striping and day labels
+      var currentDay = null;
+      var dayIndex = 0;
+      // We'll collect element positions to apply zebra stripes after layout
+      var dayBoundaries = []; // { startOffset, dayIndex, label }
+
       visible.forEach(function(ev, idx) {
         var cat = CATEGORIES[ev.category] || { label: ev.category, color: '#888' };
         var above = idx % 2 === 0;
         var iconName = getIconName(ev);
         var catColor = getCategoryColorResolved(ev.category);
+        var evDate = new Date(ev.date);
+        var evDay = getLocalDateString(evDate);
+
+        // Check for day boundary
+        if (evDay !== currentDay) {
+          if (currentDay !== null) {
+            dayIndex++;
+          }
+          currentDay = evDay;
+
+          // Insert day label
+          var dayLabelEl = document.createElement('div');
+          dayLabelEl.className = 'day-label';
+          dayLabelEl.setAttribute('data-day-index', dayIndex);
+          if (isMobile) {
+            dayLabelEl.style.height = '30px';
+            dayLabelEl.style.width = '100%';
+            dayLabelEl.style.paddingLeft = '30px';
+          } else {
+            dayLabelEl.style.width = '60px';
+          }
+          var dayLabelText = document.createElement('span');
+          dayLabelText.className = 'day-label-text';
+          dayLabelText.textContent = formatDayLabel(evDate);
+          dayLabelEl.appendChild(dayLabelText);
+          timeline.appendChild(dayLabelEl);
+        }
 
         // Insert gap marker if needed (between events)
         if (idx > 0 && spacings[idx - 1]) {
           var sp = spacings[idx - 1];
 
-          // Add margin spacer
-          if (!isMobile) {
-            // On desktop, use margin on the event itself
-            // We'll set it below after creating the wrap element
-          }
-
-          // If gap > 6 hours, add a visual break marker
+          // If gap > threshold, add a visual break marker
           if (sp.deltaMs > GAP_THRESHOLD_MS) {
             var gapEl = document.createElement('div');
-            gapEl.className = 'time-gap';
+            var isMajor = sp.deltaMs > GAP_THRESHOLD_MS;
+            gapEl.className = 'time-gap' + (isMajor ? ' major-gap' : '');
             if (isMobile) {
               gapEl.style.height = Math.round(sp.px * 0.3) + 'px';
             } else {
@@ -536,12 +648,19 @@
             gapLabel.className = 'time-gap-label';
             gapLabel.textContent = formatGapDuration(sp.deltaMs);
             gapEl.appendChild(gapLabel);
+            // Add dashed line background for major gaps
+            if (isMajor && !isMobile) {
+              var dashes = document.createElement('div');
+              dashes.className = 'time-gap-dashes';
+              gapEl.appendChild(dashes);
+            }
             timeline.appendChild(gapEl);
           }
         }
 
         var wrap = document.createElement('div');
         wrap.className = 'timeline-event ' + (above ? 'event-above' : 'event-below');
+        wrap.setAttribute('data-day-index', dayIndex);
 
         // Apply proportional spacing as margin
         if (idx > 0 && spacings[idx - 1]) {
@@ -611,9 +730,57 @@
         timeline.appendChild(wrap);
       });
 
+      // Apply zebra stripes after layout (using requestAnimationFrame for correct positions)
+      requestAnimationFrame(function() {
+        applyZebraStripes(timeline, isMobile);
+      });
+
       // Activate Lucide icons
       if (window.lucide) {
         lucide.createIcons();
+      }
+    }
+
+    function applyZebraStripes(timeline, isMobile) {
+      // Remove existing stripes
+      var oldStripes = timeline.querySelectorAll('.zebra-stripe');
+      for (var i = 0; i < oldStripes.length; i++) {
+        oldStripes[i].parentNode.removeChild(oldStripes[i]);
+      }
+
+      // Group elements by day-index
+      var dayLabels = timeline.querySelectorAll('.day-label');
+      if (dayLabels.length < 2) return; // No zebra needed for a single day
+
+      var timelineRect = timeline.getBoundingClientRect();
+
+      for (var d = 0; d < dayLabels.length; d++) {
+        var dayIdx = parseInt(dayLabels[d].getAttribute('data-day-index'), 10);
+        if (dayIdx % 2 === 0) continue; // Only stripe odd days
+
+        var startEl = dayLabels[d];
+        var endEl = dayLabels[d + 1] || null; // Next day label or end of timeline
+
+        var stripe = document.createElement('div');
+        stripe.className = 'zebra-stripe odd';
+
+        if (isMobile) {
+          var startTop = startEl.offsetTop;
+          var endTop = endEl ? endEl.offsetTop : timeline.scrollHeight;
+          stripe.style.top = startTop + 'px';
+          stripe.style.height = (endTop - startTop) + 'px';
+          stripe.style.left = '0';
+          stripe.style.right = '0';
+        } else {
+          var startLeft = startEl.offsetLeft;
+          var endLeft = endEl ? endEl.offsetLeft : timeline.scrollWidth;
+          stripe.style.left = startLeft + 'px';
+          stripe.style.width = (endLeft - startLeft) + 'px';
+          stripe.style.top = '0';
+          stripe.style.bottom = '0';
+        }
+
+        timeline.appendChild(stripe);
       }
     }
 
