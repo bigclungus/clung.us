@@ -1480,6 +1480,28 @@
     table.matrix td.cell-evo-fired { background: rgba(233, 69, 96, 0.22) !important; }
     table.matrix td.cell-evo-created { background: rgba(96, 165, 250, 0.20) !important; }
 
+    /* Column type coloring — header */
+    table.matrix thead th.col-meme { background: rgba(168, 85, 247, 0.28); }
+    table.matrix thead th.col-meme a { color: #c084fc; }
+    table.matrix thead th.col-trial { background: rgba(245, 158, 11, 0.28); }
+    table.matrix thead th.col-trial a { color: #fbbf24; }
+    table.matrix thead th.col-failed { background: rgba(233, 69, 96, 0.32); }
+    table.matrix thead th.col-failed a { color: #f87171; }
+    /* Column type coloring — data cells (subtle stripe) */
+    table.matrix td.col-meme { background: rgba(168, 85, 247, 0.06) !important; }
+    table.matrix td.col-trial { background: rgba(245, 158, 11, 0.06) !important; }
+    table.matrix td.col-failed { background: rgba(233, 69, 96, 0.08) !important; }
+    /* Evo cells still override column color */
+    table.matrix td.cell-evo-evolved.col-meme,
+    table.matrix td.cell-evo-evolved.col-trial,
+    table.matrix td.cell-evo-evolved.col-failed { background: rgba(245, 158, 11, 0.18) !important; }
+    table.matrix td.cell-evo-fired.col-meme,
+    table.matrix td.cell-evo-fired.col-trial,
+    table.matrix td.cell-evo-fired.col-failed { background: rgba(233, 69, 96, 0.22) !important; }
+    table.matrix td.cell-evo-created.col-meme,
+    table.matrix td.cell-evo-created.col-trial,
+    table.matrix td.cell-evo-created.col-failed { background: rgba(96, 165, 250, 0.20) !important; }
+
     table.matrix thead th a {
       color: var(--text-muted);
       text-decoration: none;
@@ -1997,6 +2019,9 @@
         <div class="legend-item"><span class="legend-symbol cell-evo-evolved" style="border:1px solid var(--panel-border);">&nbsp;</span> evolved</div>
         <div class="legend-item"><span class="legend-symbol cell-evo-fired" style="border:1px solid var(--panel-border);">&nbsp;</span> fired</div>
         <div class="legend-item"><span class="legend-symbol cell-evo-created" style="border:1px solid var(--panel-border);">&nbsp;</span> created</div>
+        <span style="border-left:1px solid var(--panel-border);margin:0 4px;"></span>
+        <div class="legend-item"><span class="legend-symbol" style="background:rgba(168,85,247,0.28);border:1px solid var(--panel-border);color:#c084fc;font-size:9px;">M</span> meme</div>
+        <div class="legend-item"><span class="legend-symbol" style="background:rgba(233,69,96,0.32);border:1px solid var(--panel-border);color:#f87171;font-size:9px;">!</span> failed</div>
       </div>
       <div id="matrixLoading" style="display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text-muted);font-size:13px;">
         <span style="display:inline-block;width:16px;height:16px;border:2px solid var(--card-border);border-top-color:var(--teal);border-radius:50%;animation:mtxspin 0.8s linear infinite;margin-right:10px;"></span> Loading matrix data...
@@ -3764,7 +3789,13 @@
     }
     function tooltipContent(cell, session, persona) {
       if (!cell) return '';
-      var html = '<span class="tt-session">Congress #' + session.session_number + '</span>';
+      var typeLabel = '';
+      var sm = (session.mode || '').toLowerCase();
+      var ss = (session.status || '').toLowerCase();
+      if (sm === 'meme') typeLabel = ' <span style="color:#c084fc;">[meme]</span>';
+      else if (sm === 'trial') typeLabel = ' <span style="color:#fbbf24;">[trial]</span>';
+      if (ss === 'failed' || ss === 'cancelled' || ss === 'stalled') typeLabel += ' <span style="color:#f87171;">[' + ss + ']</span>';
+      var html = '<span class="tt-session">Congress #' + session.session_number + typeLabel + '</span>';
       html += '<span class="tt-topic">' + escHtml(session.topic.length > 120 ? session.topic.slice(0,120) + '...' : session.topic) + '</span>';
       html += '<span class="tt-vote"><b>' + escHtml(persona.display_name) + '</b>';
       var parts = [];
@@ -3814,8 +3845,18 @@
         thStat.style.left = (statsLeftBase + si * 40) + 'px';
         headerRow.appendChild(thStat);
       }
+      function colClass(session) {
+        var cls = '';
+        var st = (session.status || '').toLowerCase();
+        if (st === 'failed' || st === 'cancelled' || st === 'stalled' || st === 'aborted') cls = 'col-failed';
+        else if ((session.mode || '').toLowerCase() === 'meme') cls = 'col-meme';
+        else if ((session.mode || '').toLowerCase() === 'trial') cls = 'col-trial';
+        return cls;
+      }
       for (var i = 0; i < sessions.length; i++) {
         var th = document.createElement('th');
+        var cc = colClass(sessions[i]);
+        if (cc) th.className = cc;
         var a = document.createElement('a');
         a.href = '/congress?session=' + sessions[i].session_id;
         a.textContent = sessions[i].session_number;
@@ -3844,7 +3885,8 @@
       }
       for (var j = 0; j < sessions.length; j++) {
         var td = document.createElement('td');
-        td.className = 'data-cell';
+        var cc2 = colClass(sessions[j]);
+        td.className = 'data-cell' + (cc2 ? ' ' + cc2 : '');
         td.textContent = sessions[j].participant_count;
         td.style.fontSize = '9px';
         td.style.color = 'var(--text-muted)';
@@ -3874,7 +3916,8 @@
         for (var s = 0; s < sessions.length; s++) {
           var cell = personaCells[sessions[s].session_number];
           var dataTd = document.createElement('td');
-          dataTd.className = 'data-cell ' + cellClass(cell);
+          var cc3 = colClass(sessions[s]);
+          dataTd.className = 'data-cell ' + cellClass(cell) + (cc3 ? ' ' + cc3 : '');
           dataTd.textContent = cellSymbol(cell);
           if (cell) {
             dataTd.dataset.pid = persona.id;
