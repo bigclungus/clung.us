@@ -24,6 +24,7 @@
       --cat-feature: #4ecca3;
       --cat-infrastructure: #6366f1;
       --cat-congress: #ec4899;
+      --cat-succession: #ef4444;
     }
     [data-theme="light"] {
       --bg: #f5f0e8;
@@ -37,6 +38,7 @@
       --cat-feature: #2aa198;
       --cat-infrastructure: #4f46e5;
       --cat-congress: #db2777;
+      --cat-succession: #dc2626;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -397,14 +399,16 @@
       milestone:      { label: 'Milestone',      color: 'var(--cat-milestone)' },
       feature:        { label: 'Feature',         color: 'var(--cat-feature)' },
       infrastructure: { label: 'Infrastructure',  color: 'var(--cat-infrastructure)' },
-      'congress-system': { label: 'Congress',     color: 'var(--cat-congress)' }
+      'congress-system': { label: 'Congress',     color: 'var(--cat-congress)' },
+      succession:        { label: 'Succession',   color: 'var(--cat-succession)' }
     };
 
     var CATEGORY_ICONS = {
       milestone: 'star',
       feature: 'zap',
       infrastructure: 'wrench',
-      'congress-system': 'scale'
+      'congress-system': 'scale',
+      succession: 'refresh-cw'
     };
 
     var hiddenCategories = {};
@@ -476,7 +480,8 @@
         milestone: 'var(--cat-milestone)',
         feature: 'var(--cat-feature)',
         infrastructure: 'var(--cat-infrastructure)',
-        'congress-system': 'var(--cat-congress)'
+        'congress-system': 'var(--cat-congress)',
+        succession: 'var(--cat-succession)'
       };
       return map[category] || '#888';
     }
