@@ -3204,6 +3204,48 @@ function loop() {
   // Draw local player (always on top)
   drawLocalPlayer();
 
+  // Redraw tree/rock tiles that overlap the player's glow halo (radius ~16px).
+  // The radial gradient halo bleeds semi-transparent white onto adjacent tiles;
+  // redrawing them here corrects the corruption without disrupting the draw order.
+  if (!inVehicle) {
+    var plx = Math.round(localPlayer.px);
+    var ply = Math.round(localPlayer.py);
+    var GLOW_R = 18; // slightly larger than the 16px glow radius
+    var ptxMin = Math.floor((plx - GLOW_R) / TILE);
+    var ptxMax = Math.floor((plx + GLOW_R) / TILE);
+    var ptyMin = Math.floor((ply - GLOW_R - 14) / TILE); // -14 for sprite top offset
+    var ptyMax = Math.floor((ply + GLOW_R) / TILE);
+    for (var pty = ptyMin; pty <= ptyMax; pty++) {
+      if (pty < 0 || pty >= ROWS) continue;
+      for (var ptx = ptxMin; ptx <= ptxMax; ptx++) {
+        if (ptx < 0 || ptx >= COLS) continue;
+        var pt = MAP[pty][ptx];
+        if (pt !== 4 && pt !== 5) continue;
+        var px0 = ptx * TILE, py0 = pty * TILE;
+        ctx.fillStyle = grassColor(ptx, pty);
+        ctx.fillRect(px0, py0, TILE, TILE);
+        if (pt === 4) {
+          ctx.fillStyle = '#4a2c0a';
+          ctx.fillRect(px0 + 6, py0 + 10, 4, 6);
+          if (SEASON === 2) {
+            ctx.fillStyle = '#8b4513'; ctx.fillRect(px0 + 2, py0 + 2, 12, 10);
+            ctx.fillStyle = '#a0521a'; ctx.fillRect(px0 + 4, py0, 8, 6);
+          } else if (SEASON === 3) {
+            ctx.fillStyle = '#b0b8c0'; ctx.fillRect(px0 + 2, py0 + 2, 12, 10);
+            ctx.fillStyle = '#c8d0d8'; ctx.fillRect(px0 + 4, py0, 8, 6);
+          } else {
+            ctx.fillStyle = '#1a5c1a'; ctx.fillRect(px0 + 2, py0 + 2, 12, 10);
+            ctx.fillStyle = '#236623'; ctx.fillRect(px0 + 4, py0, 8, 6);
+          }
+        } else {
+          ctx.fillStyle = '#3a3a4a'; ctx.fillRect(px0 + 2, py0 + 6, 12, 8);
+          ctx.fillStyle = '#4e4e60'; ctx.fillRect(px0 + 3, py0 + 4, 10, 7);
+          ctx.fillStyle = '#606070'; ctx.fillRect(px0 + 5, py0 + 3, 4, 3);
+        }
+      }
+    }
+  }
+
   // ── Time of day overlay ──────────────────────────────────────────────────
   var tov = getTimeOverlay();
   if (tov) {
