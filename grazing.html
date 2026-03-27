@@ -2183,8 +2183,8 @@ fetch('/api/agents')
     if (data.moderator) all.push(data.moderator);
     if (data.eligible) all = all.concat(data.eligible);
     if (data.meme) all = all.concat(data.meme);
-    // Include up to 3 ineligible personas so they can still graze
-    if (data.ineligible) all = all.concat(data.ineligible.slice(0, 3));
+    // Include up to 3 meme personas so they can still graze
+    if (data.meme) all = all.concat(data.meme.slice(0, 3));
 
     // Shuffle spawn positions
     var spawns = SPAWN_TILES.slice();

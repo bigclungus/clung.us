@@ -1456,11 +1456,6 @@
       color: var(--teal);
       border: 1px solid color-mix(in srgb, var(--teal) 50%, transparent);
     }
-    .pt-status-pill.ineligible {
-      background: color-mix(in srgb, var(--accent) 15%, transparent);
-      color: var(--accent);
-      border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
-    }
     .pt-status-pill.moderator {
       background: color-mix(in srgb, #a3e635 15%, transparent);
       color: #a3e635;
@@ -1697,7 +1692,7 @@
         <select class="pf-select" id="pf-status">
           <option value="eligible">eligible</option>
           <option value="meme">meme (meme congress only)</option>
-          <option value="ineligible">ineligible (retired)</option>
+          <option value="meme">meme (retired/fired)</option>
         </select>
       </div>
       <div class="pf-field" style="justify-content:flex-end;gap:10px;flex-direction:row;align-items:flex-end;">
@@ -1902,7 +1897,7 @@
       allActivePersonas = (data.eligible || []).filter(p => !p.is_moderator);
       // Use first SEAT_COUNT for the default circle seats
       for (let i = 0; i < SEAT_COUNT; i++) seats[i] = allActivePersonas[i] || null;
-      retiredPool = data.ineligible || [];
+      retiredPool = data.meme || [];
       moderatorPersona = data.moderator || null;
     } catch (e) {
       console.warn('[congress] /api/agents failed, trying fallback:', e);
@@ -2029,7 +2024,7 @@
           }));
         // Also rebuild retiredPool from the snapshot for accurate lookups
         retiredPool = session.roster
-          .filter(p => p.status === 'severance' || p.status === 'ineligible')
+          .filter(p => p.status === 'severance' || p.status === 'meme')
           .map(p => ({
             id: p.id || p.name,
             name: p.name,
@@ -3094,17 +3089,21 @@
           ? debaterOrder
           : Object.keys(voteMap);
 
+        const renderedVoteKeys = new Set();
         orderedDebaters.forEach(id => {
           const p = personaMap[id];
           const displayName = p ? (p.display_name || p.name) : id;
           // Match by id or display_name in voteMap
           const vote = voteMap[id] || voteMap[displayName];
           if (!vote) return;
+          // Track which voteMap keys were consumed so the safety-net below doesn't re-render them
+          if (voteMap[id]) renderedVoteKeys.add(id);
+          if (voteMap[displayName]) renderedVoteKeys.add(displayName);
           col.appendChild(buildVoteEntry(id, displayName, vote, null, personaMap));
         });
         // Also show any votes for names not in seat order (shouldn't happen, but safety net)
         Object.entries(voteMap).forEach(([name, vote]) => {
-          if (!orderedDebaters.includes(name)) {
+          if (!renderedVoteKeys.has(name)) {
             col.appendChild(buildVoteEntry(name, name, vote, null, personaMap));
           }
         });
@@ -3549,12 +3548,11 @@
       const res = await fetch('/api/agents');
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      // Combine all personas: eligible, meme, moderator, ineligible — sort in that order
+      // Combine all personas: eligible, meme, moderator — sort in that order
       const eligible = (data.eligible || []).map(p => ({ ...p, status: 'eligible' }));
       const meme = (data.meme || []).map(p => ({ ...p, status: 'meme' }));
-      const ineligible = (data.ineligible || []).map(p => ({ ...p, status: 'ineligible' }));
       const moderator = data.moderator ? [{ ...data.moderator, status: 'moderator' }] : [];
-      const personas = [...eligible, ...meme, ...moderator, ...ineligible];
+      const personas = [...eligible, ...meme, ...moderator];
       renderPersonasTable(personas, wrap);
     } catch (e) {
       wrap.innerHTML = '<div style="font-size:0.72rem;color:var(--accent);">Could not load personas: ' + e.message + '</div>';
@@ -3581,13 +3579,13 @@
     const tbody = document.createElement('tbody');
     personas.forEach(p => {
       const tr = document.createElement('tr');
-      // /api/agents uses eligible/ineligible/moderator
+      // /api/agents uses eligible/meme/moderator
       const status = p.status || 'eligible';
       const lastVerdict = p.last_verdict || '';
       const totalCongresses = (p.stats_retained || 0) + (p.stats_evolved || 0) + (p.stats_fired || 0);
 
-      // Dim ineligible rows slightly
-      if (status === 'ineligible') tr.style.opacity = '0.65';
+      // Dim meme rows slightly
+      if (status === 'meme') tr.style.opacity = '0.65';
 
       // Avatar cell
       const tdAvatar = document.createElement('td');
@@ -3634,11 +3632,11 @@
       tdRole.textContent = p.role || p.title || '';
       tr.appendChild(tdRole);
 
-      // Status pill — uses eligible/ineligible/moderator/meme CSS classes
+      // Status pill — uses eligible/moderator/meme CSS classes
       const tdStatus = document.createElement('td');
       const pill = document.createElement('span');
       pill.className = 'pt-status-pill ' + status;
-      const statusLabel = { eligible: 'eligible', ineligible: 'retired', moderator: 'moderator', meme: 'meme only' };
+      const statusLabel = { eligible: 'eligible', meme: 'meme/retired', moderator: 'moderator' };
       pill.textContent = statusLabel[status] || status;
       tdStatus.appendChild(pill);
       tr.appendChild(tdStatus);
@@ -3676,27 +3674,14 @@
         const retireBtn = document.createElement('button');
         retireBtn.className = 'pt-btn fire-btn';
         retireBtn.textContent = 'Retire';
-        retireBtn.title = 'Mark ineligible (retired)';
-        retireBtn.onclick = () => quickStatusChange(p.name, 'ineligible');
+        retireBtn.title = 'Mark meme (retired)';
+        retireBtn.onclick = () => quickStatusChange(p.name, 'meme');
         tdActions.appendChild(retireBtn);
       } else if (status === 'meme') {
         const restoreBtn = document.createElement('button');
         restoreBtn.className = 'pt-btn restore-btn';
         restoreBtn.textContent = 'Restore';
         restoreBtn.title = 'Mark eligible (full congress)';
-        restoreBtn.onclick = () => quickStatusChange(p.name, 'eligible');
-        tdActions.appendChild(restoreBtn);
-        const retireBtn = document.createElement('button');
-        retireBtn.className = 'pt-btn fire-btn';
-        retireBtn.textContent = 'Retire';
-        retireBtn.title = 'Mark ineligible (retired)';
-        retireBtn.onclick = () => quickStatusChange(p.name, 'ineligible');
-        tdActions.appendChild(retireBtn);
-      } else if (status === 'ineligible') {
-        const restoreBtn = document.createElement('button');
-        restoreBtn.className = 'pt-btn restore-btn';
-        restoreBtn.textContent = 'Restore';
-        restoreBtn.title = 'Mark eligible';
         restoreBtn.onclick = () => quickStatusChange(p.name, 'eligible');
         tdActions.appendChild(restoreBtn);
       }
@@ -3710,7 +3695,7 @@
   }
 
   async function quickStatusChange(name, newStatus) {
-    const label = newStatus === 'ineligible' ? 'Retire' : 'Restore';
+    const label = newStatus === 'meme' ? 'Retire' : 'Restore';
     if (!confirm(label + ' persona "' + name + '"?')) return;
     try {
       const res = await fetch('/api/personas/' + name, {
@@ -3795,8 +3780,8 @@
     document.getElementById('pf-avatar-url').value = p.avatar_url || '';
     document.getElementById('pf-congress').checked = p.congress !== false;
     document.getElementById('pf-evolves').checked = p.evolves !== false;
-    // Normalize legacy status values: fired→ineligible, active→eligible
-    const normalizedStatus = p.status === 'fired' ? 'ineligible' : (p.status === 'active' ? 'eligible' : (p.status || 'eligible'));
+    // Normalize legacy status values: fired/ineligible→meme, active→eligible
+    const normalizedStatus = (p.status === 'fired' || p.status === 'ineligible') ? 'meme' : (p.status === 'active' ? 'eligible' : (p.status || 'eligible'));
     document.getElementById('pf-status').value = normalizedStatus;
     document.getElementById('pf-prompt').value = p.prompt || '';
   }
