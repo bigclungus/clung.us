@@ -1406,6 +1406,7 @@
       border-collapse: separate;
       border-spacing: 0;
       white-space: nowrap;
+      margin-right: 40vw;
     }
     table.matrix th,
     table.matrix td {
@@ -1424,6 +1425,7 @@
       min-width: 180px;
       max-width: 180px;
       font-size: 11px;
+      border-right: 2px solid #555;
     }
     table.matrix th.stats-header,
     table.matrix td.stats-cell {
@@ -1437,6 +1439,10 @@
     }
     table.matrix td.stats-cell {
       font-variant-numeric: tabular-nums;
+    }
+    table.matrix th.stats-header.stats-last,
+    table.matrix td.stats-cell.stats-last {
+      border-right: 2px solid #555;
     }
     table.matrix thead th {
       position: sticky;
@@ -1467,12 +1473,12 @@
       outline: 2px solid var(--teal);
       outline-offset: -2px;
     }
-    .cell-participated { color: #666; }
+    .cell-participated { color: #888; }
     .cell-agree { color: var(--teal); }
     .cell-disagree { color: #e94560; }
-    .cell-evolved { color: #f59e0b; }
-    .cell-fired { color: #e94560; font-weight: 700; }
-    .cell-created { color: #60a5fa; }
+    table.matrix td.cell-evo-evolved { background: rgba(245, 158, 11, 0.18) !important; }
+    table.matrix td.cell-evo-fired { background: rgba(233, 69, 96, 0.22) !important; }
+    table.matrix td.cell-evo-created { background: rgba(96, 165, 250, 0.20) !important; }
 
     table.matrix thead th a {
       color: var(--text-muted);
@@ -1481,8 +1487,14 @@
     table.matrix thead th a:hover {
       color: var(--teal);
     }
+    table.matrix tbody tr:nth-child(even) td { background: var(--bg); }
+    table.matrix tbody tr:nth-child(odd) td { background: color-mix(in srgb, var(--bg), var(--panel-bg) 40%); }
+    table.matrix tbody tr:nth-child(even) td.persona-cell,
+    table.matrix tbody tr:nth-child(even) td.stats-cell { background: var(--bg); }
+    table.matrix tbody tr:nth-child(odd) td.persona-cell,
+    table.matrix tbody tr:nth-child(odd) td.stats-cell { background: color-mix(in srgb, var(--bg), var(--panel-bg) 40%); }
     table.matrix tr.summary-row td {
-      background: var(--panel-bg);
+      background: var(--panel-bg) !important;
       font-size: 9px;
       color: var(--text-muted);
       font-weight: 700;
@@ -1978,12 +1990,13 @@
     <!-- Matrix tab -->
     <div id="matrixTab">
       <div class="matrix-legend">
+        <div class="legend-item"><span class="legend-symbol cell-agree">&#x2713;</span> agree</div>
+        <div class="legend-item"><span class="legend-symbol cell-disagree">&#x2717;</span> disagree</div>
         <div class="legend-item"><span class="legend-symbol cell-participated">&bull;</span> participated</div>
-        <div class="legend-item"><span class="legend-symbol cell-agree">&uarr;</span> voted agree</div>
-        <div class="legend-item"><span class="legend-symbol cell-disagree">&darr;</span> voted disagree</div>
-        <div class="legend-item"><span class="legend-symbol cell-evolved">&starf;</span> evolved</div>
-        <div class="legend-item"><span class="legend-symbol cell-fired">&times;</span> fired</div>
-        <div class="legend-item"><span class="legend-symbol cell-created">+</span> created</div>
+        <span style="border-left:1px solid var(--panel-border);margin:0 4px;"></span>
+        <div class="legend-item"><span class="legend-symbol cell-evo-evolved" style="border:1px solid var(--panel-border);">&nbsp;</span> evolved</div>
+        <div class="legend-item"><span class="legend-symbol cell-evo-fired" style="border:1px solid var(--panel-border);">&nbsp;</span> fired</div>
+        <div class="legend-item"><span class="legend-symbol cell-evo-created" style="border:1px solid var(--panel-border);">&nbsp;</span> created</div>
       </div>
       <div id="matrixLoading" style="display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text-muted);font-size:13px;">
         <span style="display:inline-block;width:16px;height:16px;border:2px solid var(--card-border);border-top-color:var(--teal);border-radius:50%;animation:mtxspin 0.8s linear infinite;margin-right:10px;"></span> Loading matrix data...
@@ -3726,23 +3739,23 @@
 
     function cellSymbol(cell) {
       if (!cell) return '';
-      if (cell.evolution === 'fired') return '\u00d7';
-      if (cell.evolution === 'created') return '+';
-      if (cell.evolution === 'evolved') return '\u2605';
-      if (cell.vote === 'agree') return '\u2191';
-      if (cell.vote === 'disagree') return '\u2193';
+      if (cell.vote === 'agree') return '\u2713';
+      if (cell.vote === 'disagree') return '\u2717';
       if (cell.participated) return '\u2022';
       return '';
     }
     function cellClass(cell) {
       if (!cell) return '';
-      if (cell.evolution === 'fired') return 'cell-fired';
-      if (cell.evolution === 'created') return 'cell-created';
-      if (cell.evolution === 'evolved') return 'cell-evolved';
-      if (cell.vote === 'agree') return 'cell-agree';
-      if (cell.vote === 'disagree') return 'cell-disagree';
-      if (cell.participated) return 'cell-participated';
-      return '';
+      var classes = [];
+      // vote color
+      if (cell.vote === 'agree') classes.push('cell-agree');
+      else if (cell.vote === 'disagree') classes.push('cell-disagree');
+      else if (cell.participated) classes.push('cell-participated');
+      // evolution background
+      if (cell.evolution === 'evolved') classes.push('cell-evo-evolved');
+      else if (cell.evolution === 'fired') classes.push('cell-evo-fired');
+      else if (cell.evolution === 'created') classes.push('cell-evo-created');
+      return classes.join(' ');
     }
     function escHtml(s) {
       var d = document.createElement('div');
@@ -3795,7 +3808,7 @@
       var statTitles = ['total sessions', 'times evolved', 'times fired'];
       for (var si = 0; si < statLabels.length; si++) {
         var thStat = document.createElement('th');
-        thStat.className = 'stats-header';
+        thStat.className = 'stats-header' + (si === statLabels.length - 1 ? ' stats-last' : '');
         thStat.textContent = statLabels[si];
         thStat.title = statTitles[si];
         thStat.style.left = (statsLeftBase + si * 40) + 'px';
@@ -3825,7 +3838,7 @@
       summaryRow.appendChild(summTd);
       for (var si2 = 0; si2 < 3; si2++) {
         var sTd = document.createElement('td');
-        sTd.className = 'stats-cell';
+        sTd.className = 'stats-cell' + (si2 === 2 ? ' stats-last' : '');
         sTd.style.left = (statsLeftBase + si2 * 40) + 'px';
         summaryRow.appendChild(sTd);
       }
@@ -3851,7 +3864,7 @@
         var statsVals = [persona.total_sessions, persona.times_evolved, persona.times_fired];
         for (var si3 = 0; si3 < statsVals.length; si3++) {
           var statTd = document.createElement('td');
-          statTd.className = 'stats-cell';
+          statTd.className = 'stats-cell' + (si3 === statsVals.length - 1 ? ' stats-last' : '');
           statTd.style.left = (statsLeftBase + si3 * 40) + 'px';
           statTd.textContent = statsVals[si3] || '';
           if (si3 === 1 && statsVals[si3] > 0) statTd.style.color = 'var(--gold, #f59e0b)';

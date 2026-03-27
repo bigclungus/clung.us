@@ -3,8 +3,6 @@
 ## Unreleased
 
 ### Bug Fixes
-- fix(grazing): correct SERVER_TILE from 32 to 20 — NPCs now render at correct tile positions matching server walkability
-
 - move tasks API to /api/tasks so /tasks serves tasks.html
 
 - update 404 page to use shared sitenav
@@ -148,6 +146,12 @@
 - correct congress-0069 vote tally — Holden Bloodfeast voted YES (3/5 agreed)
 
 - warthog polish — hide player avatar when mounted, flip sprite, 10x speed
+
+- correct SERVER_TILE constant from 32 to 20
+
+- redraw tree/rock tiles after player glow to fix texture corruption
+
+- warthog sprite flip direction inverted (fixes #77)
 
 
 ### Changes
@@ -431,6 +435,14 @@
 
 - Fix sitenav: position fixed, full width, dynamic body padding-top
 
+- remove dead SERVER_TILE constant and no-op coordinate conversion
+
+- obliterate emoji polls — remove emoji-* poll UI entirely
+
+- extract drawTreeRockTile helper, remove 3x duplicated tree/rock draw logic
+
+- Add congress participation matrix page
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
@@ -582,6 +594,8 @@
 - add labs.clung.us to site nav
 
 - update nav commons link to /commons-v2/
+
+- integrate participation matrix as third tab in congress page
 
 
 ### Refactoring
