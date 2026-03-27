@@ -163,6 +163,8 @@
 
 - use American English spelling across HTML files
 
+- bump sitenav.js/css cache-bust param so timeline link appears
+
 
 ### Changes
 - add /tasks endpoint and tasks.html dashboard
@@ -622,6 +624,8 @@
 - color matrix columns by congress type and failed status
 
 - add timeline page at clung.us/timeline
+
+- make timeline responsive with vertical layout on mobile
 
 
 ### Refactoring
