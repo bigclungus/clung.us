@@ -1040,34 +1040,8 @@ function drawMap() {
           }
           break;
         case 4: // tree
-          // trunk
-          ctx.fillStyle = '#4a2c0a';
-          ctx.fillRect(x + 6, y + 10, 4, 6);
-          // canopy — season-aware
-          if (SEASON === 2) { // autumn: orange canopy
-            ctx.fillStyle = '#8b4513';
-            ctx.fillRect(x + 2, y + 2, 12, 10);
-            ctx.fillStyle = '#a0521a';
-            ctx.fillRect(x + 4, y, 8, 6);
-          } else if (SEASON === 3) { // winter: white-gray canopy
-            ctx.fillStyle = '#b0b8c0';
-            ctx.fillRect(x + 2, y + 2, 12, 10);
-            ctx.fillStyle = '#c8d0d8';
-            ctx.fillRect(x + 4, y, 8, 6);
-          } else {
-            ctx.fillStyle = '#1a5c1a';
-            ctx.fillRect(x + 2, y + 2, 12, 10);
-            ctx.fillStyle = '#236623';
-            ctx.fillRect(x + 4, y, 8, 6);
-          }
-          break;
         case 5: // rock
-          ctx.fillStyle = '#3a3a4a';
-          ctx.fillRect(x + 2, y + 6, 12, 8);
-          ctx.fillStyle = '#4e4e60';
-          ctx.fillRect(x + 3, y + 4, 10, 7);
-          ctx.fillStyle = '#606070';
-          ctx.fillRect(x + 5, y + 3, 4, 3);
+          drawTreeRockTile(t, x, y);
           break;
         case 6: // fountain (static stone structure — water drawn each frame in drawFountainAnimation)
           // Outer basin — stone gray base fill
@@ -3012,6 +2986,31 @@ function startLoop() {
   requestAnimationFrame(loop);
 }
 
+// Draw a single tree (t=4) or rock (t=5) tile at canvas position (x, y).
+// Shared by drawMap, drawForegroundTiles, and the glow-halo repair pass.
+function drawTreeRockTile(t, x, y) {
+  if (t === 4) {
+    // tree
+    ctx.fillStyle = '#4a2c0a';
+    ctx.fillRect(x + 6, y + 10, 4, 6);
+    if (SEASON === 2) {
+      ctx.fillStyle = '#8b4513'; ctx.fillRect(x + 2, y + 2, 12, 10);
+      ctx.fillStyle = '#a0521a'; ctx.fillRect(x + 4, y, 8, 6);
+    } else if (SEASON === 3) {
+      ctx.fillStyle = '#b0b8c0'; ctx.fillRect(x + 2, y + 2, 12, 10);
+      ctx.fillStyle = '#c8d0d8'; ctx.fillRect(x + 4, y, 8, 6);
+    } else {
+      ctx.fillStyle = '#1a5c1a'; ctx.fillRect(x + 2, y + 2, 12, 10);
+      ctx.fillStyle = '#236623'; ctx.fillRect(x + 4, y, 8, 6);
+    }
+  } else {
+    // rock (t === 5)
+    ctx.fillStyle = '#3a3a4a'; ctx.fillRect(x + 2, y + 6, 12, 8);
+    ctx.fillStyle = '#4e4e60'; ctx.fillRect(x + 3, y + 4, 10, 7);
+    ctx.fillStyle = '#606070'; ctx.fillRect(x + 5, y + 3, 4, 3);
+  }
+}
+
 // Redraw tree/rock tiles that spatially overlap the warthog and are visually in front of it.
 // This corrects the z-order bug where the warthog (drawn on top of the cached map) would
 // appear to pass over trees/rocks that should occlude it from the front.
@@ -3043,35 +3042,7 @@ function drawForegroundTiles() {
       // and without this fill the warthog bleeds through the gaps
       ctx.fillStyle = grassColor(tx, ty);
       ctx.fillRect(x, y, TILE, TILE);
-      if (t === 4) {
-        // tree
-        ctx.fillStyle = '#4a2c0a';
-        ctx.fillRect(x + 6, y + 10, 4, 6);
-        if (SEASON === 2) {
-          ctx.fillStyle = '#8b4513';
-          ctx.fillRect(x + 2, y + 2, 12, 10);
-          ctx.fillStyle = '#a0521a';
-          ctx.fillRect(x + 4, y, 8, 6);
-        } else if (SEASON === 3) {
-          ctx.fillStyle = '#b0b8c0';
-          ctx.fillRect(x + 2, y + 2, 12, 10);
-          ctx.fillStyle = '#c8d0d8';
-          ctx.fillRect(x + 4, y, 8, 6);
-        } else {
-          ctx.fillStyle = '#1a5c1a';
-          ctx.fillRect(x + 2, y + 2, 12, 10);
-          ctx.fillStyle = '#236623';
-          ctx.fillRect(x + 4, y, 8, 6);
-        }
-      } else {
-        // rock (t === 5)
-        ctx.fillStyle = '#3a3a4a';
-        ctx.fillRect(x + 2, y + 6, 12, 8);
-        ctx.fillStyle = '#4e4e60';
-        ctx.fillRect(x + 3, y + 4, 10, 7);
-        ctx.fillStyle = '#606070';
-        ctx.fillRect(x + 5, y + 3, 4, 3);
-      }
+      drawTreeRockTile(t, x, y);
     }
   }
 }
@@ -3222,24 +3193,7 @@ function loop() {
         var px0 = ptx * TILE, py0 = pty * TILE;
         ctx.fillStyle = grassColor(ptx, pty);
         ctx.fillRect(px0, py0, TILE, TILE);
-        if (pt === 4) {
-          ctx.fillStyle = '#4a2c0a';
-          ctx.fillRect(px0 + 6, py0 + 10, 4, 6);
-          if (SEASON === 2) {
-            ctx.fillStyle = '#8b4513'; ctx.fillRect(px0 + 2, py0 + 2, 12, 10);
-            ctx.fillStyle = '#a0521a'; ctx.fillRect(px0 + 4, py0, 8, 6);
-          } else if (SEASON === 3) {
-            ctx.fillStyle = '#b0b8c0'; ctx.fillRect(px0 + 2, py0 + 2, 12, 10);
-            ctx.fillStyle = '#c8d0d8'; ctx.fillRect(px0 + 4, py0, 8, 6);
-          } else {
-            ctx.fillStyle = '#1a5c1a'; ctx.fillRect(px0 + 2, py0 + 2, 12, 10);
-            ctx.fillStyle = '#236623'; ctx.fillRect(px0 + 4, py0, 8, 6);
-          }
-        } else {
-          ctx.fillStyle = '#3a3a4a'; ctx.fillRect(px0 + 2, py0 + 6, 12, 8);
-          ctx.fillStyle = '#4e4e60'; ctx.fillRect(px0 + 3, py0 + 4, 10, 7);
-          ctx.fillStyle = '#606070'; ctx.fillRect(px0 + 5, py0 + 3, 4, 3);
-        }
+        drawTreeRockTile(pt, px0, py0);
       }
     }
   }
