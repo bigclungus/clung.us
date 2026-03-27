@@ -1125,9 +1125,7 @@
       btn.id = btnPrefix + v;
       btn.className = 'vote-btn';
       btn.textContent = 'Vote ' + v;
-      btn.onclick = (function(pid, opt) {
-        return function() { castVote(pid, opt); };
-      })(poll_id, v);
+      btn.onclick = () => castVote(poll_id, v);
 
       const countEl = document.createElement('div');
       countEl.id = countPrefix + v;
@@ -1217,9 +1215,7 @@
       btn.id = btnPrefix + v;
       btn.className = 'vote-btn';
       btn.textContent = 'Vote ' + v;
-      btn.onclick = (function(pid, opt) {
-        return function() { castVote(pid, opt); };
-      })(poll_id, v);
+      btn.onclick = () => castVote(poll_id, v);
 
       const countEl = document.createElement('div');
       countEl.id = countPrefix + v;
@@ -1292,9 +1288,7 @@
       btn.id = btnPrefix + v;
       btn.className = 'vote-btn';
       btn.textContent = 'Vote ' + v;
-      btn.onclick = (function(pid, opt) {
-        return function() { castVote(pid, opt); };
-      })(poll_id, v);
+      btn.onclick = () => castVote(poll_id, v);
 
       const countEl = document.createElement('div');
       countEl.id = countPrefix + v;
@@ -1375,9 +1369,7 @@
       btn.id = btnPrefix + v;
       btn.className = 'vote-btn';
       btn.textContent = 'Vote ' + v;
-      btn.onclick = (function(pid, opt) {
-        return function() { castVote(pid, opt); };
-      })(poll_id, v);
+      btn.onclick = () => castVote(poll_id, v);
 
       const countEl = document.createElement('div');
       countEl.id = countPrefix + v;
