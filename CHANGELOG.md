@@ -3,6 +3,8 @@
 ## Unreleased
 
 ### Bug Fixes
+- fix(grazing): correct SERVER_TILE from 32 to 20 — NPCs now render at correct tile positions matching server walkability
+
 - move tasks API to /api/tasks so /tasks serves tasks.html
 
 - update 404 page to use shared sitenav
@@ -93,6 +95,60 @@
 
 - declare missing MOVE_INTERVAL and lastMoveFrame variables
 
+- congress active stale check, smooth player movement, congress modal, add voting nav link
+
+- fetch GitHub identity via /api/me instead of reading HttpOnly cookie
+
+- WASD modal block, blur key clear, ghost avatar, fountain position, canvas 1000x700 tile 20
+
+- WASD broken — modal check used inline style vs CSS class, use congressModalOpen flag
+
+- render Galactus sprite at 2x scale on refinery vote page and grazing canvas
+
+- sprite winner fetch wrong endpoint, scale sprites 1.5x, NPC WASD fixes
+
+- scale NPC sprites at 1.25x (was 1.5x, too large)
+
+- sprites at native scale (1.0x, no transform)
+
+- refinery page title
+
+- map edge transition, speech modal redesign, fountain winner
+
+- NPC speech modal layout — portrait and dialog side by side
+
+- audition fetch via same-origin proxy
+
+- don't intercept keys when textarea/input is focused
+
+- remote player lerp, NPC first-sync snap, tabbed-out grey
+
+- warthog hop animates whole vehicle
+
+- tooltip sticking and glow bleeding in grazing.html
+
+- warthog z-order — redraw foreground trees/rocks over warthog
+
+- tasks page oscillating count when filter pill clicked
+
+- warthog foreground tile redraw — correct z-order
+
+- clear warthog ghost — redraw map under warthog each frame
+
+- remove redundant grass fill from drawForegroundTiles — clearRect handles clearing
+
+- hide audition walker card on mouseleave and add per-frame staleness check
+
+- hide ghost audition walker tooltips and increase walker speed
+
+- restore grass fill in drawForegroundTiles — needed for transparent tile compositing
+
+- NPC coordinate scale mismatch and congress building entry
+
+- correct congress-0069 vote tally — Holden Bloodfeast voted YES (3/5 agreed)
+
+- warthog polish — hide player avatar when mounted, flip sprite, 10x speed
+
 
 ### Changes
 - add /tasks endpoint and tasks.html dashboard
@@ -110,6 +166,8 @@
 - remove serve.py.archived — history preserved in git
 
 - remove old python server remnants
+
+- add persona sprite vote section to commons-vote.html
 
 
 ### Chores
@@ -337,6 +395,42 @@
 
 - deduplicate LETTERS_CONGRESS pixel font array in commons-vote.html
 
+- commons-vote → refinery voting page
+
+- regenerate the-kid A/B/C variants after 3-way tie
+
+- hop animation, facing direction, server NPC sync, dual-avatar fix
+
+- remove dead warthog.speed property (WARTHOG_SPEED constant used instead)
+
+- extract WARTHOG_BOARD_DIST constant, remove dead vars in warthog code
+
+- extract DIAGONAL_NORM constant, remove duplicate Math.sqrt(2) calls
+
+- update stale npc_update comments to reference tick protocol
+
+- remove debug console.log from audition keep handler
+
+- guard lastMouseCanvas null-dereference in per-frame audition staleness check
+
+- add Emoji Reactions section for emoji-* polls
+
+- make poll loading fully data-driven from /api/polls
+
+- remove unused index param from buildSpriteCard forEach callbacks
+
+- Congress #71: Airbnb Truckee split verdict
+
+- replace redundant IIFE closures with arrow functions in poll card builders
+
+- Add Hasan Piker avatar (streaming socialist persona)
+
+- Rename ineligible → meme in UI and personas DB
+
+- fix duplicate meme personas in grazing and duplicate select option in congress
+
+- Fix sitenav: position fixed, full width, dynamic body padding-top
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
@@ -390,6 +484,8 @@
 - larger portraits for center debate seats
 
 - congress reform: add chairman.gif avatar
+
+- mark false-positive session #68 as done/terminated
 
 
 ### Features
@@ -462,6 +558,30 @@
 - commons — tiered roman fountain (vote winner)
 
 - use GitHub username as player name when tauth_github cookie is present
+
+- wire sprite vote winners into grazing NPC drawing
+
+- add Chaz the Destroyer avatar
+
+- regenerate Bloodfeast sprites — blob in wheelchair with oxygen tank (3 variants)
+
+- scale NPC sprites 1.5x for better visibility
+
+- in-session flag on congress building, fix refinery sprite section
+
+- refinery layout — active votes top, concluded collapsed at bottom
+
+- procedural infinite map chunks
+
+- persona audition walkers in commons
+
+- Warthog vehicle (4 seats, multiplayer boarding)
+
+- Phase 3 — connect grazing.html to commons-server WS
+
+- add labs.clung.us to site nav
+
+- update nav commons link to /commons-v2/
 
 
 ### Refactoring

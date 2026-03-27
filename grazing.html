@@ -2853,9 +2853,9 @@ function connectCommonsWs() {
       }
 
       // --- NPCs (delta: only present when changed) ---
-      // Server NPC positions are in pixel space with TILE_SIZE=32; client uses TILE=20.
-      // Convert: server_px / 32 * 20
-      var SERVER_TILE = 32;
+      // Server NPC positions are in pixel space with TILE_SIZE=20; client uses TILE=20.
+      // No conversion needed — server and client share the same pixel coordinate space.
+      var SERVER_TILE = 20;
       if (msg.npcs && npcs.length > 0) {
         for (var ni = 0; ni < msg.npcs.length; ni++) {
           var npcData = msg.npcs[ni];
