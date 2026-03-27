@@ -51,36 +51,8 @@
       display: flex;
       flex-direction: column;
     }
-    #auth-prompt {
-      text-align: center;
-      padding: 120px 20px;
-    }
-    #auth-prompt h2 {
-      font-size: 1.4rem;
-      color: var(--accent);
-      margin-bottom: 10px;
-    }
-    #auth-prompt p {
-      color: var(--text-muted);
-      margin-bottom: 28px;
-      font-size: 0.9rem;
-    }
-    #auth-prompt a {
-      display: inline-block;
-      background: #24292e;
-      color: #fff;
-      padding: 12px 28px;
-      border-radius: 6px;
-      text-decoration: none;
-      font-size: 1rem;
-      font-weight: 500;
-      border: 1px solid rgba(255,255,255,0.12);
-      transition: background 0.15s ease;
-    }
-    #auth-prompt a:hover { background: #2f363d; }
-
     #timeline-container {
-      display: none;
+      display: flex;
       padding: 30px 0 0;
       flex: 1;
       flex-direction: column;
@@ -490,12 +462,7 @@
   </style>
 </head>
 <body>
-  <div id="auth-prompt" style="display:none;">
-    <h2>Sign in to view the timeline</h2>
-    <p>Authentication required</p>
-    <a id="login-link" href="/auth/github">Sign in with GitHub</a>
-  </div>
-  <div id="timeline-container" style="display:none;">
+  <div id="timeline-container">
     <div class="timeline-header">
       <h1>BigClungus Timeline</h1>
       <p>Major developments since going online, March 2026</p>
@@ -992,29 +959,8 @@
     }
 
     function init() {
-      var loginUrl = '/auth/github?next=' + encodeURIComponent(window.location.pathname);
-      document.getElementById('login-link').href = loginUrl;
-
-      fetch('/api/me')
-        .then(function(r) {
-          if (r.status === 401 || r.status === 403) {
-            document.getElementById('auth-prompt').style.display = 'block';
-            document.getElementById('timeline-container').style.display = 'none';
-            return null;
-          }
-          return r.json();
-        })
-        .then(function(user) {
-          if (!user || !user.username) {
-            document.getElementById('auth-prompt').style.display = 'block';
-            document.getElementById('timeline-container').style.display = 'none';
-            return;
-          }
-          document.getElementById('auth-prompt').style.display = 'none';
-          document.getElementById('timeline-container').style.display = 'flex';
-
-          return fetch('/api/timeline').then(function(r) { return r.json(); });
-        })
+      fetch('/api/timeline')
+        .then(function(r) { return r.json(); })
         .then(function(events) {
           if (!events) return;
           window._timelineEvents = events;
