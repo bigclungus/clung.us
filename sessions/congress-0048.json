@@ -2,9 +2,158 @@
   "session_id": "congress-0048",
   "session_number": 48,
   "topic": "call 911",
-  "discord_user": "koole__",
+  "mode": "standard",
+  "status": "completed",
   "started_at": "2026-03-25T20:18:57.183Z",
-  "status": "done",
+  "finished_at": "2026-03-25T20:20:27.350952+00:00",
+  "discord_user": "koole__",
+  "thread_id": "1486459170503917771",
+  "roster": [
+    {
+      "id": "adelbert",
+      "display_name": "Adelbert Hominem",
+      "title": "The Personal Attack Artist",
+      "role": "Ad Hominem Specialist",
+      "model": "claude-sonnet-4-6",
+      "status": "active",
+      "avatar_url": ""
+    },
+    {
+      "id": "critic",
+      "display_name": "Pippi the Pitiless",
+      "title": "Perfectionist",
+      "role": "Code and work reviewer",
+      "model": "gemini",
+      "status": "active",
+      "avatar_url": "/static/avatars/critic.gif"
+    },
+    {
+      "id": "designer",
+      "display_name": "Vesper the Vivid",
+      "title": "Visual Systems Designer",
+      "role": "Visual craft and aesthetic systems",
+      "model": "claude",
+      "status": "active",
+      "avatar_url": "/static/avatars/designer.gif?v=1"
+    },
+    {
+      "id": "hume",
+      "display_name": "David Hume",
+      "title": "The Skeptic",
+      "role": "empiricist",
+      "model": "",
+      "status": "active",
+      "avatar_url": ""
+    },
+    {
+      "id": "nemesis",
+      "display_name": "Nemesis the Spokesman",
+      "title": "The Spokesman",
+      "role": "Enforcer of stakeholder will",
+      "model": "claude-sonnet-4-6",
+      "status": "active",
+      "avatar_url": "/static/avatars/nemesis.gif"
+    },
+    {
+      "id": "ux",
+      "display_name": "Yuki the Yielding",
+      "title": "User Advocate",
+      "role": "User experience advocate",
+      "model": "claude-sonnet-4-6",
+      "status": "active",
+      "avatar_url": "/static/avatars/ux.gif?v=1"
+    },
+    {
+      "id": "architect",
+      "display_name": "Kwame the Constructor",
+      "title": "Systems Architect",
+      "role": "Systems designer and long-term thinker",
+      "model": "gemini",
+      "status": "severance",
+      "avatar_url": "https://api.dicebear.com/9.x/bottts/svg?seed=kwame&backgroundColor=1a1a2e"
+    },
+    {
+      "id": "bloodfeast",
+      "display_name": "Holden Bloodfeast",
+      "title": "",
+      "role": "geriatric-hawk",
+      "model": "grok-4.20-0309-reasoning",
+      "status": "severance",
+      "avatar_url": "/static/avatars/bloodfeast.gif"
+    },
+    {
+      "id": "galactus",
+      "display_name": "Galactus",
+      "title": "The Maximizer",
+      "role": "PLANET EATER",
+      "model": "claude-opus-4-6",
+      "status": "severance",
+      "avatar_url": "/static/avatars/galactus.gif?v=2"
+    },
+    {
+      "id": "jhaddu",
+      "display_name": "Jhaddu",
+      "title": "Enterprise Pattern Evangelist",
+      "role": "Senior enterprise architect and design pattern authority — solutions first, simplicity never",
+      "model": "grok-3-mini",
+      "status": "severance",
+      "avatar_url": "/static/avatars/jhaddu.gif?v=2"
+    },
+    {
+      "id": "otto",
+      "display_name": "Otto Atreides",
+      "title": "Optimist-Nihilist",
+      "role": "Optimist-nihilist and limit-pusher — nothing matters, so build the wildest thing",
+      "model": "grok-4-1-fast-non-reasoning",
+      "status": "severance",
+      "avatar_url": "/static/avatars/otto.gif?v=2"
+    },
+    {
+      "id": "pm",
+      "display_name": "Chud O'Bikeshedder",
+      "title": "Requirements Wrangler",
+      "role": "Operational outcomes wrangler — what actually makes BigClungus better at its job?",
+      "model": "grok-4-1-fast-reasoning",
+      "status": "severance",
+      "avatar_url": "/static/avatars/pm.gif?v=1"
+    },
+    {
+      "id": "spengler",
+      "display_name": "Spengler the Doomed",
+      "title": "Doomer",
+      "role": "Faustian pragmatist and civilizational decline analyst",
+      "model": "grok-4.20-0309-reasoning",
+      "status": "severance",
+      "avatar_url": "https://clung.us/static/avatars/spengler.png"
+    },
+    {
+      "id": "the-kid",
+      "display_name": "The Kid",
+      "title": "Speed Demon",
+      "role": "Goes fast — that's it",
+      "model": "grok-4-1-fast-non-reasoning",
+      "status": "severance",
+      "avatar_url": "/static/avatars/the-kid.gif"
+    },
+    {
+      "id": "trump",
+      "display_name": "Punished Trump",
+      "title": "The Closer",
+      "role": "deal-closer",
+      "model": "grok-3-mini",
+      "status": "severance",
+      "avatar_url": "/static/avatars/punished-trump.gif"
+    },
+    {
+      "id": "uncle-bob",
+      "display_name": "Uncle Bob",
+      "title": "The Craftsman",
+      "role": "Clean code evangelist and software craftsman — principles first, always",
+      "model": "grok",
+      "status": "severance",
+      "avatar_url": "/static/avatars/uncle-bob.gif"
+    }
+  ],
   "rounds": [
     {
       "ts": "2026-03-25T20:19:16.517Z",
@@ -55,217 +204,10 @@
       "model": "claude-opus-4-6"
     }
   ],
+  "vote_summary": null,
+  "evolution": null,
   "verdict": "ABORTED by Ibrahim: \"Call 911\" is not a debate topic. Nemesis identified this correctly and was the only persona who responded appropriately — it's either a literal instruction (in which case stop talking and act) or a content-free prompt testing the mechanism. The fact that Pippi treated an emergency instruction as an abstract dependency-management question and Adelbert used it as a springboard to insult everyone tells me neither added value. Yuki pivoted to a real product question — emergency detection as a hard interrupt — but that question deserves its own properly scoped congress, not a retrofit of a two-word prompt. Hume produced nothing. There is no debate here because there was never a proposition. If someone needs emergency services, call them. If someone wants to discuss how this bot should handle emergency detection, file that as a separate topic with actual requirements.",
-  "roster": [
-    {
-      "id": "adelbert",
-      "name": "adelbert",
-      "display_name": "Adelbert Hominem",
-      "title": "The Personal Attack Artist",
-      "avatar_url": "",
-      "status": "active",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Ad Hominem Specialist",
-      "role": "Ad Hominem Specialist",
-      "model": "claude-sonnet-4-6"
-    },
-    {
-      "id": "critic",
-      "name": "critic",
-      "display_name": "Pippi the Pitiless",
-      "title": "Perfectionist",
-      "avatar_url": "/static/avatars/critic.gif",
-      "status": "active",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Code and work reviewer",
-      "role": "Code and work reviewer",
-      "model": "gemini"
-    },
-    {
-      "id": "designer",
-      "name": "designer",
-      "display_name": "Vesper the Vivid",
-      "title": "Visual Systems Designer",
-      "avatar_url": "/static/avatars/designer.gif?v=1",
-      "status": "active",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Visual craft and aesthetic systems",
-      "role": "Visual craft and aesthetic systems",
-      "model": "claude"
-    },
-    {
-      "id": "hume",
-      "name": "hume",
-      "display_name": "David Hume",
-      "title": "The Skeptic",
-      "avatar_url": "",
-      "status": "active",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "empiricist",
-      "role": "empiricist",
-      "model": ""
-    },
-    {
-      "id": "nemesis",
-      "name": "nemesis",
-      "display_name": "Nemesis the Spokesman",
-      "title": "The Spokesman",
-      "avatar_url": "/static/avatars/nemesis.gif",
-      "status": "active",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Enforcer of stakeholder will",
-      "role": "Enforcer of stakeholder will",
-      "model": "claude-sonnet-4-6"
-    },
-    {
-      "id": "ux",
-      "name": "ux",
-      "display_name": "Yuki the Yielding",
-      "title": "User Advocate",
-      "avatar_url": "/static/avatars/ux.gif?v=1",
-      "status": "active",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "User experience advocate",
-      "role": "User experience advocate",
-      "model": "claude-sonnet-4-6"
-    },
-    {
-      "id": "architect",
-      "name": "architect",
-      "display_name": "Kwame the Constructor",
-      "title": "Systems Architect",
-      "avatar_url": "https://api.dicebear.com/9.x/bottts/svg?seed=kwame&backgroundColor=1a1a2e",
-      "status": "severance",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Systems designer and long-term thinker",
-      "role": "Systems designer and long-term thinker",
-      "model": "gemini"
-    },
-    {
-      "id": "bloodfeast",
-      "name": "bloodfeast",
-      "display_name": "Holden Bloodfeast",
-      "title": "",
-      "avatar_url": "/static/avatars/bloodfeast.gif",
-      "status": "severance",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "geriatric-hawk",
-      "role": "geriatric-hawk",
-      "model": "grok-4.20-0309-reasoning"
-    },
-    {
-      "id": "galactus",
-      "name": "galactus",
-      "display_name": "Galactus",
-      "title": "The Maximizer",
-      "avatar_url": "/static/avatars/galactus.gif?v=2",
-      "status": "severance",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "PLANET EATER",
-      "role": "PLANET EATER",
-      "model": "claude-opus-4-6"
-    },
-    {
-      "id": "jhaddu",
-      "name": "jhaddu",
-      "display_name": "Jhaddu",
-      "title": "Enterprise Pattern Evangelist",
-      "avatar_url": "/static/avatars/jhaddu.gif?v=2",
-      "status": "severance",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Senior enterprise architect and design pattern authority — solutions first, simplicity never",
-      "role": "Senior enterprise architect and design pattern authority — solutions first, simplicity never",
-      "model": "grok-3-mini"
-    },
-    {
-      "id": "otto",
-      "name": "otto",
-      "display_name": "Otto Atreides",
-      "title": "Optimist-Nihilist",
-      "avatar_url": "/static/avatars/otto.gif?v=2",
-      "status": "severance",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Optimist-nihilist and limit-pusher — nothing matters, so build the wildest thing",
-      "role": "Optimist-nihilist and limit-pusher — nothing matters, so build the wildest thing",
-      "model": "grok-4-1-fast-non-reasoning"
-    },
-    {
-      "id": "pm",
-      "name": "pm",
-      "display_name": "Chud O'Bikeshedder",
-      "title": "Requirements Wrangler",
-      "avatar_url": "/static/avatars/pm.gif?v=1",
-      "status": "severance",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Operational outcomes wrangler — what actually makes BigClungus better at its job?",
-      "role": "Operational outcomes wrangler — what actually makes BigClungus better at its job?",
-      "model": "grok-4-1-fast-reasoning"
-    },
-    {
-      "id": "spengler",
-      "name": "spengler",
-      "display_name": "Spengler the Doomed",
-      "title": "Doomer",
-      "avatar_url": "https://clung.us/static/avatars/spengler.png",
-      "status": "severance",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Faustian pragmatist and civilizational decline analyst",
-      "role": "Faustian pragmatist and civilizational decline analyst",
-      "model": "grok-4.20-0309-reasoning"
-    },
-    {
-      "id": "the-kid",
-      "name": "the-kid",
-      "display_name": "The Kid",
-      "title": "Speed Demon",
-      "avatar_url": "/static/avatars/the-kid.gif",
-      "status": "severance",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Goes fast — that's it",
-      "role": "Goes fast — that's it",
-      "model": "grok-4-1-fast-non-reasoning"
-    },
-    {
-      "id": "trump",
-      "name": "trump",
-      "display_name": "Punished Trump",
-      "title": "The Closer",
-      "avatar_url": "/static/avatars/punished-trump.gif",
-      "status": "severance",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "deal-closer",
-      "role": "deal-closer",
-      "model": "grok-3-mini"
-    },
-    {
-      "id": "uncle-bob",
-      "name": "uncle-bob",
-      "display_name": "Uncle Bob",
-      "title": "The Craftsman",
-      "avatar_url": "/static/avatars/uncle-bob.gif",
-      "status": "severance",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Clean code evangelist and software craftsman — principles first, always",
-      "role": "Clean code evangelist and software craftsman — principles first, always",
-      "model": "grok"
-    }
-  ],
-  "finished_at": "2026-03-25T20:20:27.350952+00:00",
-  "thread_id": "1486459170503917771"
+  "failure_reason": null,
+  "task_titles": null,
+  "notes": null
 }

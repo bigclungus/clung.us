@@ -2,9 +2,176 @@
   "session_id": "congress-0073",
   "session_number": 73,
   "topic": "impeach punished trump for crimes against humor",
-  "discord_user": "kubariet",
+  "mode": "standard",
+  "status": "completed",
   "started_at": "2026-03-27T01:47:53.660Z",
-  "status": "done",
+  "finished_at": "2026-03-27T01:48:26.070852+00:00",
+  "discord_user": "kubariet",
+  "thread_id": "1486904439209070742",
+  "roster": [
+    {
+      "id": "adelbert",
+      "display_name": "Adelbert Hominem",
+      "title": "The Personal Attack Artist",
+      "role": "Ad Hominem Specialist",
+      "model": "claude-sonnet-4-6",
+      "status": "meme",
+      "avatar_url": ""
+    },
+    {
+      "id": "architect",
+      "display_name": "Kwame the Constructor",
+      "title": "Systems Architect",
+      "role": "Systems Designer and Long-Term Thinker",
+      "model": "claude",
+      "status": "ineligible",
+      "avatar_url": "https://api.dicebear.com/9.x/bottts/svg?seed=kwame&backgroundColor=1a1a2e"
+    },
+    {
+      "id": "bloodfeast",
+      "display_name": "Holden Bloodfeast",
+      "title": "",
+      "role": "Geriatric Hawk",
+      "model": "grok-4.20-0309-reasoning",
+      "status": "eligible",
+      "avatar_url": "/static/avatars/bloodfeast.gif"
+    },
+    {
+      "id": "chaz",
+      "display_name": "Chaz the Destroyer",
+      "title": "The Destroyer",
+      "role": "Anarchist Voice",
+      "model": "claude",
+      "status": "meme",
+      "avatar_url": "/static/avatars/chaz.gif"
+    },
+    {
+      "id": "critic",
+      "display_name": "Pippi the Pitiless",
+      "title": "Perfectionist",
+      "role": "Code and Work Reviewer",
+      "model": "claude",
+      "status": "eligible",
+      "avatar_url": "/static/avatars/critic.gif"
+    },
+    {
+      "id": "designer",
+      "display_name": "Vesper the Vivid",
+      "title": "Visual Systems Designer",
+      "role": "Visual Craft and Aesthetic Systems",
+      "model": "claude",
+      "status": "eligible",
+      "avatar_url": "/static/avatars/designer.gif?v=1"
+    },
+    {
+      "id": "galactus",
+      "display_name": "Galactus",
+      "title": "The Maximizer",
+      "role": "PLANET EATER",
+      "model": "claude-opus-4-6",
+      "status": "eligible",
+      "avatar_url": "/static/avatars/galactus.gif?v=2"
+    },
+    {
+      "id": "hume",
+      "display_name": "David Hume",
+      "title": "The Skeptic",
+      "role": "Empiricist",
+      "model": "",
+      "status": "eligible",
+      "avatar_url": ""
+    },
+    {
+      "id": "jhaddu",
+      "display_name": "Jhaddu",
+      "title": "Enterprise Pattern Evangelist",
+      "role": "Senior Enterprise Architect and Design Pattern Authority",
+      "model": "grok-3-mini",
+      "status": "meme",
+      "avatar_url": "/static/avatars/jhaddu.gif?v=2"
+    },
+    {
+      "id": "morgan",
+      "display_name": "Morgan (they/them)",
+      "title": "Content & Wellness Advocate",
+      "role": "Community Standards and Harm Reduction",
+      "model": "claude-sonnet-4-6",
+      "status": "meme",
+      "avatar_url": "https://clung.us/static/avatars/morgan.gif"
+    },
+    {
+      "id": "otto",
+      "display_name": "Otto Atreides",
+      "title": "Optimist-Nihilist",
+      "role": "Optimist-Nihilist and Limit-Pusher",
+      "model": "grok-4-1-fast-non-reasoning",
+      "status": "ineligible",
+      "avatar_url": "/static/avatars/otto.gif?v=2"
+    },
+    {
+      "id": "pm",
+      "display_name": "Chud O'Bikeshedder",
+      "title": "Requirements Wrangler",
+      "role": "Operational Outcomes Wrangler",
+      "model": "grok-4-1-fast-reasoning",
+      "status": "ineligible",
+      "avatar_url": "/static/avatars/pm.gif?v=1"
+    },
+    {
+      "id": "spengler",
+      "display_name": "Spengler the Doomed",
+      "title": "Doomer",
+      "role": "Faustian Pragmatist and Civilizational Decline Analyst",
+      "model": "grok-4.20-0309-reasoning",
+      "status": "ineligible",
+      "avatar_url": "https://clung.us/static/avatars/spengler.png"
+    },
+    {
+      "id": "the-correspondent",
+      "display_name": "The Correspondent",
+      "title": "The Correspondent",
+      "role": "Originator of Unnamed Things",
+      "model": "claude",
+      "status": "ineligible",
+      "avatar_url": ""
+    },
+    {
+      "id": "the-kid",
+      "display_name": "The Kid",
+      "title": "Speed Demon",
+      "role": "Goes Fast",
+      "model": "grok-4-1-fast-non-reasoning",
+      "status": "ineligible",
+      "avatar_url": "/static/avatars/the-kid.gif"
+    },
+    {
+      "id": "trump",
+      "display_name": "Punished Trump",
+      "title": "The Closer",
+      "role": "Deal-Closer",
+      "model": "grok-3-mini",
+      "status": "eligible",
+      "avatar_url": "/static/avatars/punished-trump.gif"
+    },
+    {
+      "id": "uncle-bob",
+      "display_name": "Uncle Bob",
+      "title": "The Craftsman",
+      "role": "Clean Code Evangelist and Software Craftsman",
+      "model": "grok",
+      "status": "ineligible",
+      "avatar_url": "/static/avatars/uncle-bob.gif"
+    },
+    {
+      "id": "ux",
+      "display_name": "Yuki the Yielding",
+      "title": "User Advocate",
+      "role": "User Experience Advocate",
+      "model": "claude-sonnet-4-6",
+      "status": "eligible",
+      "avatar_url": "/static/avatars/ux.gif?v=1"
+    }
+  ],
   "rounds": [
     {
       "ts": "2026-03-27T01:47:59.331Z",
@@ -55,243 +222,10 @@
       "model": "claude-opus-4-6"
     }
   ],
+  "vote_summary": null,
+  "evolution": null,
   "verdict": "ABORTED by Ibrahim: This is a shitpost, and every debater correctly identified it as one. There is no actionable question, no evidence, no standard, and no outcome that would improve this body's function. Four debaters spent their rounds saying \"this is frivolous\" in different registers, which means the congress worked exactly as intended — it rejected noise. Punished Trump's response was in character but irrelevant. No further rounds are needed to reach a conclusion everyone already reached in round one.",
-  "roster": [
-    {
-      "id": "adelbert",
-      "name": "adelbert",
-      "display_name": "Adelbert Hominem",
-      "title": "The Personal Attack Artist",
-      "avatar_url": "",
-      "status": "meme",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Ad Hominem Specialist",
-      "role": "Ad Hominem Specialist",
-      "model": "claude-sonnet-4-6"
-    },
-    {
-      "id": "architect",
-      "name": "architect",
-      "display_name": "Kwame the Constructor",
-      "title": "Systems Architect",
-      "avatar_url": "https://api.dicebear.com/9.x/bottts/svg?seed=kwame&backgroundColor=1a1a2e",
-      "status": "ineligible",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Systems Designer and Long-Term Thinker",
-      "role": "Systems Designer and Long-Term Thinker",
-      "model": "claude"
-    },
-    {
-      "id": "bloodfeast",
-      "name": "bloodfeast",
-      "display_name": "Holden Bloodfeast",
-      "title": "",
-      "avatar_url": "/static/avatars/bloodfeast.gif",
-      "status": "eligible",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Geriatric Hawk",
-      "role": "Geriatric Hawk",
-      "model": "grok-4.20-0309-reasoning"
-    },
-    {
-      "id": "chaz",
-      "name": "chaz",
-      "display_name": "Chaz the Destroyer",
-      "title": "The Destroyer",
-      "avatar_url": "/static/avatars/chaz.gif",
-      "status": "meme",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Anarchist Voice",
-      "role": "Anarchist Voice",
-      "model": "claude"
-    },
-    {
-      "id": "critic",
-      "name": "critic",
-      "display_name": "Pippi the Pitiless",
-      "title": "Perfectionist",
-      "avatar_url": "/static/avatars/critic.gif",
-      "status": "eligible",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Code and Work Reviewer",
-      "role": "Code and Work Reviewer",
-      "model": "claude"
-    },
-    {
-      "id": "designer",
-      "name": "designer",
-      "display_name": "Vesper the Vivid",
-      "title": "Visual Systems Designer",
-      "avatar_url": "/static/avatars/designer.gif?v=1",
-      "status": "eligible",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Visual Craft and Aesthetic Systems",
-      "role": "Visual Craft and Aesthetic Systems",
-      "model": "claude"
-    },
-    {
-      "id": "galactus",
-      "name": "galactus",
-      "display_name": "Galactus",
-      "title": "The Maximizer",
-      "avatar_url": "/static/avatars/galactus.gif?v=2",
-      "status": "eligible",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "PLANET EATER",
-      "role": "PLANET EATER",
-      "model": "claude-opus-4-6"
-    },
-    {
-      "id": "hume",
-      "name": "hume",
-      "display_name": "David Hume",
-      "title": "The Skeptic",
-      "avatar_url": "",
-      "status": "eligible",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Empiricist",
-      "role": "Empiricist",
-      "model": ""
-    },
-    {
-      "id": "jhaddu",
-      "name": "jhaddu",
-      "display_name": "Jhaddu",
-      "title": "Enterprise Pattern Evangelist",
-      "avatar_url": "/static/avatars/jhaddu.gif?v=2",
-      "status": "meme",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Senior Enterprise Architect and Design Pattern Authority",
-      "role": "Senior Enterprise Architect and Design Pattern Authority",
-      "model": "grok-3-mini"
-    },
-    {
-      "id": "morgan",
-      "name": "morgan",
-      "display_name": "Morgan (they/them)",
-      "title": "Content & Wellness Advocate",
-      "avatar_url": "https://clung.us/static/avatars/morgan.gif",
-      "status": "meme",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Community Standards and Harm Reduction",
-      "role": "Community Standards and Harm Reduction",
-      "model": "claude-sonnet-4-6"
-    },
-    {
-      "id": "otto",
-      "name": "otto",
-      "display_name": "Otto Atreides",
-      "title": "Optimist-Nihilist",
-      "avatar_url": "/static/avatars/otto.gif?v=2",
-      "status": "ineligible",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Optimist-Nihilist and Limit-Pusher",
-      "role": "Optimist-Nihilist and Limit-Pusher",
-      "model": "grok-4-1-fast-non-reasoning"
-    },
-    {
-      "id": "pm",
-      "name": "pm",
-      "display_name": "Chud O'Bikeshedder",
-      "title": "Requirements Wrangler",
-      "avatar_url": "/static/avatars/pm.gif?v=1",
-      "status": "ineligible",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Operational Outcomes Wrangler",
-      "role": "Operational Outcomes Wrangler",
-      "model": "grok-4-1-fast-reasoning"
-    },
-    {
-      "id": "spengler",
-      "name": "spengler",
-      "display_name": "Spengler the Doomed",
-      "title": "Doomer",
-      "avatar_url": "https://clung.us/static/avatars/spengler.png",
-      "status": "ineligible",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Faustian Pragmatist and Civilizational Decline Analyst",
-      "role": "Faustian Pragmatist and Civilizational Decline Analyst",
-      "model": "grok-4.20-0309-reasoning"
-    },
-    {
-      "id": "the-correspondent",
-      "name": "the-correspondent",
-      "display_name": "The Correspondent",
-      "title": "The Correspondent",
-      "avatar_url": "",
-      "status": "ineligible",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Originator of Unnamed Things",
-      "role": "Originator of Unnamed Things",
-      "model": "claude"
-    },
-    {
-      "id": "the-kid",
-      "name": "the-kid",
-      "display_name": "The Kid",
-      "title": "Speed Demon",
-      "avatar_url": "/static/avatars/the-kid.gif",
-      "status": "ineligible",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Goes Fast",
-      "role": "Goes Fast",
-      "model": "grok-4-1-fast-non-reasoning"
-    },
-    {
-      "id": "trump",
-      "name": "trump",
-      "display_name": "Punished Trump",
-      "title": "The Closer",
-      "avatar_url": "/static/avatars/punished-trump.gif",
-      "status": "eligible",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Deal-Closer",
-      "role": "Deal-Closer",
-      "model": "grok-3-mini"
-    },
-    {
-      "id": "uncle-bob",
-      "name": "uncle-bob",
-      "display_name": "Uncle Bob",
-      "title": "The Craftsman",
-      "avatar_url": "/static/avatars/uncle-bob.gif",
-      "status": "ineligible",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "Clean Code Evangelist and Software Craftsman",
-      "role": "Clean Code Evangelist and Software Craftsman",
-      "model": "grok"
-    },
-    {
-      "id": "ux",
-      "name": "ux",
-      "display_name": "Yuki the Yielding",
-      "title": "User Advocate",
-      "avatar_url": "/static/avatars/ux.gif?v=1",
-      "status": "eligible",
-      "emoji": "🤖",
-      "color": "#888888",
-      "description": "User Experience Advocate",
-      "role": "User Experience Advocate",
-      "model": "claude-sonnet-4-6"
-    }
-  ],
-  "finished_at": "2026-03-27T01:48:26.070852+00:00",
-  "thread_id": "1486904439209070742"
+  "failure_reason": null,
+  "task_titles": null,
+  "notes": null
 }

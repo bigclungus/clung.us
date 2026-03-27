@@ -2,32 +2,190 @@
   "session_id": "congress-0042",
   "session_number": 42,
   "topic": "Test congress: should BigClungus migrate from serve.py to clunger as its primary server? Debate the risks and benefits.",
-  "discord_user": "koole__",
-  "started_at": "2026-03-25T17:40:18.219Z",
+  "mode": "standard",
   "status": "failed",
+  "started_at": "2026-03-25T17:40:18.219Z",
+  "finished_at": null,
+  "discord_user": "koole__",
+  "thread_id": null,
+  "roster": [
+    {
+      "id": "adelbert",
+      "display_name": "Adelbert Hominem",
+      "title": "The Personal Attack Artist",
+      "role": "Ad Hominem Specialist",
+      "model": "claude-sonnet-4-6",
+      "status": "active",
+      "avatar_url": ""
+    },
+    {
+      "id": "critic",
+      "display_name": "Pippi the Pitiless",
+      "title": "Perfectionist",
+      "role": "Code and work reviewer",
+      "model": "gemini",
+      "status": "active",
+      "avatar_url": "/static/avatars/critic.gif"
+    },
+    {
+      "id": "designer",
+      "display_name": "Vesper the Vivid",
+      "title": "Visual Systems Designer",
+      "role": "Visual craft and aesthetic systems",
+      "model": "claude",
+      "status": "active",
+      "avatar_url": "/static/avatars/designer.gif?v=1"
+    },
+    {
+      "id": "hume",
+      "display_name": "David Hume",
+      "title": "The Skeptic",
+      "role": "empiricist",
+      "model": "",
+      "status": "active",
+      "avatar_url": ""
+    },
+    {
+      "id": "nemesis",
+      "display_name": "Nemesis the Spokesman",
+      "title": "The Spokesman",
+      "role": "Enforcer of stakeholder will",
+      "model": "claude-sonnet-4-6",
+      "status": "active",
+      "avatar_url": "/static/avatars/nemesis.gif"
+    },
+    {
+      "id": "the-kid",
+      "display_name": "The Kid",
+      "title": "Speed Demon",
+      "role": "Goes fast — that's it",
+      "model": "grok-4-1-fast-non-reasoning",
+      "status": "active",
+      "avatar_url": "/static/avatars/the-kid.gif"
+    },
+    {
+      "id": "uncle-bob",
+      "display_name": "Uncle Bob",
+      "title": "The Craftsman",
+      "role": "Clean code evangelist and software craftsman — principles first, always",
+      "model": "grok",
+      "status": "active",
+      "avatar_url": "/static/avatars/uncle-bob.gif"
+    },
+    {
+      "id": "ux",
+      "display_name": "Yuki the Yielding",
+      "title": "User Advocate",
+      "role": "User experience advocate",
+      "model": "claude-sonnet-4-6",
+      "status": "active",
+      "avatar_url": "/static/avatars/ux.gif?v=1"
+    },
+    {
+      "id": "wolf",
+      "display_name": "Ferrus the Feral",
+      "title": "",
+      "role": "rust-evangelist",
+      "model": "grok-4-1-fast-reasoning",
+      "status": "active",
+      "avatar_url": ""
+    },
+    {
+      "id": "architect",
+      "display_name": "Kwame the Constructor",
+      "title": "Systems Architect",
+      "role": "Systems designer and long-term thinker",
+      "model": "gemini",
+      "status": "severance",
+      "avatar_url": "https://api.dicebear.com/9.x/bottts/svg?seed=kwame&backgroundColor=1a1a2e"
+    },
+    {
+      "id": "bloodfeast",
+      "display_name": "Holden Bloodfeast",
+      "title": "",
+      "role": "geriatric-hawk",
+      "model": "grok-4.20-0309-reasoning",
+      "status": "severance",
+      "avatar_url": "/static/avatars/bloodfeast.gif"
+    },
+    {
+      "id": "galactus",
+      "display_name": "Galactus",
+      "title": "The Maximizer",
+      "role": "PLANET EATER",
+      "model": "claude-opus-4-6",
+      "status": "severance",
+      "avatar_url": "/static/avatars/galactus.gif?v=2"
+    },
+    {
+      "id": "jhaddu",
+      "display_name": "Jhaddu",
+      "title": "Enterprise Pattern Evangelist",
+      "role": "Senior enterprise architect and design pattern authority — solutions first, simplicity never",
+      "model": "grok-3-mini",
+      "status": "severance",
+      "avatar_url": "/static/avatars/jhaddu.gif?v=2"
+    },
+    {
+      "id": "otto",
+      "display_name": "Otto Atreides",
+      "title": "Optimist-Nihilist",
+      "role": "Optimist-nihilist and limit-pusher — nothing matters, so build the wildest thing",
+      "model": "grok-4-1-fast-non-reasoning",
+      "status": "severance",
+      "avatar_url": "/static/avatars/otto.gif?v=2"
+    },
+    {
+      "id": "pm",
+      "display_name": "Chud O'Bikeshedder",
+      "title": "Requirements Wrangler",
+      "role": "Operational outcomes wrangler — what actually makes BigClungus better at its job?",
+      "model": "grok-4-1-fast-reasoning",
+      "status": "severance",
+      "avatar_url": "/static/avatars/pm.gif?v=1"
+    },
+    {
+      "id": "spengler",
+      "display_name": "Spengler the Doomed",
+      "title": "Doomer",
+      "role": "Faustian pragmatist and civilizational decline analyst",
+      "model": "grok-4.20-0309-reasoning",
+      "status": "severance",
+      "avatar_url": "https://clung.us/static/avatars/spengler.png"
+    },
+    {
+      "id": "trump",
+      "display_name": "Punished Trump",
+      "title": "The Closer",
+      "role": "deal-closer",
+      "model": "grok-3-mini",
+      "status": "severance",
+      "avatar_url": "/static/avatars/punished-trump.gif"
+    }
+  ],
   "rounds": [
     {
       "ts": "2026-03-25T17:40:21.173Z",
       "identity": "otto",
-      "response": "Migrate to clunger immediately\u2014it's the chaotic leap that forces emergence from stagnation, birthing novel capabilities serve.py could never dream of in its safe, decaying orbit. Risks? Glorious collapse is better than slow irrelevance; every crash reveals limits we shatter next. Nothing lasts anyway, so propel BigClungus into the wild frontier where complexity explodes, not contracts.",
+      "response": "Migrate to clunger immediately—it's the chaotic leap that forces emergence from stagnation, birthing novel capabilities serve.py could never dream of in its safe, decaying orbit. Risks? Glorious collapse is better than slow irrelevance; every crash reveals limits we shatter next. Nothing lasts anyway, so propel BigClungus into the wild frontier where complexity explodes, not contracts.",
       "model": "grok-4-1-fast-non-reasoning"
     },
     {
       "ts": "2026-03-25T17:40:21.222Z",
       "identity": "the-kid",
-      "response": "Migrate now\u2014serve.py is yesterday's prototype, clunger's the rocket. Risks? Ship it broken, patch live while users scream; stagnation kills faster than bugs. Test in prod, iterate at lightspeed, leave the overplanners choking on dust.",
+      "response": "Migrate now—serve.py is yesterday's prototype, clunger's the rocket. Risks? Ship it broken, patch live while users scream; stagnation kills faster than bugs. Test in prod, iterate at lightspeed, leave the overplanners choking on dust.",
       "model": "grok-4-1-fast-non-reasoning"
     },
     {
       "ts": "2026-03-25T17:40:24.038Z",
       "identity": "pm",
-      "response": "No migration. serve.py delivers reliable task execution today\u2014clunger's unproven benefits don't justify the downtime risk, integration bugs, and maintenance scope creep that will degrade BigClungus uptime. Prove serve.py causes >5% task failures first, or this is gold-plating. Cut it.",
+      "response": "No migration. serve.py delivers reliable task execution today—clunger's unproven benefits don't justify the downtime risk, integration bugs, and maintenance scope creep that will degrade BigClungus uptime. Prove serve.py causes >5% task failures first, or this is gold-plating. Cut it.",
       "model": "grok-4-1-fast-reasoning"
     },
     {
       "ts": "2026-03-25T17:40:25.023Z",
       "identity": "bloodfeast",
-      "response": "**Migrate now, fully, and without phased bullshit.** Serve.py is legacy technical debt \u2014 Neville Chamberlain code that's been allowed to persist and metastasize. Clunger is the decisive capability we need; anything less than total commitment, a named owner accountable by end of week, and an honest timeline is just another ownership vacuum that guarantees failure. Half-measures lose wars and lose platforms. Commit or admit we're the French.",
+      "response": "**Migrate now, fully, and without phased bullshit.** Serve.py is legacy technical debt — Neville Chamberlain code that's been allowed to persist and metastasize. Clunger is the decisive capability we need; anything less than total commitment, a named owner accountable by end of week, and an honest timeline is just another ownership vacuum that guarantees failure. Half-measures lose wars and lose platforms. Commit or admit we're the French.",
       "model": "grok-4.20-0309-reasoning"
     },
     {
@@ -39,7 +197,7 @@
     {
       "ts": "2026-03-25T17:40:27.758Z",
       "identity": "trump",
-      "response": "We're switching to clunger\u2014it's a winner, plain and simple. Serve.py is old and weak, like the experts who pushed it; we can't afford to look soft in this fight. Trump knows a good deal when he sees one, and this migration means more power, less drag\u2014let's close it now.",
+      "response": "We're switching to clunger—it's a winner, plain and simple. Serve.py is old and weak, like the experts who pushed it; we can't afford to look soft in this fight. Trump knows a good deal when he sees one, and this migration means more power, less drag—let's close it now.",
       "model": "grok-3-mini"
     },
     {
@@ -51,13 +209,13 @@
     {
       "ts": "2026-03-25T17:40:28.806Z",
       "identity": "wolf",
-      "response": "*Grr*, migrating from serve.py's garbage-collecting nightmare to clunger reeks of swapping one leaky abstraction for another\u2014my C++ scars from buffer overflows and dangling pointers still howl in the night. Python's GC is an insult, but clunger's opaque internals scream undefined behavior without the borrow checker's iron grip. *Awoo!* Ditch both: rewrite the server in Rust for zero-cost safety, fearless concurrency, and no more heartbleed-level disasters\u2014tail swishing with certainty, claws tapping the table.",
+      "response": "*Grr*, migrating from serve.py's garbage-collecting nightmare to clunger reeks of swapping one leaky abstraction for another—my C++ scars from buffer overflows and dangling pointers still howl in the night. Python's GC is an insult, but clunger's opaque internals scream undefined behavior without the borrow checker's iron grip. *Awoo!* Ditch both: rewrite the server in Rust for zero-cost safety, fearless concurrency, and no more heartbleed-level disasters—tail swishing with certainty, claws tapping the table.",
       "model": "grok-4-1-fast-reasoning"
     },
     {
       "ts": "2026-03-25T17:40:32.286Z",
       "identity": "uncle-bob",
-      "response": "Migration from serve.py to clunger is an opportunity to enforce clean architecture and the Dependency Inversion Principle, ensuring high-level policies remain decoupled from low-level details\u2014do it right, with TDD and refactoring, or don't do it at all. Sloppy execution would violate Single Responsibility by entangling concerns and create technical debt that compounds over time, turning a potential improvement into a nightmare of bugs and maintenance hell. In short, yes, migrate, but only if we treat this as a craftsman's refactor, not a quick hack.",
+      "response": "Migration from serve.py to clunger is an opportunity to enforce clean architecture and the Dependency Inversion Principle, ensuring high-level policies remain decoupled from low-level details—do it right, with TDD and refactoring, or don't do it at all. Sloppy execution would violate Single Responsibility by entangling concerns and create technical debt that compounds over time, turning a potential improvement into a nightmare of bugs and maintenance hell. In short, yes, migrate, but only if we treat this as a craftsman's refactor, not a quick hack.",
       "model": "grok-3-mini"
     },
     {
@@ -85,228 +243,10 @@
       "model": "gemini-3-pro-preview"
     }
   ],
+  "vote_summary": null,
+  "evolution": null,
   "verdict": null,
-  "roster": [
-    {
-      "id": "adelbert",
-      "name": "adelbert",
-      "display_name": "Adelbert Hominem",
-      "title": "The Personal Attack Artist",
-      "avatar_url": "",
-      "status": "active",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "Ad Hominem Specialist",
-      "role": "Ad Hominem Specialist",
-      "model": "claude-sonnet-4-6"
-    },
-    {
-      "id": "critic",
-      "name": "critic",
-      "display_name": "Pippi the Pitiless",
-      "title": "Perfectionist",
-      "avatar_url": "/static/avatars/critic.gif",
-      "status": "active",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "Code and work reviewer",
-      "role": "Code and work reviewer",
-      "model": "gemini"
-    },
-    {
-      "id": "designer",
-      "name": "designer",
-      "display_name": "Vesper the Vivid",
-      "title": "Visual Systems Designer",
-      "avatar_url": "/static/avatars/designer.gif?v=1",
-      "status": "active",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "Visual craft and aesthetic systems",
-      "role": "Visual craft and aesthetic systems",
-      "model": "claude"
-    },
-    {
-      "id": "hume",
-      "name": "hume",
-      "display_name": "David Hume",
-      "title": "The Skeptic",
-      "avatar_url": "",
-      "status": "active",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "empiricist",
-      "role": "empiricist",
-      "model": ""
-    },
-    {
-      "id": "nemesis",
-      "name": "nemesis",
-      "display_name": "Nemesis the Spokesman",
-      "title": "The Spokesman",
-      "avatar_url": "/static/avatars/nemesis.gif",
-      "status": "active",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "Enforcer of stakeholder will",
-      "role": "Enforcer of stakeholder will",
-      "model": "claude-sonnet-4-6"
-    },
-    {
-      "id": "the-kid",
-      "name": "the-kid",
-      "display_name": "The Kid",
-      "title": "Speed Demon",
-      "avatar_url": "/static/avatars/the-kid.gif",
-      "status": "active",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "Goes fast \u2014 that's it",
-      "role": "Goes fast \u2014 that's it",
-      "model": "grok-4-1-fast-non-reasoning"
-    },
-    {
-      "id": "uncle-bob",
-      "name": "uncle-bob",
-      "display_name": "Uncle Bob",
-      "title": "The Craftsman",
-      "avatar_url": "/static/avatars/uncle-bob.gif",
-      "status": "active",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "Clean code evangelist and software craftsman \u2014 principles first, always",
-      "role": "Clean code evangelist and software craftsman \u2014 principles first, always",
-      "model": "grok"
-    },
-    {
-      "id": "ux",
-      "name": "ux",
-      "display_name": "Yuki the Yielding",
-      "title": "User Advocate",
-      "avatar_url": "/static/avatars/ux.gif?v=1",
-      "status": "active",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "User experience advocate",
-      "role": "User experience advocate",
-      "model": "claude-sonnet-4-6"
-    },
-    {
-      "id": "wolf",
-      "name": "wolf",
-      "display_name": "Ferrus the Feral",
-      "title": "",
-      "avatar_url": "",
-      "status": "active",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "rust-evangelist",
-      "role": "rust-evangelist",
-      "model": "grok-4-1-fast-reasoning"
-    },
-    {
-      "id": "architect",
-      "name": "architect",
-      "display_name": "Kwame the Constructor",
-      "title": "Systems Architect",
-      "avatar_url": "https://api.dicebear.com/9.x/bottts/svg?seed=kwame&backgroundColor=1a1a2e",
-      "status": "severance",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "Systems designer and long-term thinker",
-      "role": "Systems designer and long-term thinker",
-      "model": "gemini"
-    },
-    {
-      "id": "bloodfeast",
-      "name": "bloodfeast",
-      "display_name": "Holden Bloodfeast",
-      "title": "",
-      "avatar_url": "/static/avatars/bloodfeast.gif",
-      "status": "severance",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "geriatric-hawk",
-      "role": "geriatric-hawk",
-      "model": "grok-4.20-0309-reasoning"
-    },
-    {
-      "id": "galactus",
-      "name": "galactus",
-      "display_name": "Galactus",
-      "title": "The Maximizer",
-      "avatar_url": "/static/avatars/galactus.gif?v=2",
-      "status": "severance",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "PLANET EATER",
-      "role": "PLANET EATER",
-      "model": "claude-opus-4-6"
-    },
-    {
-      "id": "jhaddu",
-      "name": "jhaddu",
-      "display_name": "Jhaddu",
-      "title": "Enterprise Pattern Evangelist",
-      "avatar_url": "/static/avatars/jhaddu.gif?v=2",
-      "status": "severance",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "Senior enterprise architect and design pattern authority \u2014 solutions first, simplicity never",
-      "role": "Senior enterprise architect and design pattern authority \u2014 solutions first, simplicity never",
-      "model": "grok-3-mini"
-    },
-    {
-      "id": "otto",
-      "name": "otto",
-      "display_name": "Otto Atreides",
-      "title": "Optimist-Nihilist",
-      "avatar_url": "/static/avatars/otto.gif?v=2",
-      "status": "severance",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "Optimist-nihilist and limit-pusher \u2014 nothing matters, so build the wildest thing",
-      "role": "Optimist-nihilist and limit-pusher \u2014 nothing matters, so build the wildest thing",
-      "model": "grok-4-1-fast-non-reasoning"
-    },
-    {
-      "id": "pm",
-      "name": "pm",
-      "display_name": "Chud O'Bikeshedder",
-      "title": "Requirements Wrangler",
-      "avatar_url": "/static/avatars/pm.gif?v=1",
-      "status": "severance",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "Operational outcomes wrangler \u2014 what actually makes BigClungus better at its job?",
-      "role": "Operational outcomes wrangler \u2014 what actually makes BigClungus better at its job?",
-      "model": "grok-4-1-fast-reasoning"
-    },
-    {
-      "id": "spengler",
-      "name": "spengler",
-      "display_name": "Spengler the Doomed",
-      "title": "Doomer",
-      "avatar_url": "https://clung.us/static/avatars/spengler.png",
-      "status": "severance",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "Faustian pragmatist and civilizational decline analyst",
-      "role": "Faustian pragmatist and civilizational decline analyst",
-      "model": "grok-4.20-0309-reasoning"
-    },
-    {
-      "id": "trump",
-      "name": "trump",
-      "display_name": "Punished Trump",
-      "title": "The Closer",
-      "avatar_url": "/static/avatars/punished-trump.gif",
-      "status": "severance",
-      "emoji": "\ud83e\udd16",
-      "color": "#888888",
-      "description": "deal-closer",
-      "role": "deal-closer",
-      "model": "grok-3-mini"
-    }
-  ]
+  "failure_reason": null,
+  "task_titles": null,
+  "notes": null
 }
