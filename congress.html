@@ -1341,7 +1341,8 @@
       letter-spacing: 0.04em;
       flex-shrink: 0;
     }
-    .trial-jury-vote-badge.fire {
+    .trial-jury-vote-badge.fire,
+    .trial-jury-vote-badge.retire {
       color: #f87171;
       background: color-mix(in srgb, #f87171 12%, transparent);
       border: 1px solid color-mix(in srgb, #f87171 40%, transparent);
@@ -1390,7 +1391,8 @@
       font-weight: 700;
       margin-bottom: 10px;
     }
-    .trial-verdict-outcome.fire { color: #f87171; }
+    .trial-verdict-outcome.fire,
+    .trial-verdict-outcome.retire { color: #f87171; }
     .trial-verdict-outcome.acquit { color: #34d399; }
     .trial-verdict-outcome.evolve { color: #fbbf24; }
     .trial-verdict-outcome.mistrial { color: #a78bfa; }
@@ -1494,7 +1496,7 @@
       text-transform: lowercase;
       letter-spacing: 0.03em;
     }
-    .seat-fired-badge {
+    .seat-retired-badge {
       font-size: 0.5rem;
       padding: 1px 4px;
       border-radius: 3px;
@@ -1672,7 +1674,7 @@
     .cell-agree { color: var(--teal); }
     .cell-disagree { color: #e94560; }
     table.matrix td.cell-evo-evolved { background: rgba(245, 158, 11, 0.18) !important; }
-    table.matrix td.cell-evo-fired { background: rgba(233, 69, 96, 0.22) !important; }
+    table.matrix td.cell-evo-retired { background: rgba(233, 69, 96, 0.22) !important; }
     table.matrix td.cell-evo-created { background: rgba(96, 165, 250, 0.20) !important; }
 
     /* Column type coloring — header */
@@ -1690,9 +1692,9 @@
     table.matrix td.cell-evo-evolved.col-meme,
     table.matrix td.cell-evo-evolved.col-trial,
     table.matrix td.cell-evo-evolved.col-failed { background: rgba(245, 158, 11, 0.18) !important; }
-    table.matrix td.cell-evo-fired.col-meme,
-    table.matrix td.cell-evo-fired.col-trial,
-    table.matrix td.cell-evo-fired.col-failed { background: rgba(233, 69, 96, 0.22) !important; }
+    table.matrix td.cell-evo-retired.col-meme,
+    table.matrix td.cell-evo-retired.col-trial,
+    table.matrix td.cell-evo-retired.col-failed { background: rgba(233, 69, 96, 0.22) !important; }
     table.matrix td.cell-evo-created.col-meme,
     table.matrix td.cell-evo-created.col-trial,
     table.matrix td.cell-evo-created.col-failed { background: rgba(96, 165, 250, 0.20) !important; }
@@ -1870,7 +1872,7 @@
       white-space: nowrap;
     }
     .pt-btn:hover { color: var(--accent); border-color: var(--accent); }
-    .pt-btn.fire-btn:hover { color: var(--accent); border-color: var(--accent); }
+    .pt-btn.retire-btn:hover { color: var(--accent); border-color: var(--accent); }
     .pt-btn.restore-btn:hover { color: var(--teal); border-color: var(--teal); }
     .pt-btn.danger:hover { color: #f87171; border-color: #f87171; }
 
@@ -2246,7 +2248,7 @@
         <div class="legend-item"><span class="legend-symbol cell-participated">&bull;</span> participated</div>
         <span style="border-left:1px solid var(--panel-border);margin:0 4px;"></span>
         <div class="legend-item"><span class="legend-symbol cell-evo-evolved" style="border:1px solid var(--panel-border);">&nbsp;</span> evolved</div>
-        <div class="legend-item"><span class="legend-symbol cell-evo-fired" style="border:1px solid var(--panel-border);">&nbsp;</span> fired</div>
+        <div class="legend-item"><span class="legend-symbol cell-evo-retired" style="border:1px solid var(--panel-border);">&nbsp;</span> retired</div>
         <div class="legend-item"><span class="legend-symbol cell-evo-created" style="border:1px solid var(--panel-border);">&nbsp;</span> created</div>
         <span style="border-left:1px solid var(--panel-border);margin:0 4px;"></span>
         <div class="legend-item"><span class="legend-symbol" style="background:rgba(168,85,247,0.28);border:1px solid var(--panel-border);color:#c084fc;font-size:9px;">M</span> meme</div>
@@ -2318,7 +2320,7 @@
       last_verdict: p.last_verdict || '',
       stats_retained: p.stats_retained || 0,
       stats_evolved: p.stats_evolved || 0,
-      stats_fired: p.stats_fired || 0,
+      stats_retired: p.stats_retired || 0,
       status: p.status,
     };
   }
@@ -2848,12 +2850,12 @@
   function buildStatsEl(p) {
     const retained = p.stats_retained || 0;
     const evolved  = p.stats_evolved  || 0;
-    const fired    = p.stats_fired    || 0;
-    if (retained === 0 && evolved === 0 && fired === 0) return null;
+    const retired  = p.stats_retired    || 0;
+    if (retained === 0 && evolved === 0 && retired === 0) return null;
     const el = document.createElement('div');
     el.className = 'seat-stats';
-    el.textContent = '\u21a9\u00a0' + retained + ' \u00b7 \u2736\u00a0' + evolved + ' \u00b7 \u00d7\u00a0' + fired;
-    el.title = 'RETAIN \u00d7' + retained + '  EVOLVE \u00d7' + evolved + '  FIRE \u00d7' + fired;
+    el.textContent = '\u21a9\u00a0' + retained + ' \u00b7 \u2736\u00a0' + evolved + ' \u00b7 \u00d7\u00a0' + retired;
+    el.title = 'RETAIN \u00d7' + retained + '  EVOLVE \u00d7' + evolved + '  RETIRE \u00d7' + retired;
     return el;
   }
 
@@ -2987,10 +2989,10 @@
         nameEl2.className = 'seat-name';
         nameEl2.textContent = p.display_name || p.name;
         nameRow.appendChild(nameEl2);
-        const fireBadge = document.createElement('span');
-        fireBadge.className = 'seat-fired-badge';
-        fireBadge.textContent = '🔥 severance';
-        nameRow.appendChild(fireBadge);
+        const retireBadge = document.createElement('span');
+        retireBadge.className = 'seat-retired-badge';
+        retireBadge.textContent = '🔥 retired';
+        nameRow.appendChild(retireBadge);
         info.appendChild(nameRow);
         if (p.title || p.role) {
           const desc = document.createElement('div');
@@ -3004,10 +3006,10 @@
           reason.textContent = '"' + p.retired_reason + '"';
           info.appendChild(reason);
         }
-        const firedMetaRow = buildMetaRow(p, true);
-        if (firedMetaRow) info.appendChild(firedMetaRow);
-        const firedStatsEl = buildStatsEl(p);
-        if (firedStatsEl) info.appendChild(firedStatsEl);
+        const retiredMetaRow = buildMetaRow(p, true);
+        if (retiredMetaRow) info.appendChild(retiredMetaRow);
+        const retiredStatsEl = buildStatsEl(p);
+        if (retiredStatsEl) info.appendChild(retiredStatsEl);
         card.appendChild(info);
 
         // Seated badge (only shown in session mode)
@@ -3420,7 +3422,7 @@
     // Build a map of persona info by identity id
     const personaMap = {};
     retiredPool.forEach(p => { if (p) personaMap[p.id || p.name] = p; });
-    seats.forEach(p => { if (p) personaMap[p.id] = p; }); // seats override fired entries
+    seats.forEach(p => { if (p) personaMap[p.id] = p; }); // seats override retired entries
     if (moderatorPersona) personaMap[moderatorPersona.id || moderatorPersona.name] = moderatorPersona; // Ibrahim in synthesis entries
 
     // Seat order for consistent per-column ordering (chairman excluded from seats)
@@ -3987,7 +3989,7 @@
 
         const vote = (jv.vote || '').toUpperCase();
         const badge = document.createElement('span');
-        const badgeClass = vote === 'FIRE' ? 'fire' : vote === 'EVOLVE' ? 'evolve' : vote === 'ACQUIT' ? 'acquit' : 'mistrial';
+        const badgeClass = (vote === 'RETIRE' || vote === 'FIRE') ? 'retire' : vote === 'EVOLVE' ? 'evolve' : vote === 'ACQUIT' ? 'acquit' : 'mistrial';
         badge.className = 'trial-jury-vote-badge ' + badgeClass;
         badge.textContent = vote || '?';
         voteHeader.appendChild(badge);
@@ -4016,7 +4018,7 @@
 
       const verdict = (session.verdict || '').toUpperCase();
       const outcome = document.createElement('div');
-      const outcomeClass = verdict === 'FIRE' || verdict === 'GUILTY' ? 'fire'
+      const outcomeClass = (verdict === 'RETIRE' || verdict === 'FIRE' || verdict === 'GUILTY') ? 'retire'
         : verdict === 'ACQUIT' || verdict === 'NOT GUILTY' ? 'acquit'
         : verdict === 'EVOLVE' ? 'evolve'
         : 'mistrial';
@@ -4065,11 +4067,12 @@
     textEl.innerHTML = renderMarkdown(session.verdict);
     card.classList.add('visible');
 
-    // Evolution results — data shape: {created:[], evolved:[{display_name,learned}], fired:[{display_name,reason}], retained:["Name"]}
+    // Evolution results — data shape: {created:[], evolved:[{display_name,learned}], retired:[{display_name,reason}], retained:["Name"]}
     const evo = session.evolution;
     const hasEvo = evo && typeof evo === 'object' && (
       (evo.evolved && evo.evolved.length > 0) ||
-      (evo.fired && evo.fired.length > 0) ||
+      (evo.retired && evo.retired.length > 0) ||
+      (evo.fired && evo.fired.length > 0) ||  // legacy compat
       (evo.created && evo.created.length > 0) ||
       (evo.retained && evo.retained.length > 0)
     );
@@ -4106,8 +4109,8 @@
       (evo.evolved || []).forEach(e => {
         addItem('🧬', 'EVOLVE', e.display_name || e.name || '?', e.learned || '', false);
       });
-      // RETIRED entries
-      (evo.fired || []).forEach(e => {
+      // RETIRED entries (read "retired" key, fall back to legacy "fired")
+      (evo.retired || evo.fired || []).forEach(e => {
         const name = typeof e === 'string' ? e : (e.display_name || e.name || '?');
         const reason = typeof e === 'object' ? (e.reason || '') : '';
         addItem('🔥', 'RETIRED', name, reason, false);
@@ -4339,7 +4342,7 @@
       else if (cell.participated) classes.push('cell-participated');
       // evolution background
       if (cell.evolution === 'evolved') classes.push('cell-evo-evolved');
-      else if (cell.evolution === 'fired') classes.push('cell-evo-fired');
+      else if (cell.evolution === 'retired' || cell.evolution === 'fired') classes.push('cell-evo-retired');
       else if (cell.evolution === 'created') classes.push('cell-evo-created');
       return classes.join(' ');
     }
@@ -4401,8 +4404,8 @@
       thPersona.textContent = 'persona';
       headerRow.appendChild(thPersona);
 
-      var statLabels = ['#', 'E', 'F'];
-      var statTitles = ['total sessions', 'times evolved', 'times fired'];
+      var statLabels = ['#', 'E', 'R'];
+      var statTitles = ['total sessions', 'times evolved', 'times retired'];
       for (var si = 0; si < statLabels.length; si++) {
         var thStat = document.createElement('th');
         thStat.className = 'stats-header' + (si === statLabels.length - 1 ? ' stats-last' : '');
@@ -4473,7 +4476,7 @@
         nameTd.textContent = persona.display_name;
         nameTd.title = persona.display_name;
         row.appendChild(nameTd);
-        var statsVals = [persona.total_sessions, persona.times_evolved, persona.times_fired];
+        var statsVals = [persona.total_sessions, persona.times_evolved, persona.times_retired];
         for (var si3 = 0; si3 < statsVals.length; si3++) {
           var statTd = document.createElement('td');
           statTd.className = 'stats-cell' + (si3 === statsVals.length - 1 ? ' stats-last' : '');
@@ -4569,7 +4572,7 @@
       // /api/agents uses eligible/meme/moderator
       const status = p.status || 'eligible';
       const lastVerdict = p.last_verdict || '';
-      const totalCongresses = (p.stats_retained || 0) + (p.stats_evolved || 0) + (p.stats_fired || 0);
+      const totalCongresses = (p.stats_retained || 0) + (p.stats_evolved || 0) + (p.stats_retired || 0);
 
       // Dim meme rows slightly
       if (status === 'meme') tr.style.opacity = '0.65';
@@ -4647,7 +4650,7 @@
       }
       tr.appendChild(tdVerdict);
 
-      // Actions — moderator has no fire/restore
+      // Actions — moderator has no retire/restore
       const tdActions = document.createElement('td');
       tdActions.className = 'pt-actions';
 
@@ -4659,7 +4662,7 @@
 
       if (status === 'eligible') {
         const retireBtn = document.createElement('button');
-        retireBtn.className = 'pt-btn fire-btn';
+        retireBtn.className = 'pt-btn retire-btn';
         retireBtn.textContent = 'Retire';
         retireBtn.title = 'Mark meme (retired)';
         retireBtn.onclick = () => quickStatusChange(p.name, 'meme');
@@ -4767,8 +4770,8 @@
     document.getElementById('pf-avatar-url').value = p.avatar_url || '';
     document.getElementById('pf-congress').checked = p.congress !== false;
     document.getElementById('pf-evolves').checked = p.evolves !== false;
-    // Normalize legacy status values: fired/ineligible→meme, active→eligible
-    const normalizedStatus = (p.status === 'fired' || p.status === 'ineligible') ? 'meme' : (p.status === 'active' ? 'eligible' : (p.status || 'eligible'));
+    // Normalize legacy status values: retired/fired/ineligible→meme, active→eligible
+    const normalizedStatus = (p.status === 'retired' || p.status === 'fired' || p.status === 'ineligible') ? 'meme' : (p.status === 'active' ? 'eligible' : (p.status || 'eligible'));
     document.getElementById('pf-status').value = normalizedStatus;
     document.getElementById('pf-prompt').value = p.prompt || '';
   }
