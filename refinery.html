@@ -283,9 +283,42 @@
     .toast.error {
       border-color: #cc4444;
     }
+    #auth-prompt {
+      text-align: center;
+      padding: 120px 20px;
+    }
+    #auth-prompt h2 {
+      font-size: 1.4rem;
+      color: #4ecca3;
+      margin-bottom: 10px;
+    }
+    #auth-prompt p {
+      color: #888;
+      margin-bottom: 28px;
+      font-size: 0.9rem;
+    }
+    #auth-prompt a {
+      display: inline-block;
+      background: #24292e;
+      color: #fff;
+      padding: 12px 28px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 1rem;
+      font-weight: 500;
+      border: 1px solid rgba(255,255,255,0.12);
+      transition: background 0.15s ease;
+    }
+    #auth-prompt a:hover { background: #2f363d; }
   </style>
 </head>
 <body>
+  <div id="auth-prompt" style="display:none;">
+    <h2>Sign in to view the refinery</h2>
+    <p>Authentication required</p>
+    <a id="login-link" href="/auth/github">Sign in with GitHub</a>
+  </div>
+  <div id="refinery-content" style="display:none;">
   <div class="page-header">
     <h1>The Refinery</h1>
     <p>Vote on designs for BigClungus personas — sprites, avatars, and more. Results shape the world.</p>
@@ -1461,8 +1494,35 @@
     return wrap;
   }
 
+  // ── Auth check ──────────────────────────────────────────────────────────────
+  (async function checkAuth() {
+    var loginUrl = '/auth/github?next=' + encodeURIComponent(window.location.pathname);
+    document.getElementById('login-link').href = loginUrl;
+    try {
+      var r = await fetch('/api/me');
+      if (r.status === 401 || r.status === 403) {
+        document.getElementById('auth-prompt').style.display = 'block';
+        document.getElementById('refinery-content').style.display = 'none';
+        return;
+      }
+      var user = await r.json();
+      if (!user) {
+        document.getElementById('auth-prompt').style.display = 'block';
+        document.getElementById('refinery-content').style.display = 'none';
+        return;
+      }
+    } catch (e) {
+      document.getElementById('auth-prompt').style.display = 'block';
+      document.getElementById('refinery-content').style.display = 'none';
+      return;
+    }
+    document.getElementById('auth-prompt').style.display = 'none';
+    document.getElementById('refinery-content').style.display = '';
+    initAllPolls();
+  })();
+
   // ── Main init: fetch all polls, group by prefix, render sections ────────────
-  (async function initAllPolls() {
+  async function initAllPolls() {
     let polls;
     try {
       const resp = await fetch('/api/polls', { credentials: 'same-origin' });
@@ -1551,7 +1611,8 @@
 
     // Start periodic refresh
     setInterval(refreshAllPolls, 5000);
-  })();
+  }
   </script>
+</div><!-- /refinery-content -->
 </body>
 </html>

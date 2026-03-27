@@ -305,9 +305,42 @@
       transition: background 0.15s;
     }
     #congress-modal-link:hover { background: #4ecca322; }
+    #auth-prompt {
+      text-align: center;
+      padding: 120px 20px;
+    }
+    #auth-prompt h2 {
+      font-size: 1.4rem;
+      color: #4ecca3;
+      margin-bottom: 10px;
+    }
+    #auth-prompt p {
+      color: #888;
+      margin-bottom: 28px;
+      font-size: 0.9rem;
+    }
+    #auth-prompt a {
+      display: inline-block;
+      background: #24292e;
+      color: #fff;
+      padding: 12px 28px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 1rem;
+      font-weight: 500;
+      border: 1px solid rgba(255,255,255,0.12);
+      transition: background 0.15s ease;
+    }
+    #auth-prompt a:hover { background: #2f363d; }
   </style>
 </head>
 <body>
+  <div id="auth-prompt" style="display:none;">
+    <h2>Sign in to visit the commons</h2>
+    <p>Authentication required</p>
+    <a id="login-link" href="/auth/github">Sign in with GitHub</a>
+  </div>
+  <div id="commons-content" style="display:none;">
   <div class="commons-wrap">
     <canvas id="map" width="1000" height="700"></canvas>
     <div id="load-error"></div>
@@ -365,6 +398,36 @@
       <button id="audition-dismiss-btn">Dismiss</button>
     </div>
   </div>
+</div><!-- /commons-content -->
+
+<script>
+(function() {
+  var loginUrl = '/auth/github?next=' + encodeURIComponent(window.location.pathname);
+  document.getElementById('login-link').href = loginUrl;
+
+  fetch('/api/me')
+    .then(function(r) {
+      if (r.status === 401 || r.status === 403) {
+        document.getElementById('auth-prompt').style.display = 'block';
+        document.getElementById('commons-content').style.display = 'none';
+        window.__commons_authed = false;
+        return null;
+      }
+      return r.json();
+    })
+    .then(function(user) {
+      if (user === null || user === undefined) return;
+      document.getElementById('auth-prompt').style.display = 'none';
+      document.getElementById('commons-content').style.display = '';
+      window.__commons_authed = true;
+    })
+    .catch(function() {
+      document.getElementById('auth-prompt').style.display = 'block';
+      document.getElementById('commons-content').style.display = 'none';
+      window.__commons_authed = false;
+    });
+})();
+</script>
 
 <script>
 (function () {

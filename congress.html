@@ -1999,10 +1999,44 @@
     }
     .persona-modal-status-msg.ok { display: block; background: #102820; border: 1px solid var(--teal); color: var(--teal); }
     .persona-modal-status-msg.err { display: block; background: #200d10; border: 1px solid var(--accent); color: var(--accent); }
+    #auth-prompt {
+      text-align: center;
+      padding: 120px 20px;
+    }
+    #auth-prompt h2 {
+      font-size: 1.4rem;
+      color: var(--teal);
+      margin-bottom: 10px;
+    }
+    #auth-prompt p {
+      color: var(--text-muted, #888);
+      margin-bottom: 28px;
+      font-size: 0.9rem;
+    }
+    #auth-prompt a {
+      display: inline-block;
+      background: #24292e;
+      color: #fff;
+      padding: 12px 28px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 1rem;
+      font-weight: 500;
+      border: 1px solid rgba(255,255,255,0.12);
+      transition: background 0.15s ease;
+    }
+    #auth-prompt a:hover { background: #2f363d; }
   </style>
 </head>
 <body>
 
+<div id="auth-prompt" style="display:none;">
+  <h2>Sign in to view congress</h2>
+  <p>Authentication required</p>
+  <a id="login-link" href="/auth/github">Sign in with GitHub</a>
+</div>
+
+<div id="congress-content" style="display:none;">
 
 <!-- Topic modal -->
 <div class="topic-modal-overlay" id="topicModal">
@@ -4824,9 +4858,36 @@
     if (e.target === this) closePersonaModal();
   });
 
-  init();
+  function checkAuth() {
+    var loginUrl = '/auth/github?next=' + encodeURIComponent(window.location.pathname);
+    document.getElementById('login-link').href = loginUrl;
+
+    fetch('/api/me')
+      .then(function(r) {
+        if (r.status === 401 || r.status === 403) {
+          document.getElementById('auth-prompt').style.display = 'block';
+          document.getElementById('congress-content').style.display = 'none';
+          return null;
+        }
+        return r.json();
+      })
+      .then(function(user) {
+        if (!user) return;
+        document.getElementById('auth-prompt').style.display = 'none';
+        document.getElementById('congress-content').style.display = '';
+        init();
+      })
+      .catch(function() {
+        document.getElementById('auth-prompt').style.display = 'block';
+        document.getElementById('congress-content').style.display = 'none';
+      });
+  }
+
+  checkAuth();
 })();
 </script>
+
+</div><!-- /congress-content -->
 
 </body>
 </html>
