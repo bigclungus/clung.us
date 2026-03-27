@@ -1009,7 +1009,7 @@
           document.getElementById('auth-prompt').style.display = 'none';
           document.getElementById('timeline-container').style.display = 'flex';
 
-          return fetch('/data/timeline.json').then(function(r) { return r.json(); });
+          return fetch('/api/timeline').then(function(r) { return r.json(); });
         })
         .then(function(events) {
           if (!events) return;
