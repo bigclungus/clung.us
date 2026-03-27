@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>congress matrix — clung.us</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/sitenav.css?v=nav-fixed">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="/sitenav.js?v=nav-fixed" defer></script>
+  <style>
+    :root {
+      --bg: #1a1a2e;
+      --surface: #22223a;
+      --border: #333350;
+      --text: #ccc;
+      --text-muted: #888;
+      --teal: #4ecca3;
+      --red: #e94560;
+      --gold: #f59e0b;
+      --blue: #60a5fa;
+      --green: #4ecca3;
+      --cell-size: 28px;
+    }
+    [data-theme="light"] {
+      --bg: #f5f0e8;
+      --surface: #fff8ea;
+      --border: #d0c9b0;
+      --text: #333;
+      --text-muted: #777;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      min-height: 100vh;
+    }
+    .page-header {
+      padding: 20px 24px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .page-header h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--teal);
+    }
+    .page-header p {
+      color: var(--text-muted);
+      font-size: 11px;
+      margin-top: 4px;
+    }
+    .legend {
+      display: flex;
+      gap: 16px;
+      padding: 10px 24px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .legend-symbol {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      font-size: 12px;
+      border-radius: 3px;
+    }
+    #loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    #loading .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 10px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .matrix-wrap {
+      overflow: auto;
+      max-height: calc(100vh - 160px);
+      position: relative;
+    }
+    table.matrix {
+      border-collapse: separate;
+      border-spacing: 0;
+      white-space: nowrap;
+    }
+    table.matrix th,
+    table.matrix td {
+      border: 1px solid var(--border);
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    /* Sticky persona column */
+    table.matrix th.persona-header,
+    table.matrix td.persona-cell {
+      position: sticky;
+      left: 0;
+      z-index: 3;
+      background: var(--bg);
+      text-align: left;
+      padding: 0 10px;
+      min-width: 180px;
+      max-width: 180px;
+      font-size: 11px;
+    }
+    /* Sticky stats columns */
+    table.matrix th.stats-header,
+    table.matrix td.stats-cell {
+      position: sticky;
+      z-index: 3;
+      background: var(--bg);
+      padding: 0 6px;
+      min-width: 40px;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    table.matrix td.stats-cell {
+      font-variant-numeric: tabular-nums;
+    }
+    /* left offsets for stats columns: computed via JS */
+
+    /* Sticky header row */
+    table.matrix thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: var(--surface);
+      padding: 4px 2px;
+      font-weight: 700;
+      font-size: 10px;
+    }
+    table.matrix thead th.persona-header,
+    table.matrix thead th.stats-header {
+      z-index: 4; /* corner cells must be above both sticky axes */
+    }
+
+    /* Data cells */
+    table.matrix td.data-cell {
+      width: var(--cell-size);
+      min-width: var(--cell-size);
+      max-width: var(--cell-size);
+      height: var(--cell-size);
+      padding: 0;
+      cursor: default;
+      position: relative;
+      font-size: 14px;
+      line-height: var(--cell-size);
+    }
+    table.matrix td.data-cell:hover {
+      outline: 2px solid var(--teal);
+      outline-offset: -2px;
+    }
+    /* Cell states */
+    .cell-participated { color: #666; }
+    .cell-agree { color: var(--green); }
+    .cell-disagree { color: var(--red); }
+    .cell-evolved { color: var(--gold); }
+    .cell-fired { color: var(--red); font-weight: 700; }
+    .cell-created { color: var(--blue); }
+
+    /* Tooltip */
+    .tooltip {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      background: #111;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      max-width: 340px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text);
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .tooltip.visible { display: block; }
+    .tooltip .tt-session { color: var(--teal); font-weight: 700; }
+    .tooltip .tt-topic { color: var(--text-muted); display: block; margin: 2px 0; }
+    .tooltip .tt-vote { display: block; }
+    .tooltip .tt-evo { display: block; margin-top: 4px; }
+    .tooltip .tt-detail { color: var(--text-muted); display: block; font-size: 10px; margin-top: 2px; }
+
+    /* Session number links */
+    table.matrix thead th a {
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+    table.matrix thead th a:hover {
+      color: var(--teal);
+    }
+
+    /* Summary row */
+    table.matrix tr.summary-row td {
+      background: var(--surface);
+      font-size: 9px;
+      color: var(--text-muted);
+      font-weight: 700;
+      height: 22px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>congress participation matrix</h1>
+    <p>participation, votes, and evolution across all congress sessions</p>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><span class="legend-symbol cell-participated">&bull;</span> participated</div>
+    <div class="legend-item"><span class="legend-symbol cell-agree">&uarr;</span> voted agree</div>
+    <div class="legend-item"><span class="legend-symbol cell-disagree">&darr;</span> voted disagree</div>
+    <div class="legend-item"><span class="legend-symbol cell-evolved">&starf;</span> evolved</div>
+    <div class="legend-item"><span class="legend-symbol cell-fired">&times;</span> fired</div>
+    <div class="legend-item"><span class="legend-symbol cell-created">+</span> created</div>
+  </div>
+  <div id="loading"><span class="spinner"></span> Loading matrix data...</div>
+  <div class="matrix-wrap" id="matrix-wrap" style="display:none">
+    <table class="matrix" id="matrix"></table>
+  </div>
+  <div class="tooltip" id="tooltip"></div>
+
+  <script>
+  (function() {
+    var tooltip = document.getElementById('tooltip');
+
+    function cellSymbol(cell) {
+      if (!cell) return '';
+      // Priority: fired > created > evolved > vote > participated
+      if (cell.evolution === 'fired') return '\u00d7'; // x
+      if (cell.evolution === 'created') return '+';
+      if (cell.evolution === 'evolved') return '\u2605'; // star
+      if (cell.vote === 'agree') return '\u2191'; // up arrow
+      if (cell.vote === 'disagree') return '\u2193'; // down arrow
+      if (cell.participated) return '\u2022'; // bullet
+      return '';
+    }
+
+    function cellClass(cell) {
+      if (!cell) return '';
+      if (cell.evolution === 'fired') return 'cell-fired';
+      if (cell.evolution === 'created') return 'cell-created';
+      if (cell.evolution === 'evolved') return 'cell-evolved';
+      if (cell.vote === 'agree') return 'cell-agree';
+      if (cell.vote === 'disagree') return 'cell-disagree';
+      if (cell.participated) return 'cell-participated';
+      return '';
+    }
+
+    function tooltipContent(cell, session, persona) {
+      if (!cell) return '';
+      var html = '<span class="tt-session">Congress #' + session.session_number + '</span>';
+      html += '<span class="tt-topic">' + escHtml(session.topic.length > 120 ? session.topic.slice(0, 120) + '...' : session.topic) + '</span>';
+      html += '<span class="tt-vote"><b>' + escHtml(persona.display_name) + '</b>';
+      var parts = [];
+      if (cell.participated) parts.push('participated');
+      if (cell.vote) parts.push('voted ' + cell.vote);
+      if (cell.evolution && cell.evolution !== 'retained') parts.push(cell.evolution);
+      if (cell.evolution === 'retained') parts.push('reviewed, retained');
+      html += ' &mdash; ' + parts.join(', ') + '</span>';
+      if (cell.evolutionDetail) {
+        html += '<span class="tt-detail">' + escHtml(cell.evolutionDetail) + '</span>';
+      }
+      return html;
+    }
+
+    function escHtml(s) {
+      var d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    fetch('/api/congress/matrix')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('matrix-wrap').style.display = 'block';
+        buildMatrix(data);
+      })
+      .catch(function(err) {
+        document.getElementById('loading').innerHTML = 'Failed to load matrix data: ' + err.message;
+      });
+
+    function buildMatrix(data) {
+      var sessions = data.sessions;
+      var personas = data.personas;
+      var cells = data.cells;
+
+      var table = document.getElementById('matrix');
+      var statsLeftBase = 180; // persona col width
+      var statsWidths = [40, 40, 40]; // #, E, F columns
+
+      // Build header
+      var thead = document.createElement('thead');
+      var headerRow = document.createElement('tr');
+
+      var thPersona = document.createElement('th');
+      thPersona.className = 'persona-header';
+      thPersona.textContent = 'persona';
+      headerRow.appendChild(thPersona);
+
+      // Stats headers
+      var statLabels = ['#', 'E', 'F'];
+      var statTitles = ['total sessions', 'times evolved', 'times fired'];
+      for (var si = 0; si < statLabels.length; si++) {
+        var thStat = document.createElement('th');
+        thStat.className = 'stats-header';
+        thStat.textContent = statLabels[si];
+        thStat.title = statTitles[si];
+        thStat.style.left = (statsLeftBase + si * 40) + 'px';
+        headerRow.appendChild(thStat);
+      }
+
+      // Session headers
+      for (var i = 0; i < sessions.length; i++) {
+        var th = document.createElement('th');
+        var a = document.createElement('a');
+        a.href = '/congress?session=' + sessions[i].session_id;
+        a.textContent = sessions[i].session_number;
+        a.title = sessions[i].topic.length > 80 ? sessions[i].topic.slice(0, 80) + '...' : sessions[i].topic;
+        th.appendChild(a);
+        headerRow.appendChild(th);
+      }
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      var tbody = document.createElement('tbody');
+
+      // Summary row (participant counts)
+      var summaryRow = document.createElement('tr');
+      summaryRow.className = 'summary-row';
+      var summTd = document.createElement('td');
+      summTd.className = 'persona-cell';
+      summTd.textContent = 'participants';
+      summTd.style.fontStyle = 'italic';
+      summTd.style.fontSize = '10px';
+      summaryRow.appendChild(summTd);
+      for (var si2 = 0; si2 < 3; si2++) {
+        var sTd = document.createElement('td');
+        sTd.className = 'stats-cell';
+        sTd.style.left = (statsLeftBase + si2 * 40) + 'px';
+        summaryRow.appendChild(sTd);
+      }
+      for (var j = 0; j < sessions.length; j++) {
+        var td = document.createElement('td');
+        td.className = 'data-cell';
+        td.textContent = sessions[j].participant_count;
+        td.style.fontSize = '9px';
+        td.style.color = 'var(--text-muted)';
+        summaryRow.appendChild(td);
+      }
+      tbody.appendChild(summaryRow);
+
+      // Persona rows
+      for (var p = 0; p < personas.length; p++) {
+        var persona = personas[p];
+        var personaCells = cells[persona.id] || {};
+        var row = document.createElement('tr');
+
+        // Persona name cell
+        var nameTd = document.createElement('td');
+        nameTd.className = 'persona-cell';
+        nameTd.textContent = persona.display_name;
+        nameTd.title = persona.display_name;
+        row.appendChild(nameTd);
+
+        // Stats cells
+        var statsVals = [persona.total_sessions, persona.times_evolved, persona.times_fired];
+        for (var si3 = 0; si3 < statsVals.length; si3++) {
+          var statTd = document.createElement('td');
+          statTd.className = 'stats-cell';
+          statTd.style.left = (statsLeftBase + si3 * 40) + 'px';
+          statTd.textContent = statsVals[si3] || '';
+          if (si3 === 1 && statsVals[si3] > 0) statTd.style.color = 'var(--gold)';
+          if (si3 === 2 && statsVals[si3] > 0) statTd.style.color = 'var(--red)';
+          row.appendChild(statTd);
+        }
+
+        // Data cells
+        for (var s = 0; s < sessions.length; s++) {
+          var cell = personaCells[sessions[s].session_number];
+          var dataTd = document.createElement('td');
+          dataTd.className = 'data-cell ' + cellClass(cell);
+          dataTd.textContent = cellSymbol(cell);
+          if (cell) {
+            dataTd.dataset.pid = persona.id;
+            dataTd.dataset.snum = sessions[s].session_number;
+          }
+          row.appendChild(dataTd);
+        }
+
+        tbody.appendChild(row);
+      }
+
+      table.appendChild(tbody);
+
+      // Tooltip handling
+      table.addEventListener('mouseover', function(e) {
+        var td = e.target.closest('td.data-cell');
+        if (!td || !td.dataset.pid) { tooltip.className = 'tooltip'; return; }
+        var pid = td.dataset.pid;
+        var snum = parseInt(td.dataset.snum);
+        var persona = personas.find(function(pp) { return pp.id === pid; });
+        var session = sessions.find(function(ss) { return ss.session_number === snum; });
+        var cell = cells[pid] ? cells[pid][snum] : null;
+        if (!cell || !session || !persona) { tooltip.className = 'tooltip'; return; }
+        tooltip.innerHTML = tooltipContent(cell, session, persona);
+        tooltip.className = 'tooltip visible';
+        var rect = td.getBoundingClientRect();
+        var ttWidth = 340;
+        var left = rect.right + 8;
+        if (left + ttWidth > window.innerWidth) left = rect.left - ttWidth - 8;
+        var top = rect.top;
+        if (top + 120 > window.innerHeight) top = window.innerHeight - 130;
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
+      });
+      table.addEventListener('mouseout', function(e) {
+        if (!e.target.closest('td.data-cell')) tooltip.className = 'tooltip';
+      });
+    }
+  })();
+  </script>
+</body>
+</html>
