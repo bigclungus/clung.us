@@ -477,6 +477,48 @@
 
 - Reduce timeline card spacing for tighter layout
 
+- Add trial session rendering to congress web viewer
+
+- Improve timeline: tighter spacing, zebra stripes, day labels, local timezone
+
+- Fix timeline zebra stripe contrast and gap marker labels
+
+- Suppress gap markers at day boundaries on timeline
+
+- Align zebra stripes to day label midpoints on timeline
+
+- Add subtle hourly graduation marks to timeline
+
+- default cards above, add labs category
+
+- increase hour tick visibility and distinguish feature color from labs
+
+- Add 9 missing timeline events and fix chronological ordering
+
+- Switch timeline to fetch from /api/timeline instead of static JSON
+
+- Add GitHub OAuth auth gating to congress, commons, and refinery pages
+
+- Remove timeline JSON files — migrated to SQLite via clunger API
+
+- Fix auth bypass: check username field, not just response status
+
+- Remove auth gate from timeline page — make it publicly accessible
+
+- new persona avatar + sprite polls
+
+- new persona avatar + sprite polls
+
+- Fix matrix trial column colors and cell lookups
+
+- Update congress viewer: fired -> retired in CSS, JS, and labels
+
+- new persona avatar + sprite polls
+
+- Add clickable source links to timeline event titles
+
+- Convert sitenav.js to TypeScript with proper type annotations
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
