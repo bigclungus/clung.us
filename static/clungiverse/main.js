@@ -77,6 +77,8 @@ function createInitialState() {
     localCooldownMax: 0,
     elapsedMs: 0,
     kills: 0,
+    totalMobs: 0,
+    remainingMobs: 0,
     powerupChoices: [],
     powerupTimer: 15000,
     results: null,
@@ -455,6 +457,10 @@ class DungeonNetwork extends Emitter {
         zoneType: sz.zoneType
       });
     }
+    if (msg.totalMobs !== undefined)
+      s.totalMobs = msg.totalMobs;
+    if (msg.remainingMobs !== undefined)
+      s.remainingMobs = msg.remainingMobs;
     if (this.runStartTime === 0) {
       this.runStartTime = msg.t;
     }
@@ -1372,13 +1378,10 @@ function renderHud(ctx2, state, canvasW, canvasH) {
   ctx2.fillStyle = "#cccccc";
   ctx2.font = "11px monospace";
   ctx2.fillText(`Kills: ${state.kills}`, 10, canvasH - 26);
-  let mobCount = 0;
-  for (const e of state.enemies.values()) {
-    if (e.alive)
-      mobCount++;
-  }
+  const mobsRemaining = state.remainingMobs;
+  const mobsTotal = state.totalMobs;
   ctx2.fillStyle = "#dd8844";
-  ctx2.fillText(`Mobs: ${mobCount}`, 10, canvasH - 12);
+  ctx2.fillText(`Mobs: ${mobsRemaining}/${mobsTotal}`, 10, canvasH - 12);
   renderPowerCooldown(ctx2, state, canvasW, canvasH);
 }
 function renderPowerCooldown(ctx2, state, canvasW, canvasH) {
@@ -2022,6 +2025,7 @@ var network = new DungeonNetwork(state);
 initInput(getCanvas());
 function handleReturnToCommons() {
   network.disconnect();
+  clearLobbyParam();
   window.location.href = "/commons-v2/";
 }
 var scenes = new Map;
@@ -2043,6 +2047,13 @@ function switchScene(name) {
     activeScene.enter(state);
   }
 }
+function clearLobbyParam() {
+  const url = new URL(window.location.href);
+  if (url.searchParams.has("lobby")) {
+    url.searchParams.delete("lobby");
+    window.history.replaceState(null, "", url.toString());
+  }
+}
 var lastScene = state.scene;
 var lastTime = 0;
 function gameLoop(timestamp) {
@@ -2050,6 +2061,9 @@ function gameLoop(timestamp) {
   lastTime = timestamp;
   if (state.scene !== lastScene) {
     switchScene(state.scene);
+    if (state.scene === "results") {
+      clearLobbyParam();
+    }
     lastScene = state.scene;
   }
   if (activeScene) {
@@ -2060,6 +2074,17 @@ function gameLoop(timestamp) {
     activeScene.render(state, ctx2);
   }
   requestAnimationFrame(gameLoop);
+}
+async function fetchUsername() {
+  try {
+    const res = await fetch("/api/me");
+    if (res.ok) {
+      const data = await res.json();
+      if (data.username)
+        return data.username;
+    }
+  } catch {}
+  return "Adventurer";
 }
 var userId = `player-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 var userName = "Adventurer";
@@ -2078,23 +2103,33 @@ network.on("error", (msg) => {
 var urlParams = new URLSearchParams(window.location.search);
 var joinLobbyId = urlParams.get("lobby");
 async function initLobby() {
+  userName = await fetchUsername();
+  state.playerName = userName;
   try {
     let lobbyId;
+    let joinedExisting = false;
     if (joinLobbyId) {
       state.lobbyStatus = "joining";
       console.log("[clungiverse] Joining lobby from invite:", joinLobbyId);
-      const joinRes = await fetch(`/api/clungiverse/lobby/${joinLobbyId}/join`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, name: userName })
-      });
-      if (!joinRes.ok) {
-        const err = await joinRes.json();
-        throw new Error(err.error ?? `HTTP ${joinRes.status}`);
+      try {
+        const joinRes = await fetch(`/api/clungiverse/lobby/${joinLobbyId}/join`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, name: userName })
+        });
+        if (!joinRes.ok) {
+          const err = await joinRes.json().catch(() => ({}));
+          throw new Error(err.error ?? `HTTP ${joinRes.status}`);
+        }
+        lobbyId = joinLobbyId;
+        joinedExisting = true;
+        console.log("[clungiverse] Joined lobby:", lobbyId);
+      } catch (joinErr) {
+        console.warn("[clungiverse] Failed to join lobby from URL, creating new one:", joinErr);
+        clearLobbyParam();
       }
-      lobbyId = joinLobbyId;
-      console.log("[clungiverse] Joined lobby:", lobbyId);
-    } else {
+    }
+    if (!joinedExisting) {
       state.lobbyStatus = "creating";
       const createRes = await fetch("/api/clungiverse/lobby/create", {
         method: "POST",
@@ -2102,7 +2137,7 @@ async function initLobby() {
         body: JSON.stringify({ userId, name: userName })
       });
       if (!createRes.ok) {
-        const err = await createRes.json();
+        const err = await createRes.json().catch(() => ({}));
         throw new Error(err.error ?? `HTTP ${createRes.status}`);
       }
       const createData = await createRes.json();
@@ -2115,7 +2150,7 @@ async function initLobby() {
         body: JSON.stringify({ userId, name: userName })
       });
       if (!joinRes.ok) {
-        const err = await joinRes.json();
+        const err = await joinRes.json().catch(() => ({}));
         throw new Error(err.error ?? `HTTP ${joinRes.status}`);
       }
       console.log("[clungiverse] Joined lobby:", lobbyId);
