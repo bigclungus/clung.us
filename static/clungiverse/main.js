@@ -1,0 +1,1944 @@
+// src/state.ts
+var PERSONAS = {
+  holden: {
+    slug: "holden",
+    name: "Holden",
+    role: "tank",
+    color: "#e63946",
+    powerName: "Overwhelming Force",
+    powerDescription: "60° cone stun, 48px range, 1.5s stun, 8s CD",
+    baseStats: { hp: 150, atk: 12, def: 10, spd: 6, lck: 4 }
+  },
+  broseidon: {
+    slug: "broseidon",
+    name: "Broseidon",
+    role: "dps",
+    color: "#457b9d",
+    powerName: "Progressive Overload",
+    powerDescription: "10s window, +2 ATK per kill, 10s CD",
+    baseStats: { hp: 100, atk: 16, def: 5, spd: 10, lck: 6 }
+  },
+  deckard_cain: {
+    slug: "deckard_cain",
+    name: "Deckard Cain",
+    role: "support",
+    color: "#e9c46a",
+    powerName: "Stay Awhile and Listen",
+    powerDescription: "48px AoE zone, 4s slow + reveal, 12s CD",
+    baseStats: { hp: 90, atk: 8, def: 6, spd: 8, lck: 10 }
+  },
+  galactus: {
+    slug: "galactus",
+    name: "Galactus",
+    role: "wildcard",
+    color: "#7b2d8e",
+    powerName: "Consume",
+    powerDescription: "Execute <20% HP enemies in 36px, heal 15% maxHP, 6s CD",
+    baseStats: { hp: 120, atk: 14, def: 7, spd: 7, lck: 8 }
+  }
+};
+var PERSONA_SLUGS = ["holden", "broseidon", "deckard_cain", "galactus"];
+var TILE_FLOOR = 0;
+var TILE_WALL = 1;
+var TILE_DOOR_CLOSED = 2;
+var TILE_DOOR_OPEN = 3;
+var TILE_SPAWN = 4;
+var TILE_TREASURE = 5;
+var TILE_SHRINE = 6;
+var TILE_STAIRS = 7;
+function createInitialState() {
+  return {
+    scene: "lobby",
+    playerId: "",
+    playerName: "",
+    lobbyId: null,
+    lobbyPlayers: [],
+    isHost: false,
+    selectedPersona: null,
+    lobbyStatus: "idle",
+    lobbyError: null,
+    floor: 0,
+    totalFloors: 3,
+    tick: 0,
+    players: new Map,
+    enemies: new Map,
+    projectiles: new Map,
+    aoeZones: new Map,
+    boss: null,
+    tileGrid: null,
+    gridWidth: 0,
+    gridHeight: 0,
+    rooms: [],
+    localHp: 0,
+    localMaxHp: 0,
+    localCooldown: 0,
+    localCooldownMax: 0,
+    elapsedMs: 0,
+    kills: 0,
+    powerupChoices: [],
+    powerupTimer: 15000,
+    results: null,
+    lastServerTick: 0,
+    tickTimestamp: 0,
+    prevTickTimestamp: 0,
+    pendingInputs: [],
+    inputSeq: 0,
+    connected: false
+  };
+}
+
+// src/renderer/canvas.ts
+var canvas;
+var ctx;
+var camera = { x: 0, y: 0, zoom: 1 };
+function initCanvas(c) {
+  canvas = c;
+  const context = c.getContext("2d");
+  if (!context)
+    throw new Error("Failed to get 2d context");
+  ctx = context;
+  resize();
+  window.addEventListener("resize", resize);
+  return ctx;
+}
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+function getCanvas() {
+  return canvas;
+}
+function getCamera() {
+  return camera;
+}
+function centerCamera(worldX, worldY) {
+  camera.x = worldX - canvas.width / (2 * camera.zoom);
+  camera.y = worldY - canvas.height / (2 * camera.zoom);
+}
+function isVisible(wx, wy, w, h) {
+  const vw = canvas.width / camera.zoom;
+  const vh = canvas.height / camera.zoom;
+  return wx + w > camera.x && wx < camera.x + vw && wy + h > camera.y && wy < camera.y + vh;
+}
+function clearCanvas() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#0a0a0a";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+function pushCameraTransform() {
+  ctx.save();
+  ctx.scale(camera.zoom, camera.zoom);
+  ctx.translate(-camera.x, -camera.y);
+}
+function popCameraTransform() {
+  ctx.restore();
+}
+
+// src/input/input.ts
+var held = new Set;
+var mouseX = 0;
+var mouseY = 0;
+var powerTriggered = false;
+var powerConsumed = false;
+var lastFacingX = 0;
+var lastFacingY = 1;
+function initInput(canvas2) {
+  window.addEventListener("keydown", (e) => {
+    const key = e.key.toLowerCase();
+    held.add(key);
+    if (e.key === " ") {
+      e.preventDefault();
+      if (!powerConsumed) {
+        powerTriggered = true;
+      }
+    }
+  });
+  window.addEventListener("keyup", (e) => {
+    held.delete(e.key.toLowerCase());
+    if (e.key === " ") {
+      powerConsumed = false;
+    }
+  });
+  canvas2.addEventListener("mousemove", (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  });
+}
+function pollInput() {
+  let dx = 0;
+  let dy = 0;
+  if (held.has("w") || held.has("arrowup"))
+    dy -= 1;
+  if (held.has("s") || held.has("arrowdown"))
+    dy += 1;
+  if (held.has("a") || held.has("arrowleft"))
+    dx -= 1;
+  if (held.has("d") || held.has("arrowright"))
+    dx += 1;
+  if (dx !== 0 && dy !== 0) {
+    const inv = 1 / Math.sqrt(2);
+    dx *= inv;
+    dy *= inv;
+  }
+  if (dx !== 0 || dy !== 0) {
+    lastFacingX = dx;
+    lastFacingY = dy;
+  }
+  const power = powerTriggered;
+  if (powerTriggered) {
+    powerTriggered = false;
+    powerConsumed = true;
+  }
+  return {
+    dx,
+    dy,
+    facingX: lastFacingX,
+    facingY: lastFacingY,
+    power,
+    mouseX,
+    mouseY
+  };
+}
+
+// src/network/dungeon-network.ts
+class Emitter {
+  map = new Map;
+  on(event, fn) {
+    const arr = this.map.get(event) ?? [];
+    arr.push(fn);
+    this.map.set(event, arr);
+  }
+  off(event, fn) {
+    const arr = this.map.get(event);
+    if (!arr)
+      return;
+    const i = arr.indexOf(fn);
+    if (i !== -1)
+      arr.splice(i, 1);
+  }
+  emit(event, data) {
+    const arr = this.map.get(event);
+    if (!arr)
+      return;
+    for (const fn of arr)
+      fn(data);
+  }
+}
+var INITIAL_DELAY = 500;
+var MAX_DELAY = 1e4;
+var BACKOFF = 1.5;
+
+class DungeonNetwork extends Emitter {
+  ws = null;
+  url = "";
+  delay = INITIAL_DELAY;
+  timer = null;
+  closing = false;
+  gameState;
+  runStartTime = 0;
+  constructor(state) {
+    super();
+    this.gameState = state;
+  }
+  connect(lobbyId, userId, name) {
+    const proto = location.protocol === "https:" ? "wss:" : "ws:";
+    this.url = `${proto}//${location.host}/dungeon-ws?lobbyId=${encodeURIComponent(lobbyId)}&userId=${encodeURIComponent(userId)}&name=${encodeURIComponent(name)}`;
+    this.closing = false;
+    this.doConnect();
+  }
+  disconnect() {
+    this.closing = true;
+    if (this.timer !== null) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+    this.gameState.connected = false;
+  }
+  doConnect() {
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
+    const ws = new WebSocket(this.url);
+    this.ws = ws;
+    ws.onopen = () => {
+      this.gameState.connected = true;
+      this.delay = INITIAL_DELAY;
+      this.emit("connected", null);
+    };
+    ws.onclose = () => {
+      this.gameState.connected = false;
+      this.ws = null;
+      this.emit("disconnected", null);
+      if (!this.closing)
+        this.scheduleReconnect();
+    };
+    ws.onerror = () => {};
+    ws.onmessage = (ev) => {
+      const data = ev.data;
+      if (typeof data === "string") {
+        this.handleRaw(data);
+      } else if (data instanceof Blob) {
+        data.text().then((text) => this.handleRaw(text));
+      } else if (data instanceof ArrayBuffer) {
+        this.handleRaw(new TextDecoder().decode(data));
+      }
+    };
+  }
+  scheduleReconnect() {
+    if (this.timer !== null)
+      return;
+    this.timer = window.setTimeout(() => {
+      this.timer = null;
+      this.doConnect();
+    }, this.delay);
+    this.delay = Math.min(this.delay * BACKOFF, MAX_DELAY);
+  }
+  handleRaw(raw) {
+    let msg;
+    try {
+      msg = JSON.parse(raw);
+    } catch {
+      console.error("[net] bad json:", raw);
+      return;
+    }
+    switch (msg.type) {
+      case "d_tick":
+        this.onTick(msg);
+        break;
+      case "d_floor":
+        this.onFloor(msg);
+        break;
+      case "d_welcome":
+        this.onWelcome(msg);
+        break;
+      case "d_lobby":
+        this.onLobby(msg);
+        break;
+      case "d_powerup_choices":
+        this.onPowerup(msg);
+        break;
+      case "d_results":
+        this.onResults(msg);
+        break;
+      case "d_error":
+        console.error("[net] server error:", msg.message);
+        this.emit("error", msg.message);
+        break;
+    }
+    this.emit(msg.type, msg);
+  }
+  onTick(msg) {
+    const s = this.gameState;
+    s.prevTickTimestamp = s.tickTimestamp;
+    s.tickTimestamp = performance.now();
+    s.lastServerTick = msg.tick;
+    s.tick = msg.tick;
+    const seenPlayers = new Set;
+    for (const sp of msg.players) {
+      seenPlayers.add(sp.id);
+      const old = s.players.get(sp.id);
+      const isLocal = sp.id === s.playerId;
+      const facingX = sp.facing === "left" ? -1 : 1;
+      const facingY = 0;
+      const cp = {
+        id: sp.id,
+        name: sp.name,
+        personaSlug: sp.personaSlug,
+        x: isLocal && old ? old.x : sp.x,
+        y: isLocal && old ? old.y : sp.y,
+        prevX: old ? old.x : sp.x,
+        prevY: old ? old.y : sp.y,
+        facingX: old ? old.facingX : facingX,
+        facingY: old ? old.facingY : facingY,
+        hp: sp.hp,
+        maxHp: sp.maxHp,
+        alive: sp.hp > 0,
+        isLocal,
+        iframeTicks: sp.iframeTicks,
+        powerCooldown: sp.cooldownRemaining,
+        powerCooldownMax: old ? old.powerCooldownMax : 128
+      };
+      if (isLocal) {
+        cp.prevX = sp.x;
+        cp.prevY = sp.y;
+      }
+      s.players.set(sp.id, cp);
+      if (isLocal) {
+        s.localHp = sp.hp;
+        s.localMaxHp = sp.maxHp;
+        s.localCooldown = sp.cooldownRemaining;
+        s.localCooldownMax = cp.powerCooldownMax;
+      }
+    }
+    for (const id of s.players.keys()) {
+      if (!seenPlayers.has(id))
+        s.players.delete(id);
+    }
+    const seenEnemies = new Set;
+    for (const se of msg.enemies) {
+      seenEnemies.add(se.id);
+      const old = s.enemies.get(se.id);
+      const ce = {
+        id: se.id,
+        type: se.variantName,
+        behavior: se.behavior,
+        x: se.x,
+        y: se.y,
+        prevX: old ? old.x : se.x,
+        prevY: old ? old.y : se.y,
+        hp: se.hp,
+        maxHp: se.maxHp,
+        alive: se.hp > 0,
+        isBoss: se.isBoss,
+        telegraphing: se.telegraphing,
+        aimDirX: 0,
+        aimDirY: 0
+      };
+      s.enemies.set(se.id, ce);
+      if (se.isBoss) {
+        if (s.boss) {
+          ce.prevX = s.boss.x;
+          ce.prevY = s.boss.y;
+        }
+        s.boss = ce;
+      }
+    }
+    for (const id of s.enemies.keys()) {
+      if (!seenEnemies.has(id))
+        s.enemies.delete(id);
+    }
+    if (s.boss && !seenEnemies.has(s.boss.id)) {
+      s.boss = null;
+    }
+    const seenProj = new Set;
+    for (const sp of msg.projectiles) {
+      seenProj.add(sp.id);
+      const old = s.projectiles.get(sp.id);
+      const cp = {
+        id: sp.id,
+        x: sp.x,
+        y: sp.y,
+        prevX: old ? old.x : sp.x,
+        prevY: old ? old.y : sp.y,
+        radius: sp.radius,
+        fromEnemy: sp.fromEnemy
+      };
+      s.projectiles.set(sp.id, cp);
+    }
+    for (const id of s.projectiles.keys()) {
+      if (!seenProj.has(id))
+        s.projectiles.delete(id);
+    }
+    s.aoeZones.clear();
+    for (const sz of msg.aoeZones) {
+      s.aoeZones.set(sz.id, {
+        id: sz.id,
+        x: sz.x,
+        y: sz.y,
+        radius: sz.radius,
+        ticksRemaining: sz.ticksRemaining,
+        zoneType: sz.zoneType
+      });
+    }
+    if (this.runStartTime === 0) {
+      this.runStartTime = msg.t;
+    }
+    s.elapsedMs = msg.t - this.runStartTime;
+    for (const ev of msg.events) {
+      if (ev.type === "kill") {
+        s.kills++;
+      }
+      this.emit("tick_event", ev);
+    }
+  }
+  onFloor(msg) {
+    const s = this.gameState;
+    s.tileGrid = msg.tiles;
+    s.gridWidth = msg.gridWidth;
+    s.gridHeight = msg.gridHeight;
+    s.rooms = msg.rooms.map((r) => ({
+      x: r.x,
+      y: r.y,
+      w: r.w,
+      h: r.h,
+      cleared: false
+    }));
+    s.floor = msg.floor;
+    s.totalFloors = 3;
+    s.scene = "dungeon";
+    s.enemies.clear();
+    s.projectiles.clear();
+    s.aoeZones.clear();
+    s.boss = null;
+    s.kills = 0;
+    this.runStartTime = 0;
+  }
+  onWelcome(msg) {
+    const s = this.gameState;
+    s.playerId = msg.playerId;
+    s.lobbyId = msg.lobbyId;
+    console.log("[net] Welcome: playerId =", msg.playerId, "lobbyId =", msg.lobbyId);
+  }
+  onPowerup(msg) {
+    const s = this.gameState;
+    s.powerupChoices = msg.choices;
+    s.powerupTimer = 15000;
+    s.scene = "transition";
+  }
+  onResults(msg) {
+    const s = this.gameState;
+    let totalKills = 0;
+    let totalDmgDealt = 0;
+    let totalDmgTaken = 0;
+    for (const p of msg.players) {
+      totalKills += p.kills;
+      totalDmgDealt += p.damageDealt;
+      totalDmgTaken += p.damageTaken;
+    }
+    s.results = {
+      outcome: msg.outcome,
+      floorReached: msg.floorReached,
+      totalFloors: s.totalFloors,
+      durationMs: msg.durationMs,
+      kills: totalKills,
+      damageDealt: totalDmgDealt,
+      damageTaken: totalDmgTaken,
+      players: msg.players.map((p) => ({
+        playerId: p.playerId,
+        name: p.name,
+        personaSlug: p.personaSlug,
+        kills: p.kills,
+        damageDealt: p.damageDealt,
+        damageTaken: p.damageTaken,
+        diedOnFloor: p.diedOnFloor
+      }))
+    };
+    s.scene = "results";
+  }
+  onLobby(msg) {
+    const s = this.gameState;
+    s.lobbyId = msg.lobbyId;
+    s.lobbyPlayers = msg.players.map((p) => ({
+      playerId: p.playerId,
+      name: p.name,
+      personaSlug: p.personaSlug ?? null,
+      ready: p.ready,
+      isHost: p.playerId === msg.hostId
+    }));
+    s.isHost = s.playerId === msg.hostId;
+    s.scene = "lobby";
+  }
+  send(data) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(data));
+    }
+  }
+  sendMove(dx, dy, facingX, _facingY, seq) {
+    const facing = facingX < 0 ? "left" : "right";
+    this.send({ type: "d_move", seq, dx, dy, facing });
+  }
+  sendAttack() {
+    this.send({ type: "d_attack" });
+  }
+  sendPower() {
+    this.send({ type: "d_power" });
+  }
+  sendReady(persona) {
+    this.send({ type: "d_ready", personaSlug: persona });
+  }
+  sendStart() {
+    this.send({ type: "d_start" });
+  }
+  sendPickPowerup(powerupId) {
+    this.send({ type: "d_pick_powerup", powerupId });
+  }
+}
+
+// src/scenes/lobby.ts
+var BASE_CARD_W = 210;
+var BASE_CARD_H = 240;
+var BASE_CARD_GAP = 16;
+var GRID_COLS = 2;
+var cardHits = [];
+var startButtonHit = null;
+var clickHandler = null;
+function createLobbyScene(network) {
+  return {
+    enter(state) {
+      state.selectedPersona = null;
+      cardHits = [];
+      startButtonHit = null;
+      clickHandler = (e) => {
+        const mx = e.clientX;
+        const my = e.clientY;
+        for (const card of cardHits) {
+          if (mx >= card.x && mx <= card.x + card.w && my >= card.y && my <= card.y + card.h) {
+            state.selectedPersona = card.slug;
+            if (state.connected) {
+              network.sendReady(card.slug);
+            }
+            return;
+          }
+        }
+        if (startButtonHit && state.selectedPersona && state.connected) {
+          const b = startButtonHit;
+          if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
+            network.sendReady(state.selectedPersona);
+            network.sendStart();
+          }
+        }
+      };
+      window.addEventListener("click", clickHandler);
+    },
+    update(_state, _dt) {},
+    render(state, ctx2) {
+      const w = ctx2.canvas.width;
+      const h = ctx2.canvas.height;
+      const grad = ctx2.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, "#0d0d1a");
+      grad.addColorStop(1, "#1a1a2e");
+      ctx2.fillStyle = grad;
+      ctx2.fillRect(0, 0, w, h);
+      ctx2.fillStyle = "#ffffff";
+      ctx2.font = "bold 32px monospace";
+      ctx2.textAlign = "center";
+      ctx2.fillText("CLUNGIVERSE", w / 2, 50);
+      ctx2.font = "16px monospace";
+      ctx2.fillStyle = "#bbbbbb";
+      ctx2.fillText("Select Your Persona", w / 2, 78);
+      if (state.lobbyStatus === "error") {
+        ctx2.fillStyle = "#ff4444";
+        ctx2.font = "14px monospace";
+        ctx2.fillText(`Error: ${state.lobbyError ?? "Unknown"}`, w / 2, 98);
+      } else if (state.lobbyStatus === "creating") {
+        ctx2.fillStyle = "#ffcc44";
+        ctx2.font = "14px monospace";
+        ctx2.fillText("Creating lobby...", w / 2, 98);
+      } else if (state.lobbyStatus === "joining") {
+        ctx2.fillStyle = "#ffcc44";
+        ctx2.font = "14px monospace";
+        ctx2.fillText("Joining lobby...", w / 2, 98);
+      } else if (!state.connected) {
+        ctx2.fillStyle = "#ff4444";
+        ctx2.font = "14px monospace";
+        ctx2.fillText("Connecting...", w / 2, 98);
+      }
+      const reservedH = 110 + 30 + 48 + 20;
+      const gridRows = Math.ceil(PERSONA_SLUGS.length / GRID_COLS);
+      const maxGridH = h - reservedH;
+      const naturalGridH = gridRows * BASE_CARD_H + (gridRows - 1) * BASE_CARD_GAP;
+      const scale = naturalGridH > maxGridH ? maxGridH / naturalGridH : 1;
+      const CARD_W = Math.floor(BASE_CARD_W * scale);
+      const CARD_H = Math.floor(BASE_CARD_H * scale);
+      const CARD_GAP = Math.floor(BASE_CARD_GAP * scale);
+      const gridW = GRID_COLS * CARD_W + (GRID_COLS - 1) * CARD_GAP;
+      const gridH = gridRows * CARD_H + (gridRows - 1) * CARD_GAP;
+      const gridX = (w - gridW) / 2;
+      const gridY = 110;
+      cardHits = [];
+      for (let i = 0;i < PERSONA_SLUGS.length; i++) {
+        const slug = PERSONA_SLUGS[i];
+        const persona = PERSONAS[slug];
+        const col = i % GRID_COLS;
+        const row = Math.floor(i / GRID_COLS);
+        const cx = gridX + col * (CARD_W + CARD_GAP);
+        const cy = gridY + row * (CARD_H + CARD_GAP);
+        cardHits.push({ slug, x: cx, y: cy, w: CARD_W, h: CARD_H });
+        const selected = state.selectedPersona === slug;
+        const taken = state.lobbyPlayers.some((p) => p.personaSlug === slug && p.playerId !== state.playerId);
+        ctx2.fillStyle = taken ? "#1a1a1a" : selected ? "#2a2a3e" : "#1e1e2e";
+        ctx2.fillRect(cx, cy, CARD_W, CARD_H);
+        ctx2.strokeStyle = selected ? persona.color : taken ? "#333333" : "#444444";
+        ctx2.lineWidth = selected ? 2 : 1;
+        ctx2.strokeRect(cx, cy, CARD_W, CARD_H);
+        ctx2.fillStyle = taken ? "#444444" : persona.color;
+        ctx2.beginPath();
+        ctx2.arc(cx + CARD_W / 2, cy + 30, 18, 0, Math.PI * 2);
+        ctx2.fill();
+        ctx2.fillStyle = "rgba(255,255,255,0.6)";
+        drawRoleShape(ctx2, cx + CARD_W / 2, cy + 30, 11, persona.role);
+        ctx2.fillStyle = taken ? "#555555" : "#ffffff";
+        ctx2.font = "bold 16px monospace";
+        ctx2.textAlign = "center";
+        ctx2.fillText(persona.name, cx + CARD_W / 2, cy + 62);
+        ctx2.fillStyle = taken ? "#666666" : persona.color;
+        ctx2.font = "bold 11px monospace";
+        ctx2.fillText(persona.role.toUpperCase(), cx + CARD_W / 2, cy + 76);
+        const stats = persona.baseStats;
+        const statY = cy + 92;
+        ctx2.font = "12px monospace";
+        ctx2.textAlign = "left";
+        const sx = cx + 14;
+        ctx2.fillStyle = "#ffcc66";
+        ctx2.fillText("HP", sx, statY);
+        ctx2.fillStyle = "#e0e0e0";
+        ctx2.fillText(` ${stats.hp}`, sx + ctx2.measureText("HP").width, statY);
+        ctx2.fillStyle = "#ff7766";
+        ctx2.fillText("ATK", sx, statY + 16);
+        ctx2.fillStyle = "#e0e0e0";
+        ctx2.fillText(` ${stats.atk}`, sx + ctx2.measureText("ATK").width, statY + 16);
+        ctx2.fillStyle = "#66bbff";
+        ctx2.fillText("DEF", sx + 90, statY);
+        ctx2.fillStyle = "#e0e0e0";
+        ctx2.fillText(` ${stats.def}`, sx + 90 + ctx2.measureText("DEF").width, statY);
+        ctx2.fillStyle = "#66ffaa";
+        ctx2.fillText("SPD", sx + 90, statY + 16);
+        ctx2.fillStyle = "#e0e0e0";
+        ctx2.fillText(` ${stats.spd}`, sx + 90 + ctx2.measureText("SPD").width, statY + 16);
+        ctx2.fillStyle = "#cc99ff";
+        ctx2.fillText("LCK", sx + 45, statY + 32);
+        ctx2.fillStyle = "#e0e0e0";
+        ctx2.fillText(` ${stats.lck}`, sx + 45 + ctx2.measureText("LCK").width, statY + 32);
+        ctx2.textAlign = "center";
+        ctx2.fillStyle = "#88bbff";
+        ctx2.font = "bold 14px monospace";
+        ctx2.fillText(persona.powerName, cx + CARD_W / 2, cy + 170);
+        ctx2.fillStyle = "#c0c0c0";
+        ctx2.font = "12px monospace";
+        wrapText(ctx2, persona.powerDescription, cx + CARD_W / 2, cy + 186, CARD_W - 20, 14);
+        if (taken) {
+          ctx2.fillStyle = "rgba(0,0,0,0.5)";
+          ctx2.fillRect(cx, cy, CARD_W, CARD_H);
+          ctx2.fillStyle = "#999999";
+          ctx2.font = "bold 14px monospace";
+          ctx2.textAlign = "center";
+          ctx2.fillText("TAKEN", cx + CARD_W / 2, cy + CARD_H / 2);
+        }
+      }
+      const rosterX = w - 200;
+      const rosterY = 110;
+      ctx2.fillStyle = "#ffffff";
+      ctx2.font = "bold 16px monospace";
+      ctx2.textAlign = "left";
+      ctx2.fillText("Party", rosterX, rosterY);
+      let ry = rosterY + 24;
+      for (const player of state.lobbyPlayers) {
+        const pColor = player.personaSlug ? PERSONAS[player.personaSlug]?.color ?? "#888888" : "#555555";
+        ctx2.fillStyle = player.ready ? "#44cc44" : "#cc4444";
+        ctx2.beginPath();
+        ctx2.arc(rosterX + 7, ry + 3, 5, 0, Math.PI * 2);
+        ctx2.fill();
+        ctx2.fillStyle = "#ffffff";
+        ctx2.font = "14px monospace";
+        ctx2.fillText(player.name, rosterX + 18, ry + 7);
+        if (player.personaSlug) {
+          ctx2.fillStyle = pColor;
+          ctx2.font = "12px monospace";
+          ctx2.fillText(PERSONAS[player.personaSlug]?.name ?? player.personaSlug, rosterX + 18, ry + 22);
+        }
+        if (player.isHost) {
+          ctx2.fillStyle = "#ffc640";
+          ctx2.font = "bold 10px monospace";
+          ctx2.fillText("HOST", rosterX + 140, ry + 7);
+        }
+        ry += 36;
+      }
+      {
+        const canStart = !!state.selectedPersona && state.connected;
+        const btnW = 220;
+        const btnH = 48;
+        const btnX = (w - btnW) / 2;
+        const btnY = gridY + gridH + 30;
+        startButtonHit = { x: btnX, y: btnY, w: btnW, h: btnH };
+        ctx2.fillStyle = canStart ? "#2a6b2a" : "#222222";
+        ctx2.fillRect(btnX, btnY, btnW, btnH);
+        ctx2.strokeStyle = canStart ? "#44aa44" : "#444444";
+        ctx2.lineWidth = 2;
+        ctx2.strokeRect(btnX, btnY, btnW, btnH);
+        ctx2.fillStyle = canStart ? "#ffffff" : "#666666";
+        ctx2.font = "bold 20px monospace";
+        ctx2.textAlign = "center";
+        ctx2.fillText("START DUNGEON", btnX + btnW / 2, btnY + 32);
+        if (!state.selectedPersona) {
+          ctx2.fillStyle = "#888888";
+          ctx2.font = "12px monospace";
+          ctx2.fillText("Select a persona to begin", btnX + btnW / 2, btnY + btnH + 18);
+        }
+      }
+    },
+    exit(_state) {
+      if (clickHandler) {
+        window.removeEventListener("click", clickHandler);
+        clickHandler = null;
+      }
+      cardHits = [];
+      startButtonHit = null;
+    }
+  };
+}
+function drawRoleShape(ctx2, x, y, size, role) {
+  ctx2.beginPath();
+  switch (role) {
+    case "tank":
+      ctx2.rect(x - size / 2, y - size / 2, size, size);
+      break;
+    case "dps":
+      ctx2.moveTo(x, y - size);
+      ctx2.lineTo(x - size * 0.8, y + size * 0.5);
+      ctx2.lineTo(x + size * 0.8, y + size * 0.5);
+      ctx2.closePath();
+      break;
+    case "support": {
+      const arm = size * 0.25;
+      const len = size * 0.7;
+      ctx2.rect(x - arm, y - len, arm * 2, len * 2);
+      ctx2.rect(x - len, y - arm, len * 2, arm * 2);
+      break;
+    }
+    case "wildcard": {
+      for (let i = 0;i < 8; i++) {
+        const angle = i * Math.PI / 4 - Math.PI / 2;
+        const r = i % 2 === 0 ? size : size * 0.4;
+        const px = x + Math.cos(angle) * r;
+        const py = y + Math.sin(angle) * r;
+        if (i === 0)
+          ctx2.moveTo(px, py);
+        else
+          ctx2.lineTo(px, py);
+      }
+      ctx2.closePath();
+      break;
+    }
+  }
+  ctx2.fill();
+}
+function wrapText(ctx2, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(" ");
+  let line = "";
+  let cy = y;
+  for (const word of words) {
+    const test = line + (line ? " " : "") + word;
+    if (ctx2.measureText(test).width > maxWidth && line) {
+      ctx2.fillText(line, x, cy);
+      line = word;
+      cy += lineHeight;
+    } else {
+      line = test;
+    }
+  }
+  if (line)
+    ctx2.fillText(line, x, cy);
+}
+
+// src/renderer/dungeon-renderer.ts
+var TILE_SIZE = 16;
+var TILE_COLORS = {
+  [TILE_FLOOR]: "#c2b280",
+  [TILE_WALL]: "#333333",
+  [TILE_DOOR_CLOSED]: "#8b5a2b",
+  [TILE_DOOR_OPEN]: "#a0784a",
+  [TILE_SPAWN]: "#c2b280",
+  [TILE_TREASURE]: "#daa520",
+  [TILE_SHRINE]: "#2e8b57",
+  [TILE_STAIRS]: "#4682b4"
+};
+function renderDungeon(ctx2, state) {
+  const grid = state.tileGrid;
+  if (!grid)
+    return;
+  const w = state.gridWidth;
+  const h = state.gridHeight;
+  const cam = getCamera();
+  const startCol = Math.max(0, Math.floor(cam.x / TILE_SIZE) - 1);
+  const startRow = Math.max(0, Math.floor(cam.y / TILE_SIZE) - 1);
+  const viewW = Math.ceil(window.innerWidth / (TILE_SIZE * cam.zoom));
+  const viewH = Math.ceil(window.innerHeight / (TILE_SIZE * cam.zoom));
+  const endCol = Math.min(w - 1, startCol + viewW + 2);
+  const endRow = Math.min(h - 1, startRow + viewH + 2);
+  for (let row = startRow;row <= endRow; row++) {
+    for (let col = startCol;col <= endCol; col++) {
+      const tile = grid[row * w + col];
+      const px = col * TILE_SIZE;
+      const py = row * TILE_SIZE;
+      if (!isVisible(px, py, TILE_SIZE, TILE_SIZE))
+        continue;
+      ctx2.fillStyle = TILE_COLORS[tile] ?? "#000000";
+      ctx2.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+      if (tile !== TILE_WALL) {
+        ctx2.strokeStyle = "rgba(0,0,0,0.15)";
+        ctx2.lineWidth = 0.5;
+        ctx2.strokeRect(px, py, TILE_SIZE, TILE_SIZE);
+      }
+    }
+  }
+  for (const room of state.rooms) {
+    if (room.cleared) {
+      const rx = room.x * TILE_SIZE;
+      const ry = room.y * TILE_SIZE;
+      const rw = room.w * TILE_SIZE;
+      const rh = room.h * TILE_SIZE;
+      if (isVisible(rx, ry, rw, rh)) {
+        ctx2.fillStyle = "rgba(0,200,100,0.03)";
+        ctx2.fillRect(rx, ry, rw, rh);
+      }
+    }
+  }
+}
+
+// src/entities/local-player.ts
+var PLAYER_RADIUS = 10;
+var BASE_SPEED = 48;
+var SNAP_THRESHOLD = 32;
+var CORRECTION_LERP = 0.3;
+function applyLocalInput(state, dx, dy, facingX, facingY, dt) {
+  const local = getLocalPlayer(state);
+  if (!local || !local.alive)
+    return;
+  state.inputSeq++;
+  const pending = {
+    seq: state.inputSeq,
+    dx,
+    dy,
+    tick: state.lastServerTick
+  };
+  state.pendingInputs.push(pending);
+  if (state.pendingInputs.length > 60) {
+    state.pendingInputs.splice(0, state.pendingInputs.length - 60);
+  }
+  if (dx !== 0 || dy !== 0) {
+    const moveX = dx * BASE_SPEED * dt;
+    const moveY = dy * BASE_SPEED * dt;
+    const newX = local.x + moveX;
+    const newY = local.y + moveY;
+    if (!collidesWithWall(state, newX, local.y)) {
+      local.x = newX;
+    }
+    if (!collidesWithWall(state, local.x, newY)) {
+      local.y = newY;
+    }
+  }
+  local.facingX = facingX;
+  local.facingY = facingY;
+}
+function reconcileWithServer(state, _serverPlayer, serverTick) {
+  const local = getLocalPlayer(state);
+  if (!local)
+    return;
+  state.pendingInputs = state.pendingInputs.filter((p) => p.tick > serverTick);
+  const serverX = local.prevX;
+  const serverY = local.prevY;
+  const diffX = serverX - local.x;
+  const diffY = serverY - local.y;
+  const dist = Math.sqrt(diffX * diffX + diffY * diffY);
+  if (dist > SNAP_THRESHOLD) {
+    local.x = serverX;
+    local.y = serverY;
+  } else if (dist > 1) {
+    local.x += diffX * CORRECTION_LERP;
+    local.y += diffY * CORRECTION_LERP;
+  }
+}
+function collidesWithWall(state, x, y) {
+  const grid = state.tileGrid;
+  if (!grid)
+    return false;
+  const w = state.gridWidth;
+  const r = PLAYER_RADIUS;
+  const checks = [
+    { cx: x - r, cy: y - r },
+    { cx: x + r, cy: y - r },
+    { cx: x - r, cy: y + r },
+    { cx: x + r, cy: y + r }
+  ];
+  for (const pt of checks) {
+    const col = Math.floor(pt.cx / TILE_SIZE);
+    const row = Math.floor(pt.cy / TILE_SIZE);
+    if (col < 0 || col >= w || row < 0 || row >= state.gridHeight) {
+      return true;
+    }
+    const tile = grid[row * w + col];
+    if (tile === TILE_WALL || tile === TILE_DOOR_CLOSED) {
+      return true;
+    }
+  }
+  return false;
+}
+function getLocalPlayer(state) {
+  return state.players.get(state.playerId);
+}
+
+// src/entities/remote-player.ts
+var TICK_INTERVAL = 62.5;
+function getInterpolationAlpha(state) {
+  if (state.tickTimestamp === 0 || state.prevTickTimestamp === 0)
+    return 1;
+  const elapsed = performance.now() - state.tickTimestamp;
+  const tickDelta = state.tickTimestamp - state.prevTickTimestamp;
+  const interval = tickDelta > 0 ? tickDelta : TICK_INTERVAL;
+  const alpha = Math.min(1, Math.max(0, elapsed / interval));
+  return alpha;
+}
+
+// src/renderer/entity-renderer.ts
+var PERSONA_COLORS = {
+  holden: "#e63946",
+  broseidon: "#457b9d",
+  deckard_cain: "#e9c46a",
+  galactus: "#7b2d8e"
+};
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+function drawRoleOverlay(ctx2, x, y, r, role) {
+  ctx2.fillStyle = "rgba(255,255,255,0.7)";
+  ctx2.beginPath();
+  switch (role) {
+    case "tank": {
+      const s = r * 0.6;
+      ctx2.rect(x - s, y - s, s * 2, s * 2);
+      break;
+    }
+    case "dps": {
+      const s = r * 0.7;
+      ctx2.moveTo(x, y - s);
+      ctx2.lineTo(x - s, y + s * 0.6);
+      ctx2.lineTo(x + s, y + s * 0.6);
+      ctx2.closePath();
+      break;
+    }
+    case "support": {
+      const arm = r * 0.2;
+      const len = r * 0.6;
+      ctx2.rect(x - arm, y - len, arm * 2, len * 2);
+      ctx2.rect(x - len, y - arm, len * 2, arm * 2);
+      break;
+    }
+    case "wildcard": {
+      const outer = r * 0.7;
+      const inner = r * 0.3;
+      for (let i = 0;i < 8; i++) {
+        const angle = i * Math.PI / 4 - Math.PI / 2;
+        const rad = i % 2 === 0 ? outer : inner;
+        const px = x + Math.cos(angle) * rad;
+        const py = y + Math.sin(angle) * rad;
+        if (i === 0)
+          ctx2.moveTo(px, py);
+        else
+          ctx2.lineTo(px, py);
+      }
+      ctx2.closePath();
+      break;
+    }
+  }
+  ctx2.fill();
+}
+function drawFacingIndicator(ctx2, x, y, r, fx, fy) {
+  const dist = r + 4;
+  const size = 3;
+  const angle = Math.atan2(fy, fx);
+  const tipX = x + Math.cos(angle) * dist;
+  const tipY = y + Math.sin(angle) * dist;
+  const leftX = tipX + Math.cos(angle + 2.5) * size;
+  const leftY = tipY + Math.sin(angle + 2.5) * size;
+  const rightX = tipX + Math.cos(angle - 2.5) * size;
+  const rightY = tipY + Math.sin(angle - 2.5) * size;
+  ctx2.fillStyle = "rgba(255,255,255,0.6)";
+  ctx2.beginPath();
+  ctx2.moveTo(tipX, tipY);
+  ctx2.lineTo(leftX, leftY);
+  ctx2.lineTo(rightX, rightY);
+  ctx2.closePath();
+  ctx2.fill();
+}
+function drawHpBar(ctx2, x, y, w, hp, maxHp) {
+  const barY = y - 4;
+  const halfW = w / 2;
+  ctx2.fillStyle = "#4a1111";
+  ctx2.fillRect(x - halfW, barY, w, 3);
+  const ratio = Math.max(0, Math.min(1, hp / maxHp));
+  const green = Math.round(ratio * 200);
+  const red = Math.round((1 - ratio) * 200);
+  ctx2.fillStyle = `rgb(${red},${green},40)`;
+  ctx2.fillRect(x - halfW, barY, w * ratio, 3);
+}
+function renderPlayers(ctx2, state) {
+  const alpha = getInterpolationAlpha(state);
+  for (const player of state.players.values()) {
+    if (!player.alive)
+      continue;
+    const x = player.isLocal ? player.x : lerp(player.prevX, player.x, alpha);
+    const y = player.isLocal ? player.y : lerp(player.prevY, player.y, alpha);
+    const r = 10;
+    const color = PERSONA_COLORS[player.personaSlug] ?? "#888888";
+    const persona = PERSONAS[player.personaSlug];
+    const role = persona?.role ?? "wildcard";
+    if (player.iframeTicks > 0 && Math.floor(performance.now() / 80) % 2 === 0) {
+      drawHpBar(ctx2, x, y - r - 2, 20, player.hp, player.maxHp);
+      continue;
+    }
+    ctx2.fillStyle = color;
+    ctx2.beginPath();
+    ctx2.arc(x, y, r, 0, Math.PI * 2);
+    ctx2.fill();
+    drawRoleOverlay(ctx2, x, y, r, role);
+    drawFacingIndicator(ctx2, x, y, r, player.facingX, player.facingY);
+    drawHpBar(ctx2, x, y - r - 2, 20, player.hp, player.maxHp);
+    ctx2.fillStyle = "#ffffff";
+    ctx2.font = "8px monospace";
+    ctx2.textAlign = "center";
+    ctx2.fillText(player.name, x, y - r - 8);
+  }
+}
+function renderEnemies(ctx2, state) {
+  const alpha = getInterpolationAlpha(state);
+  for (const enemy of state.enemies.values()) {
+    if (!enemy.alive)
+      continue;
+    renderSingleEnemy(ctx2, enemy, alpha);
+  }
+  if (state.boss && state.boss.alive) {
+    renderBoss(ctx2, state.boss, alpha);
+  }
+}
+function renderSingleEnemy(ctx2, enemy, alpha) {
+  const x = lerp(enemy.prevX, enemy.x, alpha);
+  const y = lerp(enemy.prevY, enemy.y, alpha);
+  if (enemy.telegraphing) {
+    ctx2.fillStyle = "rgba(255,50,50,0.3)";
+    ctx2.beginPath();
+    ctx2.arc(x, y, 20, 0, Math.PI * 2);
+    ctx2.fill();
+  }
+  ctx2.fillStyle = "#cc3333";
+  switch (enemy.behavior) {
+    case "melee_chase": {
+      ctx2.beginPath();
+      ctx2.arc(x, y, 8, 0, Math.PI * 2);
+      ctx2.fill();
+      break;
+    }
+    case "ranged_pattern": {
+      const s = 10;
+      ctx2.beginPath();
+      ctx2.moveTo(x, y - s);
+      ctx2.lineTo(x + s, y);
+      ctx2.lineTo(x, y + s);
+      ctx2.lineTo(x - s, y);
+      ctx2.closePath();
+      ctx2.fill();
+      if (enemy.aimDirX !== 0 || enemy.aimDirY !== 0) {
+        ctx2.strokeStyle = "rgba(255,100,100,0.4)";
+        ctx2.lineWidth = 1;
+        ctx2.beginPath();
+        ctx2.moveTo(x, y);
+        ctx2.lineTo(x + enemy.aimDirX * 40, y + enemy.aimDirY * 40);
+        ctx2.stroke();
+      }
+      break;
+    }
+    case "slow_charge": {
+      const s = 14;
+      ctx2.fillRect(x - s / 2, y - s / 2, s, s);
+      break;
+    }
+  }
+  drawHpBar(ctx2, x, y - 12, 16, enemy.hp, enemy.maxHp);
+}
+function renderBoss(ctx2, boss, alpha) {
+  const x = lerp(boss.prevX, boss.x, alpha);
+  const y = lerp(boss.prevY, boss.y, alpha);
+  const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 200);
+  const glowR = 24 + pulse * 8;
+  ctx2.fillStyle = `rgba(200,50,50,${0.15 + pulse * 0.1})`;
+  ctx2.beginPath();
+  ctx2.arc(x, y, glowR, 0, Math.PI * 2);
+  ctx2.fill();
+  ctx2.fillStyle = "#aa2222";
+  ctx2.beginPath();
+  ctx2.arc(x, y, 20, 0, Math.PI * 2);
+  ctx2.fill();
+  ctx2.fillStyle = "#ff4444";
+  ctx2.beginPath();
+  ctx2.arc(x, y, 8, 0, Math.PI * 2);
+  ctx2.fill();
+  drawHpBar(ctx2, x, y - 26, 40, boss.hp, boss.maxHp);
+  ctx2.fillStyle = "#ffffff";
+  ctx2.font = "7px monospace";
+  ctx2.textAlign = "center";
+  ctx2.fillText(`P${boss.isBoss ? "1" : "?"}`, x, y + 30);
+}
+function renderProjectiles(ctx2, state) {
+  const alpha = getInterpolationAlpha(state);
+  for (const proj of state.projectiles.values()) {
+    const x = lerp(proj.prevX, proj.x, alpha);
+    const y = lerp(proj.prevY, proj.y, alpha);
+    ctx2.fillStyle = proj.fromEnemy ? "#ff4444" : "#ffffff";
+    ctx2.beginPath();
+    ctx2.arc(x, y, proj.radius, 0, Math.PI * 2);
+    ctx2.fill();
+  }
+}
+function renderAoeZones(ctx2, state) {
+  for (const zone of state.aoeZones.values()) {
+    ctx2.fillStyle = "rgba(100,200,255,0.15)";
+    ctx2.strokeStyle = "rgba(100,200,255,0.5)";
+    ctx2.lineWidth = 1;
+    ctx2.beginPath();
+    ctx2.arc(zone.x, zone.y, zone.radius, 0, Math.PI * 2);
+    ctx2.fill();
+    ctx2.stroke();
+  }
+}
+
+// src/renderer/hud.ts
+function formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+}
+function renderHud(ctx2, state, canvasW, canvasH) {
+  const barW = 200;
+  const barH = 16;
+  const barX = (canvasW - barW) / 2;
+  const barY = canvasH - 40;
+  ctx2.fillStyle = "#331111";
+  ctx2.fillRect(barX, barY, barW, barH);
+  const hpRatio = state.localMaxHp > 0 ? Math.max(0, state.localHp / state.localMaxHp) : 0;
+  const green = Math.round(hpRatio * 180);
+  const red = Math.round((1 - hpRatio) * 220);
+  ctx2.fillStyle = `rgb(${red},${green},40)`;
+  ctx2.fillRect(barX, barY, barW * hpRatio, barH);
+  ctx2.strokeStyle = "#666666";
+  ctx2.lineWidth = 1;
+  ctx2.strokeRect(barX, barY, barW, barH);
+  ctx2.fillStyle = "#ffffff";
+  ctx2.font = "10px monospace";
+  ctx2.textAlign = "center";
+  ctx2.fillText(`${Math.ceil(state.localHp)} / ${state.localMaxHp}`, canvasW / 2, barY + barH - 3);
+  ctx2.textAlign = "left";
+  let rosterY = 12;
+  const rosterX = 8;
+  for (const player of state.players.values()) {
+    const persona = PERSONAS[player.personaSlug];
+    const color = persona?.color ?? "#888888";
+    const name = player.name || player.personaSlug;
+    ctx2.fillStyle = color;
+    ctx2.beginPath();
+    ctx2.arc(rosterX + 6, rosterY + 4, 4, 0, Math.PI * 2);
+    ctx2.fill();
+    ctx2.fillStyle = player.alive ? "#cccccc" : "#666666";
+    ctx2.font = "9px monospace";
+    ctx2.fillText(name, rosterX + 14, rosterY + 7);
+    const miniW = 50;
+    const miniH = 3;
+    const miniX = rosterX + 14;
+    const miniY = rosterY + 11;
+    ctx2.fillStyle = "#331111";
+    ctx2.fillRect(miniX, miniY, miniW, miniH);
+    if (player.maxHp > 0) {
+      const ratio = Math.max(0, player.hp / player.maxHp);
+      ctx2.fillStyle = player.alive ? "#44aa44" : "#444444";
+      ctx2.fillRect(miniX, miniY, miniW * ratio, miniH);
+    }
+    rosterY += 20;
+  }
+  ctx2.fillStyle = "#cccccc";
+  ctx2.font = "12px monospace";
+  ctx2.textAlign = "center";
+  ctx2.fillText(`Floor ${state.floor}/${state.totalFloors}`, canvasW / 2, 18);
+  ctx2.textAlign = "right";
+  ctx2.fillStyle = "#cccccc";
+  ctx2.font = "12px monospace";
+  ctx2.fillText(formatTime(state.elapsedMs), canvasW - 10, 18);
+  ctx2.textAlign = "left";
+  ctx2.fillStyle = "#cccccc";
+  ctx2.font = "11px monospace";
+  ctx2.fillText(`Kills: ${state.kills}`, 10, canvasH - 12);
+  renderPowerCooldown(ctx2, state, canvasW, canvasH);
+}
+function renderPowerCooldown(ctx2, state, canvasW, canvasH) {
+  const cx = canvasW - 36;
+  const cy = canvasH - 36;
+  const r = 20;
+  ctx2.strokeStyle = "#555555";
+  ctx2.lineWidth = 3;
+  ctx2.beginPath();
+  ctx2.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx2.stroke();
+  if (state.localCooldownMax > 0 && state.localCooldown > 0) {
+    const ratio = state.localCooldown / state.localCooldownMax;
+    const endAngle = -Math.PI / 2 + Math.PI * 2 * (1 - ratio);
+    ctx2.fillStyle = "rgba(100,100,100,0.6)";
+    ctx2.beginPath();
+    ctx2.moveTo(cx, cy);
+    ctx2.arc(cx, cy, r, -Math.PI / 2, endAngle);
+    ctx2.closePath();
+    ctx2.fill();
+  }
+  if (state.localCooldownMax > 0 && state.localCooldown <= 0) {
+    ctx2.fillStyle = "rgba(100,255,100,0.3)";
+    ctx2.beginPath();
+    ctx2.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx2.fill();
+  }
+  ctx2.fillStyle = "#cccccc";
+  ctx2.font = "8px monospace";
+  ctx2.textAlign = "center";
+  ctx2.fillText("SPC", cx, cy + 3);
+}
+
+// src/renderer/particles.ts
+var particles = [];
+var texts = [];
+var MAX_PARTICLES = 500;
+var MAX_TEXTS = 50;
+function randRange(min, max) {
+  return min + Math.random() * (max - min);
+}
+function spawnHitSparks(x, y) {
+  const count = 5 + Math.floor(Math.random() * 4);
+  for (let i = 0;i < count && particles.length < MAX_PARTICLES; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = randRange(40, 120);
+    particles.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 300,
+      maxLife: 300,
+      color: "#ffcc44",
+      size: randRange(1.5, 3)
+    });
+  }
+}
+function spawnDeathPoof(x, y) {
+  const count = 12 + Math.floor(Math.random() * 6);
+  for (let i = 0;i < count && particles.length < MAX_PARTICLES; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = randRange(30, 100);
+    particles.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 500,
+      maxLife: 500,
+      color: "#ff6644",
+      size: randRange(2, 5)
+    });
+  }
+}
+function spawnPowerActivation(x, y) {
+  const count = 16;
+  for (let i = 0;i < count && particles.length < MAX_PARTICLES; i++) {
+    const angle = i / count * Math.PI * 2;
+    const speed = randRange(60, 100);
+    particles.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 400,
+      maxLife: 400,
+      color: "#88ccff",
+      size: randRange(2, 4)
+    });
+  }
+}
+function spawnDamageText(x, y, amount, crit) {
+  if (texts.length >= MAX_TEXTS)
+    return;
+  texts.push({
+    x,
+    y: y - 5,
+    text: crit ? `${amount}!` : `${amount}`,
+    color: crit ? "#ffcc00" : "#ff6644",
+    life: 600,
+    maxLife: 600
+  });
+}
+function updateParticles(dt) {
+  const dtMs = dt * 1000;
+  for (let i = particles.length - 1;i >= 0; i--) {
+    const p = particles[i];
+    p.life -= dtMs;
+    if (p.life <= 0) {
+      particles.splice(i, 1);
+      continue;
+    }
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vx *= 0.96;
+    p.vy *= 0.96;
+  }
+  for (let i = texts.length - 1;i >= 0; i--) {
+    const t = texts[i];
+    t.life -= dtMs;
+    if (t.life <= 0) {
+      texts.splice(i, 1);
+      continue;
+    }
+    t.y -= 30 * dt;
+  }
+}
+function renderParticles(ctx2) {
+  for (const p of particles) {
+    const alpha = Math.max(0, p.life / p.maxLife);
+    ctx2.globalAlpha = alpha;
+    ctx2.fillStyle = p.color;
+    ctx2.beginPath();
+    ctx2.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+    ctx2.fill();
+  }
+  ctx2.globalAlpha = 1;
+  for (const t of texts) {
+    const alpha = Math.max(0, t.life / t.maxLife);
+    ctx2.globalAlpha = alpha;
+    ctx2.fillStyle = t.color;
+    ctx2.font = "bold 10px monospace";
+    ctx2.textAlign = "center";
+    ctx2.fillText(t.text, t.x, t.y);
+  }
+  ctx2.globalAlpha = 1;
+}
+function clearAllParticles() {
+  particles.length = 0;
+  texts.length = 0;
+}
+
+// src/scenes/dungeon.ts
+var shakeX = 0;
+var shakeY = 0;
+var shakeDuration = 0;
+var shakeIntensity = 0;
+var flashAlpha = 0;
+function triggerShake(intensity, duration) {
+  shakeIntensity = intensity;
+  shakeDuration = duration;
+}
+function triggerFlash() {
+  flashAlpha = 0.3;
+}
+function createDungeonScene(network) {
+  let sceneState = null;
+  function onTickEvent(data) {
+    const ev = data;
+    switch (ev.type) {
+      case "damage": {
+        const targetId = ev.payload.targetId;
+        const damage = ev.payload.damage;
+        const isCrit = ev.payload.isCrit;
+        if (sceneState) {
+          const enemy = sceneState.enemies.get(targetId);
+          if (enemy) {
+            spawnHitSparks(enemy.x, enemy.y);
+            if (damage)
+              spawnDamageText(enemy.x, enemy.y, damage, isCrit ?? false);
+          } else {
+            const player = sceneState.players.get(targetId);
+            if (player) {
+              spawnHitSparks(player.x, player.y);
+              if (damage)
+                spawnDamageText(player.x, player.y, damage, isCrit ?? false);
+            }
+          }
+        }
+        break;
+      }
+      case "kill": {
+        const enemyId = ev.payload.enemyId;
+        if (sceneState) {
+          const enemy = sceneState.enemies.get(enemyId);
+          if (enemy) {
+            spawnDeathPoof(enemy.x, enemy.y);
+          }
+        }
+        break;
+      }
+      case "power_activate": {
+        const playerId = ev.payload.playerId;
+        if (sceneState) {
+          const player = sceneState.players.get(playerId);
+          if (player) {
+            spawnPowerActivation(player.x, player.y);
+          }
+        }
+        break;
+      }
+      case "player_death": {
+        const playerId = ev.payload.playerId;
+        if (sceneState) {
+          const player = sceneState.players.get(playerId);
+          if (player) {
+            spawnDeathPoof(player.x, player.y);
+          }
+        }
+        triggerShake(4, 300);
+        break;
+      }
+      case "door_open": {
+        const roomIndex = ev.payload.roomIndex;
+        if (sceneState && roomIndex >= 0 && roomIndex < sceneState.rooms.length) {
+          sceneState.rooms[roomIndex].cleared = true;
+          const room = sceneState.rooms[roomIndex];
+          const grid = sceneState.tileGrid;
+          const gw = sceneState.gridWidth;
+          if (grid && gw > 0) {
+            for (let ry = room.y - 1;ry <= room.y + room.h; ry++) {
+              for (let rx = room.x - 1;rx <= room.x + room.w; rx++) {
+                if (rx < 0 || rx >= gw || ry < 0 || ry >= sceneState.gridHeight)
+                  continue;
+                const idx = ry * gw + rx;
+                if (grid[idx] === 2) {
+                  grid[idx] = 3;
+                }
+              }
+            }
+          }
+        }
+        triggerShake(2, 150);
+        break;
+      }
+      case "boss_phase": {
+        triggerShake(6, 500);
+        triggerFlash();
+        break;
+      }
+    }
+  }
+  return {
+    enter(state) {
+      sceneState = state;
+      clearAllParticles();
+      shakeX = 0;
+      shakeY = 0;
+      shakeDuration = 0;
+      flashAlpha = 0;
+      network.on("tick_event", onTickEvent);
+    },
+    update(state, dt) {
+      const input = pollInput();
+      if (input.dx !== 0 || input.dy !== 0) {
+        applyLocalInput(state, input.dx, input.dy, input.facingX, input.facingY, dt);
+        network.sendMove(input.dx, input.dy, input.facingX, input.facingY, state.inputSeq);
+      }
+      if (input.power) {
+        network.sendPower();
+      }
+      const local = getLocalPlayer(state);
+      if (local) {
+        reconcileWithServer(state, local, state.lastServerTick);
+      }
+      updateParticles(dt);
+      if (shakeDuration > 0) {
+        shakeDuration -= dt * 1000;
+        shakeX = (Math.random() - 0.5) * 2 * shakeIntensity;
+        shakeY = (Math.random() - 0.5) * 2 * shakeIntensity;
+        if (shakeDuration <= 0) {
+          shakeX = 0;
+          shakeY = 0;
+        }
+      }
+      if (flashAlpha > 0) {
+        flashAlpha -= dt * 0.5;
+        if (flashAlpha < 0)
+          flashAlpha = 0;
+      }
+    },
+    render(state, ctx2) {
+      const canvasW = ctx2.canvas.width;
+      const canvasH = ctx2.canvas.height;
+      const local = getLocalPlayer(state);
+      if (local) {
+        centerCamera(local.x + shakeX, local.y + shakeY);
+      }
+      pushCameraTransform();
+      renderDungeon(ctx2, state);
+      renderAoeZones(ctx2, state);
+      renderEnemies(ctx2, state);
+      renderPlayers(ctx2, state);
+      renderProjectiles(ctx2, state);
+      renderParticles(ctx2);
+      popCameraTransform();
+      renderHud(ctx2, state, canvasW, canvasH);
+      if (flashAlpha > 0) {
+        ctx2.fillStyle = `rgba(255,255,255,${flashAlpha})`;
+        ctx2.fillRect(0, 0, canvasW, canvasH);
+      }
+      if (!state.connected) {
+        ctx2.fillStyle = "rgba(0,0,0,0.7)";
+        ctx2.fillRect(0, 0, canvasW, canvasH);
+        ctx2.fillStyle = "#ff4444";
+        ctx2.font = "18px monospace";
+        ctx2.textAlign = "center";
+        ctx2.fillText("DISCONNECTED", canvasW / 2, canvasH / 2 - 10);
+        ctx2.fillStyle = "#888888";
+        ctx2.font = "12px monospace";
+        ctx2.fillText("Attempting to reconnect...", canvasW / 2, canvasH / 2 + 15);
+      }
+    },
+    exit(_state) {
+      sceneState = null;
+      network.off("tick_event", onTickEvent);
+      clearAllParticles();
+    }
+  };
+}
+
+// src/scenes/transition.ts
+var CARD_W = 180;
+var CARD_H = 260;
+var CARD_GAP = 24;
+var cardRects = [];
+var clickHandler2 = null;
+var picked = false;
+var timerStart = 0;
+var PICK_TIMEOUT_MS = 15000;
+var RARITY_COLORS = {
+  common: { bg: "#222222", border: "#777777", label: "#aaaaaa" },
+  uncommon: { bg: "#1a2e1a", border: "#44aa44", label: "#44aa44" },
+  rare: { bg: "#1a1a3e", border: "#4488ff", label: "#4488ff" }
+};
+function createTransitionScene(network) {
+  return {
+    enter(_state) {
+      picked = false;
+      timerStart = performance.now();
+      cardRects = [];
+      clickHandler2 = (e) => {
+        if (picked)
+          return;
+        const mx = e.clientX;
+        const my = e.clientY;
+        for (const card of cardRects) {
+          if (mx >= card.x && mx <= card.x + card.w && my >= card.y && my <= card.y + card.h) {
+            picked = true;
+            network.sendPickPowerup(card.choice.id);
+            return;
+          }
+        }
+      };
+      window.addEventListener("click", clickHandler2);
+    },
+    update(state, _dt) {
+      const elapsed = performance.now() - timerStart;
+      state.powerupTimer = Math.max(0, PICK_TIMEOUT_MS - elapsed);
+      if (!picked && state.powerupTimer <= 0 && state.powerupChoices.length > 0) {
+        const idx = Math.floor(Math.random() * state.powerupChoices.length);
+        picked = true;
+        network.sendPickPowerup(state.powerupChoices[idx].id);
+      }
+    },
+    render(state, ctx2) {
+      const w = ctx2.canvas.width;
+      const h = ctx2.canvas.height;
+      const grad = ctx2.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, "#0d0d1a");
+      grad.addColorStop(1, "#1a0d1a");
+      ctx2.fillStyle = grad;
+      ctx2.fillRect(0, 0, w, h);
+      ctx2.fillStyle = "#dddddd";
+      ctx2.font = "bold 22px monospace";
+      ctx2.textAlign = "center";
+      ctx2.fillText("CHOOSE YOUR POWERUP", w / 2, 50);
+      const timerSec = Math.ceil(state.powerupTimer / 1000);
+      ctx2.fillStyle = timerSec <= 5 ? "#ff4444" : "#aaaaaa";
+      ctx2.font = "16px monospace";
+      ctx2.fillText(`${timerSec}s`, w / 2, 75);
+      const choices = state.powerupChoices;
+      const totalW = choices.length * CARD_W + (choices.length - 1) * CARD_GAP;
+      const startX = (w - totalW) / 2;
+      const startY = (h - CARD_H) / 2 - 20;
+      cardRects = [];
+      for (let i = 0;i < choices.length; i++) {
+        const choice = choices[i];
+        const cx = startX + i * (CARD_W + CARD_GAP);
+        const cy = startY;
+        cardRects.push({ choice, x: cx, y: cy, w: CARD_W, h: CARD_H });
+        const rarity = RARITY_COLORS[choice.rarity] ?? RARITY_COLORS.common;
+        ctx2.fillStyle = picked ? "#111111" : rarity.bg;
+        ctx2.fillRect(cx, cy, CARD_W, CARD_H);
+        ctx2.strokeStyle = rarity.border;
+        ctx2.lineWidth = 2;
+        ctx2.strokeRect(cx, cy, CARD_W, CARD_H);
+        ctx2.fillStyle = rarity.label;
+        ctx2.font = "9px monospace";
+        ctx2.textAlign = "center";
+        ctx2.fillText(choice.rarity.toUpperCase(), cx + CARD_W / 2, cy + 18);
+        ctx2.fillStyle = "#eeeeee";
+        ctx2.font = "bold 13px monospace";
+        ctx2.fillText(choice.name, cx + CARD_W / 2, cy + 45);
+        ctx2.fillStyle = "#aaaaaa";
+        ctx2.font = "10px monospace";
+        wrapText2(ctx2, choice.description, cx + CARD_W / 2, cy + 70, CARD_W - 20, 13);
+        const modY = cy + 140;
+        ctx2.font = "10px monospace";
+        ctx2.textAlign = "center";
+        let my = modY;
+        for (const [stat, value] of Object.entries(choice.statModifier)) {
+          const sign = value > 0 ? "+" : "";
+          ctx2.fillStyle = value > 0 ? "#44aa44" : "#aa4444";
+          ctx2.fillText(`${stat.toUpperCase()} ${sign}${value}`, cx + CARD_W / 2, my);
+          my += 14;
+        }
+        if (!picked) {
+          ctx2.fillStyle = "rgba(255,255,255,0.02)";
+          ctx2.fillRect(cx, cy, CARD_W, CARD_H);
+        }
+      }
+      if (picked) {
+        ctx2.fillStyle = "#88cc88";
+        ctx2.font = "14px monospace";
+        ctx2.textAlign = "center";
+        ctx2.fillText("Powerup selected! Waiting for next floor...", w / 2, startY + CARD_H + 40);
+      }
+    },
+    exit(_state) {
+      if (clickHandler2) {
+        window.removeEventListener("click", clickHandler2);
+        clickHandler2 = null;
+      }
+      cardRects = [];
+      picked = false;
+    }
+  };
+}
+function wrapText2(ctx2, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(" ");
+  let line = "";
+  let cy = y;
+  for (const word of words) {
+    const test = line + (line ? " " : "") + word;
+    if (ctx2.measureText(test).width > maxWidth && line) {
+      ctx2.fillText(line, x, cy);
+      line = word;
+      cy += lineHeight;
+    } else {
+      line = test;
+    }
+  }
+  if (line)
+    ctx2.fillText(line, x, cy);
+}
+
+// src/scenes/results.ts
+var clickHandler3 = null;
+var returnButtonHit = null;
+function createResultsScene(onReturnToCommons) {
+  return {
+    enter(_state) {
+      returnButtonHit = null;
+      clickHandler3 = (e) => {
+        if (!returnButtonHit)
+          return;
+        const mx = e.clientX;
+        const my = e.clientY;
+        const b = returnButtonHit;
+        if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
+          onReturnToCommons();
+        }
+      };
+      window.addEventListener("click", clickHandler3);
+    },
+    update(_state, _dt) {},
+    render(state, ctx2) {
+      const w = ctx2.canvas.width;
+      const h = ctx2.canvas.height;
+      const results = state.results;
+      const grad = ctx2.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, results?.outcome === "victory" ? "#0d1a0d" : "#1a0d0d");
+      grad.addColorStop(1, "#0a0a0a");
+      ctx2.fillStyle = grad;
+      ctx2.fillRect(0, 0, w, h);
+      if (!results) {
+        ctx2.fillStyle = "#888888";
+        ctx2.font = "16px monospace";
+        ctx2.textAlign = "center";
+        ctx2.fillText("Loading results...", w / 2, h / 2);
+        return;
+      }
+      const isVictory = results.outcome === "victory";
+      ctx2.fillStyle = isVictory ? "#44dd44" : "#dd4444";
+      ctx2.font = "bold 32px monospace";
+      ctx2.textAlign = "center";
+      ctx2.fillText(isVictory ? "VICTORY" : "DEFEATED", w / 2, 60);
+      let sy = 100;
+      ctx2.fillStyle = "#cccccc";
+      ctx2.font = "14px monospace";
+      ctx2.textAlign = "center";
+      ctx2.fillText(`Floor Reached: ${results.floorReached} / ${results.totalFloors}`, w / 2, sy);
+      sy += 24;
+      const totalSec = Math.floor(results.durationMs / 1000);
+      const min = Math.floor(totalSec / 60);
+      const sec = totalSec % 60;
+      ctx2.fillText(`Time: ${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`, w / 2, sy);
+      sy += 24;
+      ctx2.fillText(`Total Kills: ${results.kills}`, w / 2, sy);
+      sy += 24;
+      ctx2.fillText(`Damage Dealt: ${results.damageDealt}`, w / 2, sy);
+      sy += 24;
+      ctx2.fillText(`Damage Taken: ${results.damageTaken}`, w / 2, sy);
+      sy += 40;
+      if (results.players.length > 0) {
+        ctx2.fillStyle = "#aaaaaa";
+        ctx2.font = "bold 12px monospace";
+        ctx2.fillText("Player Breakdown", w / 2, sy);
+        sy += 24;
+        ctx2.font = "10px monospace";
+        ctx2.fillStyle = "#888888";
+        const colX = w / 2 - 200;
+        ctx2.textAlign = "left";
+        ctx2.fillText("Player", colX, sy);
+        ctx2.fillText("Kills", colX + 140, sy);
+        ctx2.fillText("Dmg Dealt", colX + 200, sy);
+        ctx2.fillText("Dmg Taken", colX + 290, sy);
+        ctx2.fillText("Deaths", colX + 380, sy);
+        sy += 4;
+        ctx2.strokeStyle = "#333333";
+        ctx2.lineWidth = 1;
+        ctx2.beginPath();
+        ctx2.moveTo(colX, sy);
+        ctx2.lineTo(colX + 420, sy);
+        ctx2.stroke();
+        sy += 14;
+        for (const pr of results.players) {
+          const persona = PERSONAS[pr.personaSlug];
+          const color = persona?.color ?? "#888888";
+          ctx2.fillStyle = color;
+          ctx2.beginPath();
+          ctx2.arc(colX + 4, sy - 3, 4, 0, Math.PI * 2);
+          ctx2.fill();
+          ctx2.fillStyle = "#cccccc";
+          ctx2.font = "10px monospace";
+          ctx2.textAlign = "left";
+          ctx2.fillText(pr.name || pr.personaSlug, colX + 14, sy);
+          ctx2.fillText(String(pr.kills), colX + 140, sy);
+          ctx2.fillText(String(pr.damageDealt), colX + 200, sy);
+          ctx2.fillText(String(pr.damageTaken), colX + 290, sy);
+          ctx2.fillText(pr.diedOnFloor !== null ? `F${pr.diedOnFloor}` : "-", colX + 380, sy);
+          sy += 20;
+        }
+      }
+      const btnW = 200;
+      const btnH = 40;
+      const btnX = (w - btnW) / 2;
+      const btnY = Math.min(sy + 30, h - 70);
+      returnButtonHit = { x: btnX, y: btnY, w: btnW, h: btnH };
+      ctx2.fillStyle = "#2a2a4e";
+      ctx2.fillRect(btnX, btnY, btnW, btnH);
+      ctx2.strokeStyle = "#6666aa";
+      ctx2.lineWidth = 1;
+      ctx2.strokeRect(btnX, btnY, btnW, btnH);
+      ctx2.fillStyle = "#dddddd";
+      ctx2.font = "bold 13px monospace";
+      ctx2.textAlign = "center";
+      ctx2.fillText("RETURN TO COMMONS", btnX + btnW / 2, btnY + 25);
+    },
+    exit(_state) {
+      if (clickHandler3) {
+        window.removeEventListener("click", clickHandler3);
+        clickHandler3 = null;
+      }
+      returnButtonHit = null;
+    }
+  };
+}
+
+// src/main.ts
+var canvasEl = document.getElementById("game-canvas");
+if (!canvasEl)
+  throw new Error("Missing #game-canvas element");
+var ctx2 = initCanvas(canvasEl);
+var state = createInitialState();
+var network = new DungeonNetwork(state);
+initInput(getCanvas());
+function handleReturnToCommons() {
+  network.disconnect();
+  window.location.href = "/commons-v2/";
+}
+var scenes = new Map;
+scenes.set("lobby", createLobbyScene(network));
+scenes.set("dungeon", createDungeonScene(network));
+scenes.set("transition", createTransitionScene(network));
+scenes.set("results", createResultsScene(handleReturnToCommons));
+var activeScene = null;
+var activeSceneName = null;
+function switchScene(name) {
+  if (activeSceneName === name)
+    return;
+  if (activeScene) {
+    activeScene.exit(state);
+  }
+  activeSceneName = name;
+  activeScene = scenes.get(name) ?? null;
+  if (activeScene) {
+    activeScene.enter(state);
+  }
+}
+var lastScene = state.scene;
+var lastTime = 0;
+function gameLoop(timestamp) {
+  const dt = lastTime === 0 ? 0 : Math.min((timestamp - lastTime) / 1000, 0.1);
+  lastTime = timestamp;
+  if (state.scene !== lastScene) {
+    switchScene(state.scene);
+    lastScene = state.scene;
+  }
+  if (activeScene) {
+    activeScene.update(state, dt);
+  }
+  clearCanvas();
+  if (activeScene) {
+    activeScene.render(state, ctx2);
+  }
+  requestAnimationFrame(gameLoop);
+}
+var userId = `player-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+var userName = "Adventurer";
+state.playerId = userId;
+state.playerName = userName;
+switchScene("lobby");
+network.on("connected", () => {
+  console.log("[clungiverse] Connected to dungeon server");
+});
+network.on("disconnected", () => {
+  console.log("[clungiverse] Disconnected from dungeon server");
+});
+network.on("error", (msg) => {
+  console.error("[clungiverse] Server error:", msg);
+});
+async function initLobby() {
+  try {
+    state.lobbyStatus = "creating";
+    const createRes = await fetch("/api/clungiverse/lobby/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, name: userName })
+    });
+    if (!createRes.ok) {
+      const err = await createRes.json();
+      throw new Error(err.error ?? `HTTP ${createRes.status}`);
+    }
+    const createData = await createRes.json();
+    const lobbyId = createData.lobbyId;
+    console.log("[clungiverse] Created lobby:", lobbyId);
+    state.lobbyStatus = "joining";
+    const joinRes = await fetch(`/api/clungiverse/lobby/${lobbyId}/join`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, name: userName })
+    });
+    if (!joinRes.ok) {
+      const err = await joinRes.json();
+      throw new Error(err.error ?? `HTTP ${joinRes.status}`);
+    }
+    console.log("[clungiverse] Joined lobby:", lobbyId);
+    state.lobbyId = lobbyId;
+    state.lobbyStatus = "connected";
+    network.connect(lobbyId, userId, userName);
+  } catch (err) {
+    console.error("[clungiverse] Lobby init failed:", err);
+    state.lobbyStatus = "error";
+    state.lobbyError = String(err);
+  }
+}
+initLobby();
+requestAnimationFrame(gameLoop);
+console.log("[clungiverse] Client initialized");
