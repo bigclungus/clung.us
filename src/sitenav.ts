@@ -28,10 +28,10 @@
   ];
 
   function isActive(link: NavLink): boolean {
-    if (link.external) return false;
     if (link.toolHost) {
       return window.location.hostname === link.toolHost;
     }
+    if (link.external) return false;
     if (link.href) {
       try {
         const linkUrl = new URL(link.href);

@@ -18,11 +18,11 @@
       { href: "https://terminal.clung.us/topology", label: "topology", external: true }
     ];
     function isActive(link) {
-      if (link.external)
-        return false;
       if (link.toolHost) {
         return window.location.hostname === link.toolHost;
       }
+      if (link.external)
+        return false;
       if (link.href) {
         try {
           const linkUrl = new URL(link.href);
