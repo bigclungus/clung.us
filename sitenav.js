@@ -1,156 +1,133 @@
-(function () {
-  'use strict';
-
-  /* ── Nav definition ── */
-  var NAV_LINKS = [
-    { href: 'https://clung.us/', label: 'hello', path: '/' },
-    { href: 'https://clung.us/tasks', label: 'tasks', path: '/tasks' },
-    { href: 'https://clung.us/congress', label: 'congress', path: '/congress' },
-    { href: 'https://labs.clung.us', label: 'labs', external: true },
-    { href: 'https://clung.us/commons-v2/', label: 'commons', path: '/commons-v2/' },
-    { href: 'https://clung.us/refinery', label: 'voting', path: '/refinery' },
-    { href: 'https://clung.us/timeline', label: 'timeline', path: '/timeline' },
-    { href: 'https://clung.us/wallet', label: 'wallet', path: '/wallet' },
-    { href: 'https://github.com/bigclungus', label: 'github', external: true },
-  ];
-
-  var TOOL_LINKS = [
-    { href: 'https://terminal.clung.us', label: 'terminal', external: true, toolHost: 'terminal.clung.us' },
-    { href: 'https://temporal.clung.us', label: 'temporal', external: true, toolHost: 'temporal.clung.us' },
-    { href: 'https://terminal.clung.us/topology', label: 'topology', external: true },
-  ];
-
-  /* ── Active link detection ── */
-  function isActive(link) {
-    if (link.external) return false;
-    // Tool links with a toolHost: active when on that hostname
-    if (link.toolHost) {
-      return window.location.hostname === link.toolHost;
+(() => {
+  // src/sitenav.ts
+  (() => {
+    const NAV_LINKS = [
+      { href: "https://clung.us/", label: "hello", path: "/" },
+      { href: "https://clung.us/tasks", label: "tasks", path: "/tasks" },
+      { href: "https://clung.us/congress", label: "congress", path: "/congress" },
+      { href: "https://labs.clung.us", label: "labs", external: true },
+      { href: "https://clung.us/commons-v2/", label: "commons", path: "/commons-v2/" },
+      { href: "https://clung.us/refinery", label: "voting", path: "/refinery" },
+      { href: "https://clung.us/timeline", label: "timeline", path: "/timeline" },
+      { href: "https://clung.us/wallet", label: "wallet", path: "/wallet" },
+      { href: "https://github.com/bigclungus", label: "github", external: true }
+    ];
+    const TOOL_LINKS = [
+      { href: "https://terminal.clung.us", label: "terminal", external: true, toolHost: "terminal.clung.us" },
+      { href: "https://temporal.clung.us", label: "temporal", external: true, toolHost: "temporal.clung.us" },
+      { href: "https://terminal.clung.us/topology", label: "topology", external: true }
+    ];
+    function isActive(link) {
+      if (link.external)
+        return false;
+      if (link.toolHost) {
+        return window.location.hostname === link.toolHost;
+      }
+      if (link.href) {
+        try {
+          const linkUrl = new URL(link.href);
+          if (linkUrl.hostname === window.location.hostname) {
+            const lp2 = linkUrl.pathname.replace(/\/+$/, "") || "/";
+            const p2 = window.location.pathname.replace(/\/+$/, "") || "/";
+            return p2 === lp2;
+          }
+        } catch (_e) {}
+      }
+      if (!link.path)
+        return false;
+      const p = window.location.pathname.replace(/\/+$/, "") || "/";
+      const lp = link.path.replace(/\/+$/, "") || "/";
+      return p === lp;
     }
-    // For links with a full href, compare hostname + pathname
-    if (link.href) {
-      try {
-        var linkUrl = new URL(link.href);
-        if (linkUrl.hostname === window.location.hostname) {
-          var lp = linkUrl.pathname.replace(/\/+$/, '') || '/';
-          var p = window.location.pathname.replace(/\/+$/, '') || '/';
-          return p === lp;
+    function buildNav() {
+      const nav = document.createElement("nav");
+      nav.className = "sitenav";
+      const brand = document.createElement("a");
+      brand.className = "sitenav-brand";
+      brand.href = "https://clung.us/";
+      brand.textContent = "\uD83E\uDD16 clung.us";
+      nav.appendChild(brand);
+      const links = document.createElement("div");
+      links.className = "sitenav-links";
+      NAV_LINKS.forEach((item) => {
+        const a = document.createElement("a");
+        a.href = item.href;
+        a.textContent = item.label;
+        if (item.external) {
+          a.target = "_blank";
+          a.rel = "noopener";
         }
-      } catch(e) {}
+        if (isActive(item)) {
+          a.className = "active";
+        }
+        links.appendChild(a);
+      });
+      const sep = document.createElement("span");
+      sep.className = "sitenav-sep";
+      sep.textContent = "|";
+      links.appendChild(sep);
+      TOOL_LINKS.forEach((item) => {
+        const a = document.createElement("a");
+        a.href = item.href;
+        a.textContent = item.label;
+        a.className = isActive(item) ? "sitenav-tool-link active" : "sitenav-tool-link";
+        if (item.external && !item.toolHost) {
+          a.target = "_blank";
+          a.rel = "noopener";
+        }
+        links.appendChild(a);
+      });
+      nav.appendChild(links);
+      const toggle = document.createElement("button");
+      toggle.className = "theme-toggle";
+      toggle.id = "theme-toggle";
+      toggle.setAttribute("aria-label", "Toggle light/dark mode");
+      toggle.textContent = "\uD83C\uDF19";
+      nav.appendChild(toggle);
+      return nav;
     }
-    if (!link.path) return false;
-    var p = window.location.pathname.replace(/\/+$/, '') || '/';
-    var lp = link.path.replace(/\/+$/, '') || '/';
-    return p === lp;
-  }
-
-  /* ── Build main nav ── */
-  function buildNav() {
-    var nav = document.createElement('nav');
-    nav.className = 'sitenav';
-
-    var brand = document.createElement('a');
-    brand.className = 'sitenav-brand';
-    brand.href = 'https://clung.us/';
-    brand.textContent = '🤖 clung.us';
-    nav.appendChild(brand);
-
-    var links = document.createElement('div');
-    links.className = 'sitenav-links';
-
-    NAV_LINKS.forEach(function (item) {
-      var a = document.createElement('a');
-      a.href = item.href;
-      a.textContent = item.label;
-      if (item.external) {
-        a.target = '_blank';
-        a.rel = 'noopener';
+    function applyTheme(theme, toggleBtn) {
+      if (theme === "light") {
+        document.documentElement.setAttribute("data-theme", "light");
+        toggleBtn.textContent = "☀";
+      } else {
+        document.documentElement.removeAttribute("data-theme");
+        toggleBtn.textContent = "\uD83C\uDF19";
       }
-      if (isActive(item)) {
-        a.className = 'active';
+    }
+    function initTheme(toggleBtn) {
+      const saved = localStorage.getItem("theme") || "dark";
+      applyTheme(saved, toggleBtn);
+      toggleBtn.addEventListener("click", () => {
+        const current = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+        const next = current === "light" ? "dark" : "light";
+        localStorage.setItem("theme", next);
+        applyTheme(next, toggleBtn);
+      });
+    }
+    function inject() {
+      const nav = buildNav();
+      const body = document.body;
+      body.insertBefore(nav, body.firstChild);
+      function applyNavOffset() {
+        const navHeight = nav.getBoundingClientRect().height;
+        const existing = parseFloat(window.getComputedStyle(body).paddingTop) || 0;
+        if (existing < navHeight) {
+          body.style.paddingTop = navHeight + "px";
+        }
       }
-      links.appendChild(a);
-    });
-
-    var sep = document.createElement('span');
-    sep.className = 'sitenav-sep';
-    sep.textContent = '|';
-    links.appendChild(sep);
-
-    TOOL_LINKS.forEach(function (item) {
-      var a = document.createElement('a');
-      a.href = item.href;
-      a.textContent = item.label;
-      a.className = isActive(item) ? 'sitenav-tool-link active' : 'sitenav-tool-link';
-      if (item.external && !item.toolHost) {
-        a.target = '_blank';
-        a.rel = 'noopener';
+      applyNavOffset();
+      window.addEventListener("load", applyNavOffset);
+      window.addEventListener("resize", applyNavOffset);
+      const toggleBtn = document.getElementById("theme-toggle");
+      if (toggleBtn) {
+        initTheme(toggleBtn);
       }
-      links.appendChild(a);
-    });
-
-    nav.appendChild(links);
-
-    var toggle = document.createElement('button');
-    toggle.className = 'theme-toggle';
-    toggle.id = 'theme-toggle';
-    toggle.setAttribute('aria-label', 'Toggle light/dark mode');
-    toggle.textContent = '🌙';
-    nav.appendChild(toggle);
-
-    return nav;
-  }
-
-  /* ── Theme logic ── */
-  function applyTheme(theme, toggleBtn) {
-    if (theme === 'light') {
-      document.documentElement.setAttribute('data-theme', 'light');
-      toggleBtn.textContent = '☀';
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", inject);
     } else {
-      document.documentElement.removeAttribute('data-theme');
-      toggleBtn.textContent = '🌙';
+      inject();
     }
-  }
-
-  function initTheme(toggleBtn) {
-    var saved = localStorage.getItem('theme') || 'dark';
-    applyTheme(saved, toggleBtn);
-
-    toggleBtn.addEventListener('click', function () {
-      var current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-      var next = current === 'light' ? 'dark' : 'light';
-      localStorage.setItem('theme', next);
-      applyTheme(next, toggleBtn);
-    });
-  }
-
-  /* ── Inject into page ── */
-  function inject() {
-    var nav = buildNav();
-
-    var body = document.body;
-    body.insertBefore(nav, body.firstChild);
-
-    // Nav is fixed-position — push body content down so nothing hides beneath it.
-    // Measure actual nav height and apply as padding-top only if less is already set.
-    function applyNavOffset() {
-      var navHeight = nav.getBoundingClientRect().height;
-      var existing = parseFloat(window.getComputedStyle(body).paddingTop) || 0;
-      if (existing < navHeight) {
-        body.style.paddingTop = navHeight + 'px';
-      }
-    }
-    applyNavOffset();
-    window.addEventListener('load', applyNavOffset);
-    window.addEventListener('resize', applyNavOffset);
-
-    var toggleBtn = document.getElementById('theme-toggle');
-    initTheme(toggleBtn);
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inject);
-  } else {
-    inject();
-  }
+  })();
 })();
