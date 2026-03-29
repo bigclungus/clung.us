@@ -87,6 +87,8 @@ function createInitialState() {
     prevTickTimestamp: 0,
     pendingInputs: [],
     inputSeq: 0,
+    mobSprites: new Map,
+    mobGenProgress: null,
     connected: false
   };
 }
@@ -329,6 +331,12 @@ class DungeonNetwork extends Emitter {
       case "d_results":
         this.onResults(msg);
         break;
+      case "d_mob_progress":
+        this.onMobProgress(msg);
+        break;
+      case "d_mob_sprites":
+        this.onMobSprites(msg);
+        break;
       case "d_error":
         console.error("[net] server error:", msg.message);
         this.emit("error", msg.message);
@@ -550,6 +558,23 @@ class DungeonNetwork extends Emitter {
     }));
     s.isHost = s.playerId === msg.hostId;
     s.scene = "lobby";
+  }
+  onMobProgress(msg) {
+    const s = this.gameState;
+    s.mobGenProgress = {
+      completed: msg.completed,
+      total: msg.total,
+      current: msg.currentEntity,
+      status: msg.status
+    };
+  }
+  onMobSprites(msg) {
+    const s = this.gameState;
+    for (const sprite of msg.sprites) {
+      const img = new Image;
+      img.src = `data:image/png;base64,${sprite.spritePng}`;
+      s.mobSprites.set(sprite.entityName, img);
+    }
   }
   send(data) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -815,6 +840,41 @@ function createLobbyScene(network) {
           }
         }
       }
+      if (state.mobGenProgress) {
+        const prog = state.mobGenProgress;
+        ctx2.fillStyle = "rgba(0, 0, 0, 0.85)";
+        ctx2.fillRect(0, 0, w, h);
+        ctx2.fillStyle = "#ffffff";
+        ctx2.font = "bold 28px monospace";
+        ctx2.textAlign = "center";
+        ctx2.fillText("ENTERING THE DUNGEON", w / 2, h / 2 - 60);
+        const barW = 320;
+        const barH = 20;
+        const barX = (w - barW) / 2;
+        const barY = h / 2 - 10;
+        const ratio = prog.total > 0 ? prog.completed / prog.total : 0;
+        ctx2.fillStyle = "#1a1a2e";
+        ctx2.fillRect(barX, barY, barW, barH);
+        ctx2.strokeStyle = "#444466";
+        ctx2.lineWidth = 1;
+        ctx2.strokeRect(barX, barY, barW, barH);
+        ctx2.fillStyle = "#44aa66";
+        ctx2.fillRect(barX, barY, barW * ratio, barH);
+        ctx2.fillStyle = "#cccccc";
+        ctx2.font = "14px monospace";
+        ctx2.fillText(`${prog.completed} / ${prog.total}`, w / 2, barY + barH + 24);
+        if (prog.current) {
+          ctx2.fillStyle = "#888899";
+          ctx2.font = "13px monospace";
+          ctx2.fillText(prog.current, w / 2, barY + barH + 48);
+        }
+        if (prog.status === "error") {
+          ctx2.fillStyle = "#ff4444";
+          ctx2.font = "14px monospace";
+          ctx2.fillText("Generation error - retrying...", w / 2, barY + barH + 72);
+        }
+        return;
+      }
       if (state.lobbyId) {
         const linkBtnW = 200;
         const linkBtnH = 32;
@@ -1051,6 +1111,30 @@ function getInterpolationAlpha(state) {
 }
 
 // src/renderer/entity-renderer.ts
+var PERSONA_AVATAR_FILES = {
+  holden: "bloodfeast.gif",
+  broseidon: "fit-bro_a.gif",
+  deckard_cain: "deckard-cain_a.gif",
+  galactus: "galactus_a.gif"
+};
+var avatarCache = new Map;
+var avatarsPreloaded = false;
+function preloadAvatars() {
+  if (avatarsPreloaded)
+    return;
+  avatarsPreloaded = true;
+  for (const [slug, filename] of Object.entries(PERSONA_AVATAR_FILES)) {
+    const img = new Image;
+    img.src = `/avatars/${filename}`;
+    avatarCache.set(slug, img);
+  }
+}
+function getAvatar(slug) {
+  const img = avatarCache.get(slug);
+  if (img && img.complete && img.naturalWidth > 0)
+    return img;
+  return null;
+}
 var PERSONA_COLORS = {
   holden: "#e63946",
   broseidon: "#457b9d",
@@ -1147,11 +1231,29 @@ function renderPlayers(ctx2, state) {
       drawHpBar(ctx2, x, y - r - 2, 20, player.hp, player.maxHp);
       continue;
     }
-    ctx2.fillStyle = color;
-    ctx2.beginPath();
-    ctx2.arc(x, y, r, 0, Math.PI * 2);
-    ctx2.fill();
-    drawRoleOverlay(ctx2, x, y, r, role);
+    const avatar = getAvatar(player.personaSlug);
+    if (avatar) {
+      const spriteSize = 28;
+      const half = spriteSize / 2;
+      ctx2.save();
+      ctx2.beginPath();
+      ctx2.arc(x, y, half, 0, Math.PI * 2);
+      ctx2.closePath();
+      ctx2.clip();
+      ctx2.drawImage(avatar, x - half, y - half, spriteSize, spriteSize);
+      ctx2.restore();
+      ctx2.strokeStyle = color;
+      ctx2.lineWidth = 2;
+      ctx2.beginPath();
+      ctx2.arc(x, y, half, 0, Math.PI * 2);
+      ctx2.stroke();
+    } else {
+      ctx2.fillStyle = color;
+      ctx2.beginPath();
+      ctx2.arc(x, y, r, 0, Math.PI * 2);
+      ctx2.fill();
+      drawRoleOverlay(ctx2, x, y, r, role);
+    }
     drawFacingIndicator(ctx2, x, y, r, player.facingX, player.facingY);
     drawHpBar(ctx2, x, y - r - 2, 20, player.hp, player.maxHp);
     ctx2.fillStyle = "#ffffff";
@@ -1176,7 +1278,7 @@ function renderEnemies(ctx2, state) {
     const ey = lerp(enemy.prevY, enemy.y, alpha);
     if (!isPositionVisible(state, ex, ey))
       continue;
-    renderSingleEnemy(ctx2, enemy, alpha);
+    renderSingleEnemy(ctx2, enemy, alpha, state);
   }
   if (state.boss && state.boss.alive) {
     const bx = lerp(state.boss.prevX, state.boss.x, alpha);
@@ -1186,7 +1288,7 @@ function renderEnemies(ctx2, state) {
     }
   }
 }
-function renderSingleEnemy(ctx2, enemy, alpha) {
+function renderSingleEnemy(ctx2, enemy, alpha, state) {
   const x = lerp(enemy.prevX, enemy.x, alpha);
   const y = lerp(enemy.prevY, enemy.y, alpha);
   if (enemy.telegraphing) {
@@ -1195,37 +1297,42 @@ function renderSingleEnemy(ctx2, enemy, alpha) {
     ctx2.arc(x, y, 20, 0, Math.PI * 2);
     ctx2.fill();
   }
-  ctx2.fillStyle = "#cc3333";
-  switch (enemy.behavior) {
-    case "melee_chase": {
-      ctx2.beginPath();
-      ctx2.arc(x, y, 8, 0, Math.PI * 2);
-      ctx2.fill();
-      break;
-    }
-    case "ranged_pattern": {
-      const s = 10;
-      ctx2.beginPath();
-      ctx2.moveTo(x, y - s);
-      ctx2.lineTo(x + s, y);
-      ctx2.lineTo(x, y + s);
-      ctx2.lineTo(x - s, y);
-      ctx2.closePath();
-      ctx2.fill();
-      if (enemy.aimDirX !== 0 || enemy.aimDirY !== 0) {
-        ctx2.strokeStyle = "rgba(255,100,100,0.4)";
-        ctx2.lineWidth = 1;
+  const mobImg = state?.mobSprites.get(enemy.type);
+  if (mobImg && mobImg.complete && mobImg.naturalWidth > 0) {
+    ctx2.drawImage(mobImg, x - 16, y - 16, 32, 32);
+  } else {
+    ctx2.fillStyle = "#cc3333";
+    switch (enemy.behavior) {
+      case "melee_chase": {
         ctx2.beginPath();
-        ctx2.moveTo(x, y);
-        ctx2.lineTo(x + enemy.aimDirX * 40, y + enemy.aimDirY * 40);
-        ctx2.stroke();
+        ctx2.arc(x, y, 8, 0, Math.PI * 2);
+        ctx2.fill();
+        break;
       }
-      break;
-    }
-    case "slow_charge": {
-      const s = 14;
-      ctx2.fillRect(x - s / 2, y - s / 2, s, s);
-      break;
+      case "ranged_pattern": {
+        const s = 10;
+        ctx2.beginPath();
+        ctx2.moveTo(x, y - s);
+        ctx2.lineTo(x + s, y);
+        ctx2.lineTo(x, y + s);
+        ctx2.lineTo(x - s, y);
+        ctx2.closePath();
+        ctx2.fill();
+        if (enemy.aimDirX !== 0 || enemy.aimDirY !== 0) {
+          ctx2.strokeStyle = "rgba(255,100,100,0.4)";
+          ctx2.lineWidth = 1;
+          ctx2.beginPath();
+          ctx2.moveTo(x, y);
+          ctx2.lineTo(x + enemy.aimDirX * 40, y + enemy.aimDirY * 40);
+          ctx2.stroke();
+        }
+        break;
+      }
+      case "slow_charge": {
+        const s = 14;
+        ctx2.fillRect(x - s / 2, y - s / 2, s, s);
+        break;
+      }
     }
   }
   drawHpBar(ctx2, x, y - 12, 16, enemy.hp, enemy.maxHp);
@@ -2023,6 +2130,7 @@ var ctx2 = initCanvas(canvasEl);
 var state = createInitialState();
 var network = new DungeonNetwork(state);
 initInput(getCanvas());
+preloadAvatars();
 function handleReturnToCommons() {
   network.disconnect();
   clearLobbyParam();
