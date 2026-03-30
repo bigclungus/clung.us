@@ -2212,6 +2212,10 @@ function createResultsScene(onReturnToCommons) {
 
 // src/scenes/mob-preview.ts
 var COUNTDOWN_MS = 1e4;
+function mobSlug2(displayName) {
+  return displayName.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+var mobImages = new Map;
 var skipButtonHit = null;
 var clickHandler4 = null;
 var skipped = false;
@@ -2265,9 +2269,15 @@ function drawMobCard(ctx2, mob, cx, cy, cardW, cardH) {
   ctx2.arc(iconX, iconY, iconR + 6, 0, Math.PI * 2);
   ctx2.fill();
   ctx2.globalAlpha = 1;
-  const slug = mob.entityName;
-  const spriteFn = window[`drawSprite_${slug}`];
-  if (typeof spriteFn === "function") {
+  const pngImg = mobImages.get(mob.entityName);
+  const spriteFn = window[`drawSprite_${mob.entityName}`];
+  if (pngImg && pngImg.complete && pngImg.naturalWidth > 0) {
+    const size = iconR * 2;
+    ctx2.save();
+    ctx2.imageSmoothingEnabled = false;
+    ctx2.drawImage(pngImg, iconX - size / 2, iconY - size / 2, size, size);
+    ctx2.restore();
+  } else if (typeof spriteFn === "function") {
     ctx2.save();
     ctx2.scale(1.6, 1.6);
     const scaledIconX = iconX / 1.6;
@@ -2384,6 +2394,13 @@ function createMobPreviewScene() {
         }
       };
       window.addEventListener("click", clickHandler4);
+      mobImages.clear();
+      for (const mob of state.mobRoster) {
+        const slug = mobSlug2(mob.displayName);
+        const img = new Image;
+        img.src = `/static/mob-images/${slug}.png`;
+        mobImages.set(mob.entityName, img);
+      }
     },
     update(state, dt) {
       if (skipped) {
@@ -2489,6 +2506,7 @@ function createMobPreviewScene() {
       }
       skipButtonHit = null;
       skipped = false;
+      mobImages.clear();
     }
   };
 }
