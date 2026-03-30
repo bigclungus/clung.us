@@ -46,6 +46,13 @@ var TILE_SPAWN = 4;
 var TILE_TREASURE = 5;
 var TILE_SHRINE = 6;
 var TILE_STAIRS = 7;
+var TEMP_POWERUP_META = {
+  berserker: { name: "Berserker", emoji: "\uD83D\uDD25", color: "#ff4400" },
+  shield: { name: "Iron Skin", emoji: "\uD83D\uDEE1️", color: "#4488ff" },
+  haste: { name: "Haste", emoji: "⚡", color: "#ffee00" },
+  lifesteal: { name: "Lifesteal", emoji: "\uD83D\uDC9A", color: "#44cc44" },
+  glass_cannon: { name: "Glass Cannon", emoji: "\uD83D\uDCA5", color: "#ff88ff" }
+};
 function createInitialState() {
   return {
     scene: "lobby",
@@ -92,7 +99,9 @@ function createInitialState() {
     mobRoster: [],
     mobPreviewCountdown: 1e4,
     connected: false,
-    skipGen: true
+    skipGen: true,
+    floorPickups: new Map,
+    localTempPowerups: []
   };
 }
 
@@ -366,6 +375,10 @@ class DungeonNetwork extends Emitter {
       const isLocal = sp.id === s.playerId;
       const facingX = sp.facing === "left" ? -1 : 1;
       const facingY = 0;
+      const tempPowerups = (sp.activeTempPowerups ?? []).map((a) => ({
+        templateId: a.templateId,
+        expiresAt: a.expiresAt
+      }));
       if (isLocal && old) {
         old.hp = sp.hp;
         old.maxHp = sp.maxHp;
@@ -374,6 +387,7 @@ class DungeonNetwork extends Emitter {
         old.powerCooldown = sp.cooldownRemaining;
         old.name = sp.name;
         old.personaSlug = sp.personaSlug;
+        old.activeTempPowerups = tempPowerups;
       } else {
         const cp = {
           id: sp.id,
@@ -391,7 +405,8 @@ class DungeonNetwork extends Emitter {
           isLocal,
           iframeTicks: sp.iframeTicks,
           powerCooldown: sp.cooldownRemaining,
-          powerCooldownMax: old ? old.powerCooldownMax : 128
+          powerCooldownMax: old ? old.powerCooldownMax : 128,
+          activeTempPowerups: tempPowerups
         };
         s.players.set(sp.id, cp);
       }
@@ -399,6 +414,7 @@ class DungeonNetwork extends Emitter {
         s.localHp = sp.hp;
         s.localMaxHp = sp.maxHp;
         s.localCooldown = sp.cooldownRemaining;
+        s.localTempPowerups = tempPowerups;
         const localPlayer = s.players.get(sp.id);
         s.localCooldownMax = localPlayer ? localPlayer.powerCooldownMax : 128;
       }
@@ -478,6 +494,20 @@ class DungeonNetwork extends Emitter {
       s.totalMobs = msg.totalMobs;
     if (msg.remainingMobs !== undefined)
       s.remainingMobs = msg.remainingMobs;
+    s.floorPickups.clear();
+    if (msg.floorPickups) {
+      for (const fp of msg.floorPickups) {
+        const pickup = {
+          id: fp.id,
+          templateId: fp.templateId,
+          type: fp.type ?? "temp_powerup",
+          healAmount: fp.healAmount,
+          x: fp.x,
+          y: fp.y
+        };
+        s.floorPickups.set(fp.id, pickup);
+      }
+    }
     if (this.runStartTime === 0) {
       this.runStartTime = msg.t;
     }
@@ -512,6 +542,9 @@ class DungeonNetwork extends Emitter {
     s.enemies.clear();
     s.projectiles.clear();
     s.aoeZones.clear();
+    s.floorPickups.clear();
+    s.players.clear();
+    s.localTempPowerups = [];
     s.boss = null;
     s.kills = 0;
     this.runStartTime = 0;
@@ -1091,6 +1124,51 @@ function renderDungeon(ctx2, state) {
       ctx2.fillRect(rx, ry, rw, rh);
     }
   }
+  const pulseT = Date.now() % 1200 / 1200;
+  const pulseFactor = 0.7 + 0.3 * Math.sin(pulseT * Math.PI * 2);
+  for (const pickup of state.floorPickups.values()) {
+    if (!isVisible(pickup.x - 20, pickup.y - 20, 40, 40))
+      continue;
+    if (pickup.type === "health") {
+      const r = 10 * pulseFactor;
+      const heartColor = "#ff2244";
+      const grd = ctx2.createRadialGradient(pickup.x, pickup.y, 0, pickup.x, pickup.y, r * 2.5);
+      grd.addColorStop(0, heartColor + "cc");
+      grd.addColorStop(1, heartColor + "00");
+      ctx2.fillStyle = grd;
+      ctx2.beginPath();
+      ctx2.arc(pickup.x, pickup.y, r * 2.5, 0, Math.PI * 2);
+      ctx2.fill();
+      ctx2.fillStyle = heartColor;
+      ctx2.beginPath();
+      ctx2.arc(pickup.x, pickup.y, r, 0, Math.PI * 2);
+      ctx2.fill();
+      ctx2.font = `${Math.round(10 * pulseFactor)}px sans-serif`;
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "middle";
+      ctx2.fillText("❤️", pickup.x, pickup.y);
+      ctx2.textBaseline = "alphabetic";
+    } else {
+      const meta = TEMP_POWERUP_META[pickup.templateId] ?? { name: pickup.templateId, emoji: "✨", color: "#ffffff" };
+      const r = 10 * pulseFactor;
+      const grd = ctx2.createRadialGradient(pickup.x, pickup.y, 0, pickup.x, pickup.y, r * 2.5);
+      grd.addColorStop(0, meta.color + "cc");
+      grd.addColorStop(1, meta.color + "00");
+      ctx2.fillStyle = grd;
+      ctx2.beginPath();
+      ctx2.arc(pickup.x, pickup.y, r * 2.5, 0, Math.PI * 2);
+      ctx2.fill();
+      ctx2.fillStyle = meta.color;
+      ctx2.beginPath();
+      ctx2.arc(pickup.x, pickup.y, r, 0, Math.PI * 2);
+      ctx2.fill();
+      ctx2.font = `${Math.round(10 * pulseFactor)}px sans-serif`;
+      ctx2.textAlign = "center";
+      ctx2.textBaseline = "middle";
+      ctx2.fillText(meta.emoji, pickup.x, pickup.y);
+      ctx2.textBaseline = "alphabetic";
+    }
+  }
 }
 
 // src/entities/local-player.ts
@@ -1582,7 +1660,46 @@ function renderHud(ctx2, state, canvasW, canvasH) {
   const mobsTotal = state.totalMobs;
   ctx2.fillStyle = "#dd8844";
   ctx2.fillText(`Mobs: ${mobsRemaining}/${mobsTotal}`, 10, canvasH - 12);
+  renderActiveTempPowerups(ctx2, state, canvasW, canvasH);
   renderPowerCooldown(ctx2, state, canvasW, canvasH);
+}
+function renderActiveTempPowerups(ctx2, state, canvasW, canvasH) {
+  const now = Date.now();
+  const active = state.localTempPowerups.filter((a) => a.expiresAt > now);
+  if (active.length === 0)
+    return;
+  const slotW = 80;
+  const slotH = 20;
+  const gap = 4;
+  const totalW = active.length * (slotW + gap) - gap;
+  let x = (canvasW - totalW) / 2;
+  const y = canvasH - 65;
+  for (const tp of active) {
+    const meta = TEMP_POWERUP_META[tp.templateId] ?? { name: tp.templateId, emoji: "✨", color: "#ffffff" };
+    const remainMs = tp.expiresAt - now;
+    const remainSec = Math.ceil(remainMs / 1000);
+    ctx2.fillStyle = "rgba(0,0,0,0.7)";
+    ctx2.fillRect(x, y, slotW, slotH);
+    const maxDurations = {
+      berserker: 20000,
+      shield: 15000,
+      haste: 1e4,
+      lifesteal: 25000,
+      glass_cannon: 12000
+    };
+    const maxMs = maxDurations[tp.templateId] ?? 20000;
+    const ratio = Math.min(1, remainMs / maxMs);
+    ctx2.fillStyle = meta.color + "88";
+    ctx2.fillRect(x, y + slotH - 3, slotW * ratio, 3);
+    ctx2.strokeStyle = meta.color;
+    ctx2.lineWidth = 1;
+    ctx2.strokeRect(x, y, slotW, slotH);
+    ctx2.fillStyle = "#ffffff";
+    ctx2.font = "9px monospace";
+    ctx2.textAlign = "left";
+    ctx2.fillText(`${meta.emoji} ${meta.name} ${remainSec}s`, x + 3, y + 13);
+    x += slotW + gap;
+  }
 }
 function renderPowerCooldown(ctx2, state, canvasW, canvasH) {
   const cx = canvasW - 36;
