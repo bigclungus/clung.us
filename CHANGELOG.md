@@ -559,6 +559,10 @@
 
 - add new mob sprites and changelog entries
 
+- commit pending CHANGELOG entry for mob sprite addition
+
+- remove unused variable cy in make_jhaddu_avatar.py
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
