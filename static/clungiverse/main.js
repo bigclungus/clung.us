@@ -1145,6 +1145,11 @@ function getLocalPlayer(state) {
   return state.players.get(state.playerId);
 }
 
+// src/utils.ts
+function mobSlug(displayName) {
+  return displayName.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
 // src/entities/remote-player.ts
 var TICK_INTERVAL = 62.5;
 function getInterpolationAlpha(state) {
@@ -1158,9 +1163,6 @@ function getInterpolationAlpha(state) {
 }
 
 // src/renderer/entity-renderer.ts
-function mobSlug(displayName) {
-  return displayName.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-}
 function getMobSpriteDrawFn(displayName) {
   const slug = mobSlug(displayName);
   const fn = window[`drawSprite_${slug}`];
@@ -2215,9 +2217,6 @@ function createResultsScene(onReturnToCommons) {
 
 // src/scenes/mob-preview.ts
 var COUNTDOWN_MS = 1e4;
-function mobSlug2(displayName) {
-  return displayName.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-}
 var mobImages = new Map;
 var skipButtonHit = null;
 var clickHandler4 = null;
@@ -2399,7 +2398,7 @@ function createMobPreviewScene() {
       window.addEventListener("click", clickHandler4);
       mobImages.clear();
       for (const mob of state.mobRoster) {
-        const slug = mobSlug2(mob.displayName);
+        const slug = mobSlug(mob.displayName);
         const img = new Image;
         img.src = `/static/mob-images/${slug}.png`;
         mobImages.set(mob.entityName, img);
