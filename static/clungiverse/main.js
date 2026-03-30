@@ -2400,7 +2400,7 @@ function createMobPreviewScene() {
       for (const mob of state.mobRoster) {
         const slug = mobSlug(mob.displayName);
         const img = new Image;
-        img.src = `/static/mob-images/${slug}.png`;
+        img.src = `/mob-images/${slug}.png`;
         mobImages.set(mob.entityName, img);
       }
     },
