@@ -60,7 +60,6 @@ def draw_uml_on_screen(d, screen_x, screen_y, sw, sh, variant=0):
     # Background already drawn — add boxes and lines
     # Central box
     cx = screen_x + sw // 2
-    cy = screen_y + sh // 2 - 1
 
     if variant == 0:
         # Three boxes arranged in hierarchy
