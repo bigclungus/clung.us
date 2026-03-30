@@ -1196,6 +1196,7 @@ var PERSONA_AVATAR_FILES = {
   galactus: "galactus_a.gif"
 };
 var avatarCache = new Map;
+var avatarReady = new Set;
 var avatarsPreloaded = false;
 function preloadAvatars() {
   if (avatarsPreloaded)
@@ -1203,15 +1204,17 @@ function preloadAvatars() {
   avatarsPreloaded = true;
   for (const [slug, filename] of Object.entries(PERSONA_AVATAR_FILES)) {
     const img = new Image;
+    img.onload = () => {
+      avatarReady.add(slug);
+    };
     img.src = `/avatars/${filename}`;
     avatarCache.set(slug, img);
   }
 }
 function getAvatar(slug) {
-  const img = avatarCache.get(slug);
-  if (img && img.complete && img.naturalWidth > 0)
-    return img;
-  return null;
+  if (!avatarReady.has(slug))
+    return null;
+  return avatarCache.get(slug) ?? null;
 }
 var PERSONA_COLORS = {
   holden: "#e63946",
