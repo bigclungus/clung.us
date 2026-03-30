@@ -92,7 +92,7 @@ function createInitialState() {
     mobRoster: [],
     mobPreviewCountdown: 1e4,
     connected: false,
-    skipGen: false
+    skipGen: true
   };
 }
 
@@ -638,20 +638,24 @@ function createLobbyScene(network) {
       state.selectedPersona = null;
       cardHits = [];
       startButtonHit = null;
+      const skipGenWrapper = document.createElement("div");
+      skipGenWrapper.id = "skip-gen-wrapper";
+      skipGenWrapper.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;z-index:10;";
       skipGenCheckbox = document.createElement("input");
       skipGenCheckbox.type = "checkbox";
       skipGenCheckbox.id = "skip-gen-checkbox";
       skipGenCheckbox.checked = state.skipGen;
-      skipGenCheckbox.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateX(-90px);accent-color:#44aa66;width:16px;height:16px;cursor:pointer;z-index:10;";
+      skipGenCheckbox.style.cssText = "accent-color:#44aa66;width:16px;height:16px;cursor:pointer;flex-shrink:0;";
       skipGenCheckbox.addEventListener("change", () => {
         state.skipGen = skipGenCheckbox.checked;
       });
       skipGenLabel = document.createElement("label");
       skipGenLabel.htmlFor = "skip-gen-checkbox";
       skipGenLabel.textContent = "⚡ Use cached mobs (skip generation)";
-      skipGenLabel.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateX(-68px);color:#aaaacc;font:13px monospace;cursor:pointer;z-index:10;user-select:none;white-space:nowrap;";
-      document.body.appendChild(skipGenCheckbox);
-      document.body.appendChild(skipGenLabel);
+      skipGenLabel.style.cssText = "color:#aaaacc;font:13px monospace;cursor:pointer;user-select:none;white-space:nowrap;";
+      skipGenWrapper.appendChild(skipGenCheckbox);
+      skipGenWrapper.appendChild(skipGenLabel);
+      document.body.appendChild(skipGenWrapper);
       clickHandler = (e) => {
         const mx = e.clientX;
         const my = e.clientY;
@@ -939,12 +943,13 @@ function createLobbyScene(network) {
       startButtonHit = null;
       copyLinkHit = null;
       linkCopiedFlash = 0;
+      const wrapper = document.getElementById("skip-gen-wrapper");
+      if (wrapper)
+        wrapper.remove();
       if (skipGenCheckbox) {
-        skipGenCheckbox.remove();
         skipGenCheckbox = null;
       }
       if (skipGenLabel) {
-        skipGenLabel.remove();
         skipGenLabel = null;
       }
     }
