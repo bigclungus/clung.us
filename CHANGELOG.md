@@ -165,6 +165,16 @@
 
 - bump sitenav.js/css cache-bust param so timeline link appears
 
+- add explicit window registration for mob sprite functions
+
+
+### Build
+- rebuild clungiverse client with richer mob preview cards
+
+- rebuild clungiverse client with PNG mob image support
+
+- rebuild clungiverse client with avatar onload fix
+
 
 ### Changes
 - add /tasks endpoint and tasks.html dashboard
@@ -519,6 +529,34 @@
 
 - Convert sitenav.js to TypeScript with proper type annotations
 
+- update changelog and personas database
+
+- fix unreachable toolHost active-link check in sitenav
+
+- update clungiverse client bundle
+
+- update clungiverse client bundle
+
+- Rebuild clungiverse client with skip-gen checkbox
+
+- Enable pixel-perfect CSS and JS rendering for Clungiverse canvas
+
+- Rebuild clungiverse client with mob PNG sprite fallback support
+
+- Backfill PNG sprites for all 69 cached mobs
+
+- Rebuild clungiverse: skip-gen checked by default, checkbox layout fixed
+
+- regenerate all 124 mob sprites with transparent background
+
+- deduplicate mobSlug into shared utils.ts
+
+- fix sprite lookup in mob-preview to use mobSlug(displayName)
+
+- fix mob-preview PNG path from /static/mob-images/ to /mob-images/
+
+- differentiate feature vs lab colors
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
@@ -678,6 +716,10 @@
 - add timeline page at clung.us/timeline
 
 - make timeline responsive with vertical layout on mobile
+
+- add Clungiverse roguelite — HTML shell, DB migrations, client bundle
+
+- mob cache migration + updated client bundle
 
 
 ### Refactoring
