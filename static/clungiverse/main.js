@@ -2272,7 +2272,7 @@ function drawMobCard(ctx2, mob, cx, cy, cardW, cardH) {
   ctx2.fill();
   ctx2.globalAlpha = 1;
   const pngImg = mobImages.get(mob.entityName);
-  const spriteFn = window[`drawSprite_${mob.entityName}`];
+  const spriteFn = window[`drawSprite_${mobSlug(mob.displayName)}`];
   if (pngImg && pngImg.complete && pngImg.naturalWidth > 0) {
     const size = iconR * 2;
     ctx2.save();
