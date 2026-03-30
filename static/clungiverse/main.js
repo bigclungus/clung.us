@@ -1164,6 +1164,26 @@ function getMobSpriteDrawFn(displayName) {
   }
   return null;
 }
+var _mobPngCache = new Map;
+function getMobPngImage(displayName) {
+  const slug = mobSlug(displayName);
+  const cached = _mobPngCache.get(slug);
+  if (cached === "missing")
+    return null;
+  if (cached) {
+    return cached.complete && cached.naturalWidth > 0 ? cached : null;
+  }
+  const img = new Image;
+  img.src = `/mob-images/${slug}.png`;
+  img.onload = () => {
+    _mobPngCache.set(slug, img);
+  };
+  img.onerror = () => {
+    _mobPngCache.set(slug, "missing");
+  };
+  _mobPngCache.set(slug, img);
+  return null;
+}
 var PERSONA_AVATAR_FILES = {
   holden: "bloodfeast.gif",
   broseidon: "fit-bro_a.gif",
@@ -1354,41 +1374,46 @@ function renderSingleEnemy(ctx2, enemy, alpha, state) {
   if (drawFn) {
     drawFn(ctx2, x, y);
   } else {
-    const mobImg = state?.mobSprites.get(enemy.type);
-    if (mobImg && mobImg.complete && mobImg.naturalWidth > 0) {
-      ctx2.drawImage(mobImg, x - 16, y - 16, 32, 32);
+    const pngImg = getMobPngImage(enemy.type);
+    if (pngImg) {
+      ctx2.drawImage(pngImg, x - 16, y - 16, 32, 32);
     } else {
-      ctx2.fillStyle = "#cc3333";
-      switch (enemy.behavior) {
-        case "melee_chase": {
-          ctx2.beginPath();
-          ctx2.arc(x, y, 8, 0, Math.PI * 2);
-          ctx2.fill();
-          break;
-        }
-        case "ranged_pattern": {
-          const s = 10;
-          ctx2.beginPath();
-          ctx2.moveTo(x, y - s);
-          ctx2.lineTo(x + s, y);
-          ctx2.lineTo(x, y + s);
-          ctx2.lineTo(x - s, y);
-          ctx2.closePath();
-          ctx2.fill();
-          if (enemy.aimDirX !== 0 || enemy.aimDirY !== 0) {
-            ctx2.strokeStyle = "rgba(255,100,100,0.4)";
-            ctx2.lineWidth = 1;
+      const mobImg = state?.mobSprites.get(enemy.type);
+      if (mobImg && mobImg.complete && mobImg.naturalWidth > 0) {
+        ctx2.drawImage(mobImg, x - 16, y - 16, 32, 32);
+      } else {
+        ctx2.fillStyle = "#cc3333";
+        switch (enemy.behavior) {
+          case "melee_chase": {
             ctx2.beginPath();
-            ctx2.moveTo(x, y);
-            ctx2.lineTo(x + enemy.aimDirX * 40, y + enemy.aimDirY * 40);
-            ctx2.stroke();
+            ctx2.arc(x, y, 8, 0, Math.PI * 2);
+            ctx2.fill();
+            break;
           }
-          break;
-        }
-        case "slow_charge": {
-          const s = 14;
-          ctx2.fillRect(x - s / 2, y - s / 2, s, s);
-          break;
+          case "ranged_pattern": {
+            const s = 10;
+            ctx2.beginPath();
+            ctx2.moveTo(x, y - s);
+            ctx2.lineTo(x + s, y);
+            ctx2.lineTo(x, y + s);
+            ctx2.lineTo(x - s, y);
+            ctx2.closePath();
+            ctx2.fill();
+            if (enemy.aimDirX !== 0 || enemy.aimDirY !== 0) {
+              ctx2.strokeStyle = "rgba(255,100,100,0.4)";
+              ctx2.lineWidth = 1;
+              ctx2.beginPath();
+              ctx2.moveTo(x, y);
+              ctx2.lineTo(x + enemy.aimDirX * 40, y + enemy.aimDirY * 40);
+              ctx2.stroke();
+            }
+            break;
+          }
+          case "slow_charge": {
+            const s = 14;
+            ctx2.fillRect(x - s / 2, y - s / 2, s, s);
+            break;
+          }
         }
       }
     }
