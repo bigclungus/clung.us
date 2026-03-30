@@ -557,6 +557,8 @@
 
 - differentiate feature vs lab colors
 
+- add new mob sprites and changelog entries
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
