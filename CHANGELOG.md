@@ -557,17 +557,15 @@
 
 - differentiate feature vs lab colors
 
-- add new mob sprites and changelog entries
-
-- commit pending CHANGELOG entry for mob sprite addition
+- add new mob sprites
 
 - remove unused variable cy in make_jhaddu_avatar.py
-
-- update CHANGELOG with pending simplify entries
 
 - Add Crundle persona avatar
 
 - Add cache-busting version strings to sprite batch script includes in grazing.html
+
+- Add dungeon entrance building to grazing map (top-right corner, cols 40-47, rows 2-6)
 
 
 ### Congress
