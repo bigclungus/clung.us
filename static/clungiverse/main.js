@@ -2220,27 +2220,54 @@ var BEHAVIOR_COLOR = {
   ranged_pattern: "#66aaff",
   slow_charge: "#ffaa44"
 };
+function wrapText3(ctx2, text, maxWidth) {
+  const words = text.split(" ");
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx2.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line)
+    lines.push(line);
+  return lines;
+}
 function drawMobCard(ctx2, mob, cx, cy, cardW, cardH) {
-  ctx2.fillStyle = "#1a1a2e";
-  ctx2.fillRect(cx, cy, cardW, cardH);
   const bColor = BEHAVIOR_COLOR[mob.behavior] ?? "#888888";
+  const bgGrad = ctx2.createLinearGradient(cx, cy, cx, cy + cardH);
+  bgGrad.addColorStop(0, "#1e1e36");
+  bgGrad.addColorStop(1, "#12121f");
+  ctx2.fillStyle = bgGrad;
+  ctx2.fillRect(cx, cy, cardW, cardH);
   ctx2.strokeStyle = bColor;
-  ctx2.lineWidth = 1.5;
+  ctx2.lineWidth = 2;
   ctx2.strokeRect(cx, cy, cardW, cardH);
-  const iconX = cx + cardW / 2;
-  const iconY = cy + 34;
-  const iconR = 18;
   ctx2.fillStyle = bColor;
-  ctx2.globalAlpha = 0.2;
+  ctx2.globalAlpha = 0.25;
+  ctx2.fillRect(cx, cy, cardW, 4);
+  ctx2.globalAlpha = 1;
+  const iconX = cx + cardW / 2;
+  const iconY = cy + 54;
+  const iconR = 30;
+  ctx2.fillStyle = bColor;
+  ctx2.globalAlpha = 0.15;
   ctx2.beginPath();
-  ctx2.arc(iconX, iconY, iconR, 0, Math.PI * 2);
+  ctx2.arc(iconX, iconY, iconR + 6, 0, Math.PI * 2);
   ctx2.fill();
   ctx2.globalAlpha = 1;
   const slug = mob.entityName;
   const spriteFn = window[`drawSprite_${slug}`];
   if (typeof spriteFn === "function") {
     ctx2.save();
-    spriteFn(ctx2, iconX, iconY);
+    ctx2.scale(1.6, 1.6);
+    const scaledIconX = iconX / 1.6;
+    const scaledIconY = iconY / 1.6;
+    spriteFn(ctx2, scaledIconX, scaledIconY);
     ctx2.restore();
   } else {
     ctx2.fillStyle = bColor;
@@ -2249,19 +2276,19 @@ function drawMobCard(ctx2, mob, cx, cy, cardW, cardH) {
     ctx2.beginPath();
     switch (mob.behavior) {
       case "melee_chase":
-        ctx2.arc(iconX, iconY, iconR * 0.7, 0, Math.PI * 2);
+        ctx2.arc(iconX, iconY, iconR * 0.75, 0, Math.PI * 2);
         ctx2.fill();
         break;
       case "ranged_pattern":
-        ctx2.moveTo(iconX, iconY - iconR * 0.8);
-        ctx2.lineTo(iconX + iconR * 0.6, iconY);
-        ctx2.lineTo(iconX, iconY + iconR * 0.8);
-        ctx2.lineTo(iconX - iconR * 0.6, iconY);
+        ctx2.moveTo(iconX, iconY - iconR);
+        ctx2.lineTo(iconX + iconR * 0.7, iconY);
+        ctx2.lineTo(iconX, iconY + iconR);
+        ctx2.lineTo(iconX - iconR * 0.7, iconY);
         ctx2.closePath();
         ctx2.fill();
         break;
       case "slow_charge": {
-        const s = iconR * 0.65;
+        const s = iconR * 0.72;
         ctx2.rect(iconX - s, iconY - s, s * 2, s * 2);
         ctx2.fill();
         break;
@@ -2269,34 +2296,32 @@ function drawMobCard(ctx2, mob, cx, cy, cardW, cardH) {
     }
   }
   ctx2.fillStyle = bColor;
-  ctx2.font = "bold 10px monospace";
+  ctx2.font = "bold 11px monospace";
   ctx2.textAlign = "center";
-  ctx2.fillText(BEHAVIOR_LABEL[mob.behavior] ?? mob.behavior, iconX, cy + 60);
+  ctx2.fillText(BEHAVIOR_LABEL[mob.behavior] ?? mob.behavior, iconX, cy + 94);
+  const textX = cx + cardW / 2;
+  const textMaxW = cardW - 16;
   ctx2.fillStyle = "#ffffff";
-  ctx2.font = "bold 13px monospace";
+  ctx2.font = "bold 14px monospace";
   ctx2.textAlign = "center";
-  const nameMaxW = cardW - 12;
-  if (ctx2.measureText(mob.displayName).width > nameMaxW) {
-    const words = mob.displayName.split(" ");
-    let line = "";
-    let lineY = cy + 76;
-    for (const word of words) {
-      const test = line ? `${line} ${word}` : word;
-      if (ctx2.measureText(test).width > nameMaxW && line) {
-        ctx2.fillText(line, iconX, lineY);
-        line = word;
-        lineY += 14;
-      } else {
-        line = test;
-      }
-    }
-    if (line)
-      ctx2.fillText(line, iconX, lineY);
-  } else {
-    ctx2.fillText(mob.displayName, iconX, cy + 76);
+  const entityLines = wrapText3(ctx2, mob.entityName, textMaxW);
+  let nameY = cy + 112;
+  for (const ln of entityLines) {
+    ctx2.fillText(ln, textX, nameY);
+    nameY += 16;
   }
-  const statY = cy + 96;
-  const sx = cx + 8;
+  ctx2.fillStyle = "#aaaacc";
+  ctx2.font = "italic 11px monospace";
+  ctx2.textAlign = "center";
+  const displayLabel = `"${mob.displayName}"`;
+  const displayLines = wrapText3(ctx2, displayLabel, textMaxW);
+  for (const ln of displayLines) {
+    ctx2.fillText(ln, textX, nameY);
+    nameY += 13;
+  }
+  const statY = nameY + 6;
+  const sx = cx + 10;
+  const col2 = cx + cardW / 2 + 4;
   ctx2.font = "11px monospace";
   ctx2.textAlign = "left";
   ctx2.fillStyle = "#ffcc66";
@@ -2304,27 +2329,34 @@ function drawMobCard(ctx2, mob, cx, cy, cardW, cardH) {
   ctx2.fillStyle = "#e0e0e0";
   ctx2.fillText(` ${mob.hp}`, sx + ctx2.measureText("HP").width, statY);
   ctx2.fillStyle = "#ff7766";
-  ctx2.fillText("ATK", sx, statY + 14);
+  ctx2.fillText("ATK", sx, statY + 15);
   ctx2.fillStyle = "#e0e0e0";
-  ctx2.fillText(` ${mob.atk}`, sx + ctx2.measureText("ATK").width, statY + 14);
+  ctx2.fillText(` ${mob.atk}`, sx + ctx2.measureText("ATK").width, statY + 15);
   ctx2.fillStyle = "#66bbff";
-  ctx2.fillText("DEF", sx + 62, statY);
+  ctx2.fillText("DEF", col2, statY);
   ctx2.fillStyle = "#e0e0e0";
-  ctx2.fillText(` ${mob.def}`, sx + 62 + ctx2.measureText("DEF").width, statY);
+  ctx2.fillText(` ${mob.def}`, col2 + ctx2.measureText("DEF").width, statY);
   ctx2.fillStyle = "#66ffaa";
-  ctx2.fillText("SPD", sx + 62, statY + 14);
+  ctx2.fillText("SPD", col2, statY + 15);
   ctx2.fillStyle = "#e0e0e0";
-  ctx2.fillText(` ${mob.spd.toFixed(1)}`, sx + 62 + ctx2.measureText("SPD").width, statY + 14);
+  ctx2.fillText(` ${mob.spd.toFixed(1)}`, col2 + ctx2.measureText("SPD").width, statY + 15);
   if (mob.flavorText) {
-    ctx2.fillStyle = "#888899";
-    ctx2.font = "10px monospace";
+    ctx2.fillStyle = "#777788";
+    ctx2.font = "italic 10px monospace";
     ctx2.textAlign = "center";
-    const maxFlavor = cardW - 10;
-    let flavor = mob.flavorText;
-    while (flavor.length > 4 && ctx2.measureText(flavor).width > maxFlavor) {
-      flavor = flavor.slice(0, -4) + "...";
+    const flavorMaxW = cardW - 14;
+    const flavorLines = wrapText3(ctx2, mob.flavorText, flavorMaxW);
+    let flavorY = statY + 34;
+    const maxFlavorLines = 3;
+    const truncated = flavorLines.length > maxFlavorLines;
+    const linesToShow = truncated ? flavorLines.slice(0, maxFlavorLines) : flavorLines;
+    for (let i = 0;i < linesToShow.length; i++) {
+      let txt = linesToShow[i];
+      if (truncated && i === maxFlavorLines - 1)
+        txt = txt.replace(/\s*\w+$/, "…");
+      ctx2.fillText(txt, cx + cardW / 2, flavorY);
+      flavorY += 12;
     }
-    ctx2.fillText(flavor, cx + cardW / 2, cy + cardH - 8);
   }
 }
 function createMobPreviewScene() {
@@ -2387,9 +2419,9 @@ function createMobPreviewScene() {
       ctx2.fillText(countdownStr, w - 16, 24);
       const mobs = state.mobRoster;
       const COLS = Math.min(mobs.length, 3);
-      const CARD_W2 = 140;
-      const CARD_H2 = 140;
-      const CARD_GAP2 = 12;
+      const CARD_W2 = 200;
+      const CARD_H2 = 260;
+      const CARD_GAP2 = 16;
       const rows = Math.ceil(mobs.length / COLS);
       const gridW = COLS * CARD_W2 + (COLS - 1) * CARD_GAP2;
       const gridH = rows * CARD_H2 + (rows - 1) * CARD_GAP2;
