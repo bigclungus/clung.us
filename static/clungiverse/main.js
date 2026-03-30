@@ -89,7 +89,8 @@ function createInitialState() {
     inputSeq: 0,
     mobSprites: new Map,
     mobGenProgress: null,
-    connected: false
+    connected: false,
+    skipGen: false
   };
 }
 
@@ -482,6 +483,7 @@ class DungeonNetwork extends Emitter {
   }
   onFloor(msg) {
     const s = this.gameState;
+    s.mobGenProgress = null;
     s.tileGrid = msg.tiles;
     s.gridWidth = msg.gridWidth;
     s.gridHeight = msg.gridHeight;
@@ -594,8 +596,8 @@ class DungeonNetwork extends Emitter {
   sendReady(persona) {
     this.send({ type: "d_ready", personaSlug: persona });
   }
-  sendStart() {
-    this.send({ type: "d_start" });
+  sendStart(skipGen) {
+    this.send({ type: "d_start", skipGen: skipGen ?? false });
   }
   sendPickPowerup(powerupId) {
     this.send({ type: "d_pick_powerup", powerupId });
@@ -612,12 +614,28 @@ var startButtonHit = null;
 var copyLinkHit = null;
 var clickHandler = null;
 var linkCopiedFlash = 0;
+var skipGenCheckbox = null;
+var skipGenLabel = null;
 function createLobbyScene(network) {
   return {
     enter(state) {
       state.selectedPersona = null;
       cardHits = [];
       startButtonHit = null;
+      skipGenCheckbox = document.createElement("input");
+      skipGenCheckbox.type = "checkbox";
+      skipGenCheckbox.id = "skip-gen-checkbox";
+      skipGenCheckbox.checked = state.skipGen;
+      skipGenCheckbox.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateX(-90px);accent-color:#44aa66;width:16px;height:16px;cursor:pointer;z-index:10;";
+      skipGenCheckbox.addEventListener("change", () => {
+        state.skipGen = skipGenCheckbox.checked;
+      });
+      skipGenLabel = document.createElement("label");
+      skipGenLabel.htmlFor = "skip-gen-checkbox";
+      skipGenLabel.textContent = "⚡ Use cached mobs (skip generation)";
+      skipGenLabel.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateX(-68px);color:#aaaacc;font:13px monospace;cursor:pointer;z-index:10;user-select:none;white-space:nowrap;";
+      document.body.appendChild(skipGenCheckbox);
+      document.body.appendChild(skipGenLabel);
       clickHandler = (e) => {
         const mx = e.clientX;
         const my = e.clientY;
@@ -652,7 +670,7 @@ function createLobbyScene(network) {
           const b = startButtonHit;
           if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
             network.sendReady(state.selectedPersona);
-            network.sendStart();
+            network.sendStart(state.skipGen);
           }
         }
       };
@@ -905,6 +923,14 @@ function createLobbyScene(network) {
       startButtonHit = null;
       copyLinkHit = null;
       linkCopiedFlash = 0;
+      if (skipGenCheckbox) {
+        skipGenCheckbox.remove();
+        skipGenCheckbox = null;
+      }
+      if (skipGenLabel) {
+        skipGenLabel.remove();
+        skipGenLabel = null;
+      }
     }
   };
 }
@@ -1111,6 +1137,17 @@ function getInterpolationAlpha(state) {
 }
 
 // src/renderer/entity-renderer.ts
+function mobSlug(displayName) {
+  return displayName.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+function getMobSpriteDrawFn(displayName) {
+  const slug = mobSlug(displayName);
+  const fn = window[`drawSprite_${slug}`];
+  if (typeof fn === "function") {
+    return fn;
+  }
+  return null;
+}
 var PERSONA_AVATAR_FILES = {
   holden: "bloodfeast.gif",
   broseidon: "fit-bro_a.gif",
@@ -1297,41 +1334,46 @@ function renderSingleEnemy(ctx2, enemy, alpha, state) {
     ctx2.arc(x, y, 20, 0, Math.PI * 2);
     ctx2.fill();
   }
-  const mobImg = state?.mobSprites.get(enemy.type);
-  if (mobImg && mobImg.complete && mobImg.naturalWidth > 0) {
-    ctx2.drawImage(mobImg, x - 16, y - 16, 32, 32);
+  const drawFn = getMobSpriteDrawFn(enemy.type);
+  if (drawFn) {
+    drawFn(ctx2, x, y);
   } else {
-    ctx2.fillStyle = "#cc3333";
-    switch (enemy.behavior) {
-      case "melee_chase": {
-        ctx2.beginPath();
-        ctx2.arc(x, y, 8, 0, Math.PI * 2);
-        ctx2.fill();
-        break;
-      }
-      case "ranged_pattern": {
-        const s = 10;
-        ctx2.beginPath();
-        ctx2.moveTo(x, y - s);
-        ctx2.lineTo(x + s, y);
-        ctx2.lineTo(x, y + s);
-        ctx2.lineTo(x - s, y);
-        ctx2.closePath();
-        ctx2.fill();
-        if (enemy.aimDirX !== 0 || enemy.aimDirY !== 0) {
-          ctx2.strokeStyle = "rgba(255,100,100,0.4)";
-          ctx2.lineWidth = 1;
+    const mobImg = state?.mobSprites.get(enemy.type);
+    if (mobImg && mobImg.complete && mobImg.naturalWidth > 0) {
+      ctx2.drawImage(mobImg, x - 16, y - 16, 32, 32);
+    } else {
+      ctx2.fillStyle = "#cc3333";
+      switch (enemy.behavior) {
+        case "melee_chase": {
           ctx2.beginPath();
-          ctx2.moveTo(x, y);
-          ctx2.lineTo(x + enemy.aimDirX * 40, y + enemy.aimDirY * 40);
-          ctx2.stroke();
+          ctx2.arc(x, y, 8, 0, Math.PI * 2);
+          ctx2.fill();
+          break;
         }
-        break;
-      }
-      case "slow_charge": {
-        const s = 14;
-        ctx2.fillRect(x - s / 2, y - s / 2, s, s);
-        break;
+        case "ranged_pattern": {
+          const s = 10;
+          ctx2.beginPath();
+          ctx2.moveTo(x, y - s);
+          ctx2.lineTo(x + s, y);
+          ctx2.lineTo(x, y + s);
+          ctx2.lineTo(x - s, y);
+          ctx2.closePath();
+          ctx2.fill();
+          if (enemy.aimDirX !== 0 || enemy.aimDirY !== 0) {
+            ctx2.strokeStyle = "rgba(255,100,100,0.4)";
+            ctx2.lineWidth = 1;
+            ctx2.beginPath();
+            ctx2.moveTo(x, y);
+            ctx2.lineTo(x + enemy.aimDirX * 40, y + enemy.aimDirY * 40);
+            ctx2.stroke();
+          }
+          break;
+        }
+        case "slow_charge": {
+          const s = 14;
+          ctx2.fillRect(x - s / 2, y - s / 2, s, s);
+          break;
+        }
       }
     }
   }
