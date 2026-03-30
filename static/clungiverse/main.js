@@ -89,6 +89,8 @@ function createInitialState() {
     inputSeq: 0,
     mobSprites: new Map,
     mobGenProgress: null,
+    mobRoster: [],
+    mobPreviewCountdown: 1e4,
     connected: false,
     skipGen: false
   };
@@ -104,6 +106,7 @@ function initCanvas(c) {
   if (!context)
     throw new Error("Failed to get 2d context");
   ctx = context;
+  ctx.imageSmoothingEnabled = false;
   resize();
   window.addEventListener("resize", resize);
   return ctx;
@@ -111,6 +114,8 @@ function initCanvas(c) {
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+  if (ctx)
+    ctx.imageSmoothingEnabled = false;
 }
 function getCanvas() {
   return canvas;
@@ -338,6 +343,9 @@ class DungeonNetwork extends Emitter {
       case "d_mob_sprites":
         this.onMobSprites(msg);
         break;
+      case "d_mob_roster":
+        this.onMobRoster(msg);
+        break;
       case "d_error":
         console.error("[net] server error:", msg.message);
         this.emit("error", msg.message);
@@ -498,7 +506,9 @@ class DungeonNetwork extends Emitter {
     s.exploredTiles = new Uint8Array(msg.gridWidth * msg.gridHeight);
     s.floor = msg.floor;
     s.totalFloors = 3;
-    s.scene = "dungeon";
+    if (s.scene !== "mob_preview") {
+      s.scene = "dungeon";
+    }
     s.enemies.clear();
     s.projectiles.clear();
     s.aoeZones.clear();
@@ -577,6 +587,12 @@ class DungeonNetwork extends Emitter {
       img.src = `data:image/png;base64,${sprite.spritePng}`;
       s.mobSprites.set(sprite.entityName, img);
     }
+  }
+  onMobRoster(msg) {
+    const s = this.gameState;
+    s.mobRoster = msg.mobs;
+    s.mobPreviewCountdown = 1e4;
+    s.scene = "mob_preview";
   }
   send(data) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -2164,6 +2180,257 @@ function createResultsScene(onReturnToCommons) {
   };
 }
 
+// src/scenes/mob-preview.ts
+var COUNTDOWN_MS = 1e4;
+var skipButtonHit = null;
+var clickHandler4 = null;
+var skipped = false;
+var BEHAVIOR_LABEL = {
+  melee_chase: "Melee",
+  ranged_pattern: "Ranged",
+  slow_charge: "Charge"
+};
+var BEHAVIOR_COLOR = {
+  melee_chase: "#ff7766",
+  ranged_pattern: "#66aaff",
+  slow_charge: "#ffaa44"
+};
+function drawMobCard(ctx2, mob, cx, cy, cardW, cardH) {
+  ctx2.fillStyle = "#1a1a2e";
+  ctx2.fillRect(cx, cy, cardW, cardH);
+  const bColor = BEHAVIOR_COLOR[mob.behavior] ?? "#888888";
+  ctx2.strokeStyle = bColor;
+  ctx2.lineWidth = 1.5;
+  ctx2.strokeRect(cx, cy, cardW, cardH);
+  const iconX = cx + cardW / 2;
+  const iconY = cy + 34;
+  const iconR = 18;
+  ctx2.fillStyle = bColor;
+  ctx2.globalAlpha = 0.2;
+  ctx2.beginPath();
+  ctx2.arc(iconX, iconY, iconR, 0, Math.PI * 2);
+  ctx2.fill();
+  ctx2.globalAlpha = 1;
+  const slug = mob.entityName;
+  const spriteFn = window[`drawSprite_${slug}`];
+  if (typeof spriteFn === "function") {
+    ctx2.save();
+    spriteFn(ctx2, iconX, iconY);
+    ctx2.restore();
+  } else {
+    ctx2.fillStyle = bColor;
+    ctx2.strokeStyle = bColor;
+    ctx2.lineWidth = 2;
+    ctx2.beginPath();
+    switch (mob.behavior) {
+      case "melee_chase":
+        ctx2.arc(iconX, iconY, iconR * 0.7, 0, Math.PI * 2);
+        ctx2.fill();
+        break;
+      case "ranged_pattern":
+        ctx2.moveTo(iconX, iconY - iconR * 0.8);
+        ctx2.lineTo(iconX + iconR * 0.6, iconY);
+        ctx2.lineTo(iconX, iconY + iconR * 0.8);
+        ctx2.lineTo(iconX - iconR * 0.6, iconY);
+        ctx2.closePath();
+        ctx2.fill();
+        break;
+      case "slow_charge": {
+        const s = iconR * 0.65;
+        ctx2.rect(iconX - s, iconY - s, s * 2, s * 2);
+        ctx2.fill();
+        break;
+      }
+    }
+  }
+  ctx2.fillStyle = bColor;
+  ctx2.font = "bold 10px monospace";
+  ctx2.textAlign = "center";
+  ctx2.fillText(BEHAVIOR_LABEL[mob.behavior] ?? mob.behavior, iconX, cy + 60);
+  ctx2.fillStyle = "#ffffff";
+  ctx2.font = "bold 13px monospace";
+  ctx2.textAlign = "center";
+  const nameMaxW = cardW - 12;
+  if (ctx2.measureText(mob.displayName).width > nameMaxW) {
+    const words = mob.displayName.split(" ");
+    let line = "";
+    let lineY = cy + 76;
+    for (const word of words) {
+      const test = line ? `${line} ${word}` : word;
+      if (ctx2.measureText(test).width > nameMaxW && line) {
+        ctx2.fillText(line, iconX, lineY);
+        line = word;
+        lineY += 14;
+      } else {
+        line = test;
+      }
+    }
+    if (line)
+      ctx2.fillText(line, iconX, lineY);
+  } else {
+    ctx2.fillText(mob.displayName, iconX, cy + 76);
+  }
+  const statY = cy + 96;
+  const sx = cx + 8;
+  ctx2.font = "11px monospace";
+  ctx2.textAlign = "left";
+  ctx2.fillStyle = "#ffcc66";
+  ctx2.fillText("HP", sx, statY);
+  ctx2.fillStyle = "#e0e0e0";
+  ctx2.fillText(` ${mob.hp}`, sx + ctx2.measureText("HP").width, statY);
+  ctx2.fillStyle = "#ff7766";
+  ctx2.fillText("ATK", sx, statY + 14);
+  ctx2.fillStyle = "#e0e0e0";
+  ctx2.fillText(` ${mob.atk}`, sx + ctx2.measureText("ATK").width, statY + 14);
+  ctx2.fillStyle = "#66bbff";
+  ctx2.fillText("DEF", sx + 62, statY);
+  ctx2.fillStyle = "#e0e0e0";
+  ctx2.fillText(` ${mob.def}`, sx + 62 + ctx2.measureText("DEF").width, statY);
+  ctx2.fillStyle = "#66ffaa";
+  ctx2.fillText("SPD", sx + 62, statY + 14);
+  ctx2.fillStyle = "#e0e0e0";
+  ctx2.fillText(` ${mob.spd.toFixed(1)}`, sx + 62 + ctx2.measureText("SPD").width, statY + 14);
+  if (mob.flavorText) {
+    ctx2.fillStyle = "#888899";
+    ctx2.font = "10px monospace";
+    ctx2.textAlign = "center";
+    const maxFlavor = cardW - 10;
+    let flavor = mob.flavorText;
+    while (flavor.length > 4 && ctx2.measureText(flavor).width > maxFlavor) {
+      flavor = flavor.slice(0, -4) + "...";
+    }
+    ctx2.fillText(flavor, cx + cardW / 2, cy + cardH - 8);
+  }
+}
+function createMobPreviewScene() {
+  return {
+    enter(state) {
+      skipped = false;
+      state.mobPreviewCountdown = COUNTDOWN_MS;
+      skipButtonHit = null;
+      clickHandler4 = (e) => {
+        if (!skipButtonHit)
+          return;
+        const b = skipButtonHit;
+        if (e.clientX >= b.x && e.clientX <= b.x + b.w && e.clientY >= b.y && e.clientY <= b.y + b.h) {
+          skipped = true;
+          if (state.tileGrid !== null) {
+            state.scene = "dungeon";
+          } else {
+            state.mobPreviewCountdown = 0;
+          }
+        }
+      };
+      window.addEventListener("click", clickHandler4);
+    },
+    update(state, dt) {
+      if (skipped) {
+        if (state.tileGrid !== null) {
+          state.scene = "dungeon";
+        }
+        return;
+      }
+      state.mobPreviewCountdown -= dt * 1000;
+      if (state.mobPreviewCountdown <= 0) {
+        state.mobPreviewCountdown = 0;
+        skipped = true;
+        if (state.tileGrid !== null) {
+          state.scene = "dungeon";
+        }
+      }
+    },
+    render(state, ctx2) {
+      const w = ctx2.canvas.width;
+      const h = ctx2.canvas.height;
+      const grad = ctx2.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, "#0d0d1a");
+      grad.addColorStop(1, "#1a1a2e");
+      ctx2.fillStyle = grad;
+      ctx2.fillRect(0, 0, w, h);
+      ctx2.fillStyle = "#ffffff";
+      ctx2.font = "bold 28px monospace";
+      ctx2.textAlign = "center";
+      ctx2.fillText("YOUR ENEMIES AWAIT", w / 2, 46);
+      ctx2.fillStyle = "#aaaacc";
+      ctx2.font = "14px monospace";
+      ctx2.fillText("The monsters selected for this run:", w / 2, 68);
+      const secLeft = Math.ceil(state.mobPreviewCountdown / 1000);
+      const countdownStr = skipped ? "LOADING..." : `Entering in ${secLeft}s`;
+      ctx2.fillStyle = secLeft <= 3 && !skipped ? "#ff9944" : "#888899";
+      ctx2.font = "13px monospace";
+      ctx2.textAlign = "right";
+      ctx2.fillText(countdownStr, w - 16, 24);
+      const mobs = state.mobRoster;
+      const COLS = Math.min(mobs.length, 3);
+      const CARD_W2 = 140;
+      const CARD_H2 = 140;
+      const CARD_GAP2 = 12;
+      const rows = Math.ceil(mobs.length / COLS);
+      const gridW = COLS * CARD_W2 + (COLS - 1) * CARD_GAP2;
+      const gridH = rows * CARD_H2 + (rows - 1) * CARD_GAP2;
+      const availH = h - 110 - 70;
+      const availW = w - 40;
+      const scaleH = gridH > availH ? availH / gridH : 1;
+      const scaleW = gridW > availW ? availW / gridW : 1;
+      const scale = Math.min(scaleH, scaleW);
+      const scaledCardW = Math.floor(CARD_W2 * scale);
+      const scaledCardH = Math.floor(CARD_H2 * scale);
+      const scaledGap = Math.floor(CARD_GAP2 * scale);
+      const scaledGridW = COLS * scaledCardW + (COLS - 1) * scaledGap;
+      const startX = (w - scaledGridW) / 2;
+      const startY = 86;
+      if (mobs.length === 0) {
+        ctx2.fillStyle = "#666688";
+        ctx2.font = "16px monospace";
+        ctx2.textAlign = "center";
+        ctx2.fillText("No mob data available", w / 2, h / 2);
+      } else {
+        for (let i = 0;i < mobs.length; i++) {
+          const col = i % COLS;
+          const row = Math.floor(i / COLS);
+          const cx = startX + col * (scaledCardW + scaledGap);
+          const cy = startY + row * (scaledCardH + scaledGap);
+          drawMobCard(ctx2, mobs[i], cx, cy, scaledCardW, scaledCardH);
+        }
+      }
+      const btnW = 160;
+      const btnH = 38;
+      const btnX = (w - btnW) / 2;
+      const btnY = h - 56;
+      skipButtonHit = { x: btnX, y: btnY, w: btnW, h: btnH };
+      if (skipped) {
+        ctx2.fillStyle = "#1a2e1a";
+        ctx2.fillRect(btnX, btnY, btnW, btnH);
+        ctx2.strokeStyle = "#44aa44";
+        ctx2.lineWidth = 1;
+        ctx2.strokeRect(btnX, btnY, btnW, btnH);
+        ctx2.fillStyle = "#44cc44";
+        ctx2.font = "bold 15px monospace";
+        ctx2.textAlign = "center";
+        ctx2.fillText(state.tileGrid !== null ? "ENTERING..." : "LOADING MAP...", btnX + btnW / 2, btnY + 25);
+      } else {
+        ctx2.fillStyle = "#1e1e2e";
+        ctx2.fillRect(btnX, btnY, btnW, btnH);
+        ctx2.strokeStyle = "#555577";
+        ctx2.lineWidth = 1;
+        ctx2.strokeRect(btnX, btnY, btnW, btnH);
+        ctx2.fillStyle = "#aaaacc";
+        ctx2.font = "bold 15px monospace";
+        ctx2.textAlign = "center";
+        ctx2.fillText("Skip  →", btnX + btnW / 2, btnY + 25);
+      }
+    },
+    exit(_state) {
+      if (clickHandler4) {
+        window.removeEventListener("click", clickHandler4);
+        clickHandler4 = null;
+      }
+      skipButtonHit = null;
+      skipped = false;
+    }
+  };
+}
+
 // src/main.ts
 var canvasEl = document.getElementById("game-canvas");
 if (!canvasEl)
@@ -2180,6 +2447,7 @@ function handleReturnToCommons() {
 }
 var scenes = new Map;
 scenes.set("lobby", createLobbyScene(network));
+scenes.set("mob_preview", createMobPreviewScene());
 scenes.set("dungeon", createDungeonScene(network));
 scenes.set("transition", createTransitionScene(network));
 scenes.set("results", createResultsScene(handleReturnToCommons));
