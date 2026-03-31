@@ -714,6 +714,42 @@ class DungeonNetwork extends Emitter {
   }
 }
 
+// src/renderer/canvas-utils.ts
+function wrapText(ctx2, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(" ");
+  let line = "";
+  let cy = y;
+  for (const word of words) {
+    const test = line + (line ? " " : "") + word;
+    if (ctx2.measureText(test).width > maxWidth && line) {
+      ctx2.fillText(line, x, cy);
+      line = word;
+      cy += lineHeight;
+    } else {
+      line = test;
+    }
+  }
+  if (line)
+    ctx2.fillText(line, x, cy);
+}
+function measureWrappedLines(ctx2, text, maxWidth) {
+  const words = text.split(" ");
+  const lines = [];
+  let line = "";
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx2.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line)
+    lines.push(line);
+  return lines;
+}
+
 // src/scenes/lobby.ts
 var BASE_CARD_W = 210;
 var BASE_CARD_H = 240;
@@ -1085,23 +1121,6 @@ function drawRoleShape(ctx2, x, y, size, role) {
   }
   ctx2.fill();
 }
-function wrapText(ctx2, text, x, y, maxWidth, lineHeight) {
-  const words = text.split(" ");
-  let line = "";
-  let cy = y;
-  for (const word of words) {
-    const test = line + (line ? " " : "") + word;
-    if (ctx2.measureText(test).width > maxWidth && line) {
-      ctx2.fillText(line, x, cy);
-      line = word;
-      cy += lineHeight;
-    } else {
-      line = test;
-    }
-  }
-  if (line)
-    ctx2.fillText(line, x, cy);
-}
 
 // src/renderer/dungeon-renderer.ts
 var TILE_SIZE = 16;
@@ -1275,11 +1294,6 @@ function getLocalPlayer(state) {
   return state.players.get(state.playerId);
 }
 
-// src/utils.ts
-function mobSlug(displayName) {
-  return displayName.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-}
-
 // src/entities/remote-player.ts
 var TICK_INTERVAL = 62.5;
 function getInterpolationAlpha(state) {
@@ -1292,7 +1306,12 @@ function getInterpolationAlpha(state) {
   return alpha;
 }
 
-// src/renderer/entity-renderer.ts
+// src/utils.ts
+function mobSlug(displayName) {
+  return displayName.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+// src/renderer/sprites.ts
 function getMobSpriteDrawFn(displayName) {
   const slug = mobSlug(displayName);
   const fn = window[`drawSprite_${slug}`];
@@ -1349,6 +1368,8 @@ function getAvatar(slug) {
     return null;
   return avatarCache.get(slug) ?? null;
 }
+
+// src/renderer/entity-renderer.ts
 var PERSONA_COLORS = {
   holden: "#e63946",
   broseidon: "#457b9d",
@@ -2457,7 +2478,7 @@ function createTransitionScene(network) {
         ctx2.fillText(choice.name, cx + CARD_W / 2, cy + 45);
         ctx2.fillStyle = "#aaaaaa";
         ctx2.font = "10px monospace";
-        wrapText2(ctx2, choice.description, cx + CARD_W / 2, cy + 70, CARD_W - 20, 13);
+        wrapText(ctx2, choice.description, cx + CARD_W / 2, cy + 70, CARD_W - 20, 13);
         const modY = cy + 140;
         ctx2.font = "10px monospace";
         ctx2.textAlign = "center";
@@ -2489,23 +2510,6 @@ function createTransitionScene(network) {
       picked = false;
     }
   };
-}
-function wrapText2(ctx2, text, x, y, maxWidth, lineHeight) {
-  const words = text.split(" ");
-  let line = "";
-  let cy = y;
-  for (const word of words) {
-    const test = line + (line ? " " : "") + word;
-    if (ctx2.measureText(test).width > maxWidth && line) {
-      ctx2.fillText(line, x, cy);
-      line = word;
-      cy += lineHeight;
-    } else {
-      line = test;
-    }
-  }
-  if (line)
-    ctx2.fillText(line, x, cy);
 }
 
 // src/scenes/results.ts
@@ -2651,23 +2655,6 @@ var BEHAVIOR_COLOR = {
   ranged_pattern: "#66aaff",
   slow_charge: "#ffaa44"
 };
-function wrapText3(ctx2, text, maxWidth) {
-  const words = text.split(" ");
-  const lines = [];
-  let line = "";
-  for (const word of words) {
-    const test = line ? `${line} ${word}` : word;
-    if (ctx2.measureText(test).width > maxWidth && line) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = test;
-    }
-  }
-  if (line)
-    lines.push(line);
-  return lines;
-}
 function drawMobCard(ctx2, mob, cx, cy, cardW, cardH) {
   const bColor = BEHAVIOR_COLOR[mob.behavior] ?? "#888888";
   const bgGrad = ctx2.createLinearGradient(cx, cy, cx, cy + cardH);
@@ -2741,7 +2728,7 @@ function drawMobCard(ctx2, mob, cx, cy, cardW, cardH) {
   ctx2.fillStyle = "#ffffff";
   ctx2.font = "bold 14px monospace";
   ctx2.textAlign = "center";
-  const entityLines = wrapText3(ctx2, mob.entityName, textMaxW);
+  const entityLines = measureWrappedLines(ctx2, mob.entityName, textMaxW);
   let nameY = cy + 112;
   for (const ln of entityLines) {
     ctx2.fillText(ln, textX, nameY);
@@ -2751,7 +2738,7 @@ function drawMobCard(ctx2, mob, cx, cy, cardW, cardH) {
   ctx2.font = "italic 11px monospace";
   ctx2.textAlign = "center";
   const displayLabel = `"${mob.displayName}"`;
-  const displayLines = wrapText3(ctx2, displayLabel, textMaxW);
+  const displayLines = measureWrappedLines(ctx2, displayLabel, textMaxW);
   for (const ln of displayLines) {
     ctx2.fillText(ln, textX, nameY);
     nameY += 13;
@@ -2782,7 +2769,7 @@ function drawMobCard(ctx2, mob, cx, cy, cardW, cardH) {
     ctx2.font = "italic 10px monospace";
     ctx2.textAlign = "center";
     const flavorMaxW = cardW - 14;
-    const flavorLines = wrapText3(ctx2, mob.flavorText, flavorMaxW);
+    const flavorLines = measureWrappedLines(ctx2, mob.flavorText, flavorMaxW);
     let flavorY = statY + 34;
     const maxFlavorLines = 3;
     const truncated = flavorLines.length > maxFlavorLines;

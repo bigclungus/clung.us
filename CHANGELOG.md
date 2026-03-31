@@ -557,19 +557,29 @@
 
 - differentiate feature vs lab colors
 
-- add new mob sprites
+- add new mob sprites and changelog entries
+
+- commit pending CHANGELOG entry for mob sprite addition
 
 - remove unused variable cy in make_jhaddu_avatar.py
+
+- update CHANGELOG with pending simplify entries
 
 - Add Crundle persona avatar
 
 - Add cache-busting version strings to sprite batch script includes in grazing.html
 
-- Add dungeon entrance building to grazing map (top-right corner, cols 40-47, rows 2-6)
+- update CHANGELOG with recent entries
 
-- floor pickups and temp powerup HUD (clungiverse)
+- clean up self-referential CHANGELOG entries and document dungeon building
+
+- Rebuild clungiverse client bundle with floor pickup visuals
 
 - hoist maxDurations out of render loop in hud.ts
+
+- move TEMP_POWERUP_MAX_DURATIONS to state.ts alongside TEMP_POWERUP_META
+
+- rebuild clungiverse bundle with deduplication refactors
 
 
 ### Congress
