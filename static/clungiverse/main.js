@@ -1674,19 +1674,19 @@ function renderActiveTempPowerups(ctx2, state, canvasW, canvasH) {
   const totalW = active.length * (slotW + gap) - gap;
   let x = (canvasW - totalW) / 2;
   const y = canvasH - 65;
+  const maxDurations = {
+    berserker: 20000,
+    shield: 15000,
+    haste: 1e4,
+    lifesteal: 25000,
+    glass_cannon: 12000
+  };
   for (const tp of active) {
     const meta = TEMP_POWERUP_META[tp.templateId] ?? { name: tp.templateId, emoji: "✨", color: "#ffffff" };
     const remainMs = tp.expiresAt - now;
     const remainSec = Math.ceil(remainMs / 1000);
     ctx2.fillStyle = "rgba(0,0,0,0.7)";
     ctx2.fillRect(x, y, slotW, slotH);
-    const maxDurations = {
-      berserker: 20000,
-      shield: 15000,
-      haste: 1e4,
-      lifesteal: 25000,
-      glass_cannon: 12000
-    };
     const maxMs = maxDurations[tp.templateId] ?? 20000;
     const ratio = Math.min(1, remainMs / maxMs);
     ctx2.fillStyle = meta.color + "88";

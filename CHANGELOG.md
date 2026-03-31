@@ -567,6 +567,10 @@
 
 - Add dungeon entrance building to grazing map (top-right corner, cols 40-47, rows 2-6)
 
+- floor pickups and temp powerup HUD (clungiverse)
+
+- hoist maxDurations out of render loop in hud.ts
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
