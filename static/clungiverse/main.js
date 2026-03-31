@@ -117,7 +117,9 @@ function createInitialState() {
     connected: false,
     skipGen: true,
     floorPickups: new Map,
-    localTempPowerups: []
+    localTempPowerups: [],
+    isSpectating: false,
+    spectatorTargetId: null
   };
 }
 
@@ -179,6 +181,8 @@ var powerTriggered = false;
 var powerConsumed = false;
 var lastFacingX = 0;
 var lastFacingY = 1;
+var spectateNextTriggered = false;
+var spectateNextConsumed = false;
 function initInput(canvas2) {
   window.addEventListener("keydown", (e) => {
     const key = e.key.toLowerCase();
@@ -189,11 +193,20 @@ function initInput(canvas2) {
         powerTriggered = true;
       }
     }
+    if (e.key === "Tab") {
+      e.preventDefault();
+      if (!spectateNextConsumed) {
+        spectateNextTriggered = true;
+      }
+    }
   });
   window.addEventListener("keyup", (e) => {
     held.delete(e.key.toLowerCase());
     if (e.key === " ") {
       powerConsumed = false;
+    }
+    if (e.key === "Tab") {
+      spectateNextConsumed = false;
     }
   });
   canvas2.addEventListener("mousemove", (e) => {
@@ -226,6 +239,11 @@ function pollInput() {
     powerTriggered = false;
     powerConsumed = true;
   }
+  const spectateNext = spectateNextTriggered;
+  if (spectateNextTriggered) {
+    spectateNextTriggered = false;
+    spectateNextConsumed = true;
+  }
   return {
     dx,
     dy,
@@ -233,7 +251,8 @@ function pollInput() {
     facingY: lastFacingY,
     power,
     mouseX,
-    mouseY
+    mouseY,
+    spectateNext
   };
 }
 
@@ -401,6 +420,7 @@ class DungeonNetwork extends Emitter {
         old.hp = sp.hp;
         old.maxHp = sp.maxHp;
         old.alive = sp.hp > 0;
+        old.spectating = sp.spectating ?? false;
         old.iframeTicks = sp.iframeTicks;
         old.powerCooldown = sp.cooldownRemaining;
         old.name = sp.name;
@@ -428,7 +448,8 @@ class DungeonNetwork extends Emitter {
           powerCooldown: sp.cooldownRemaining,
           powerCooldownMax: old ? old.powerCooldownMax : 128,
           activeTempPowerups: tempPowerups,
-          scramblingUntil
+          scramblingUntil,
+          spectating: sp.spectating ?? false
         };
         s.players.set(sp.id, cp);
       }
@@ -437,13 +458,28 @@ class DungeonNetwork extends Emitter {
         s.localMaxHp = sp.maxHp;
         s.localCooldown = sp.cooldownRemaining;
         s.localTempPowerups = tempPowerups;
-        const localPlayer = s.players.get(sp.id);
-        s.localCooldownMax = localPlayer ? localPlayer.powerCooldownMax : 128;
+        const localPlayer2 = s.players.get(sp.id);
+        s.localCooldownMax = localPlayer2 ? localPlayer2.powerCooldownMax : 128;
       }
     }
     for (const id of s.players.keys()) {
       if (!seenPlayers.has(id))
         s.players.delete(id);
+    }
+    const localPlayer = s.players.get(s.playerId);
+    const wasSpectating = s.isSpectating;
+    s.isSpectating = localPlayer?.spectating ?? false;
+    if (s.isSpectating) {
+      const aliveOthers = Array.from(s.players.values()).filter((p) => !p.isLocal && p.alive && !p.spectating);
+      if (aliveOthers.length === 0) {
+        s.spectatorTargetId = null;
+      } else if (s.spectatorTargetId === null || !aliveOthers.some((p) => p.id === s.spectatorTargetId)) {
+        s.spectatorTargetId = aliveOthers[0].id;
+      }
+    } else {
+      if (wasSpectating) {
+        s.spectatorTargetId = null;
+      }
     }
     const seenEnemies = new Set;
     for (const se of msg.enemies) {
@@ -570,6 +606,8 @@ class DungeonNetwork extends Emitter {
     s.boss = null;
     s.kills = 0;
     this.runStartTime = 0;
+    s.isSpectating = false;
+    s.spectatorTargetId = null;
   }
   onWelcome(msg) {
     const s = this.gameState;
@@ -608,6 +646,7 @@ class DungeonNetwork extends Emitter {
         kills: p.kills,
         damageDealt: p.damageDealt,
         damageTaken: p.damageTaken,
+        totalHealing: p.totalHealing ?? 0,
         diedOnFloor: p.diedOnFloor
       }))
     };
@@ -1086,6 +1125,12 @@ var TILE_COLORS_DIM = {
   [TILE_SHRINE]: "#1e5a38",
   [TILE_STAIRS]: "#2e5474"
 };
+function isTileExplored(state, col, row) {
+  if (!state.exploredTiles || state.exploredTiles.length === 0)
+    return true;
+  const idx = row * state.gridWidth + col;
+  return state.exploredTiles[idx] > 0;
+}
 function isTileVisible(state, col, row) {
   if (!state.exploredTiles || state.exploredTiles.length === 0)
     return true;
@@ -1151,46 +1196,30 @@ function renderDungeon(ctx2, state) {
   for (const pickup of state.floorPickups.values()) {
     if (!isVisible(pickup.x - 20, pickup.y - 20, 40, 40))
       continue;
-    if (pickup.type === "health") {
-      const r = 10 * pulseFactor;
-      const heartColor = "#ff2244";
-      const grd = ctx2.createRadialGradient(pickup.x, pickup.y, 0, pickup.x, pickup.y, r * 2.5);
-      grd.addColorStop(0, heartColor + "cc");
-      grd.addColorStop(1, heartColor + "00");
-      ctx2.fillStyle = grd;
-      ctx2.beginPath();
-      ctx2.arc(pickup.x, pickup.y, r * 2.5, 0, Math.PI * 2);
-      ctx2.fill();
-      ctx2.fillStyle = heartColor;
-      ctx2.beginPath();
-      ctx2.arc(pickup.x, pickup.y, r, 0, Math.PI * 2);
-      ctx2.fill();
-      ctx2.font = `${Math.round(10 * pulseFactor)}px sans-serif`;
-      ctx2.textAlign = "center";
-      ctx2.textBaseline = "middle";
-      ctx2.fillText("❤️", pickup.x, pickup.y);
-      ctx2.textBaseline = "alphabetic";
-    } else {
-      const meta = TEMP_POWERUP_META[pickup.templateId] ?? { name: pickup.templateId, emoji: "✨", color: "#ffffff" };
-      const r = 10 * pulseFactor;
-      const grd = ctx2.createRadialGradient(pickup.x, pickup.y, 0, pickup.x, pickup.y, r * 2.5);
-      grd.addColorStop(0, meta.color + "cc");
-      grd.addColorStop(1, meta.color + "00");
-      ctx2.fillStyle = grd;
-      ctx2.beginPath();
-      ctx2.arc(pickup.x, pickup.y, r * 2.5, 0, Math.PI * 2);
-      ctx2.fill();
-      ctx2.fillStyle = meta.color;
-      ctx2.beginPath();
-      ctx2.arc(pickup.x, pickup.y, r, 0, Math.PI * 2);
-      ctx2.fill();
-      ctx2.font = `${Math.round(10 * pulseFactor)}px sans-serif`;
-      ctx2.textAlign = "center";
-      ctx2.textBaseline = "middle";
-      ctx2.fillText(meta.emoji, pickup.x, pickup.y);
-      ctx2.textBaseline = "alphabetic";
-    }
+    const isHealth = pickup.type === "health";
+    const color = isHealth ? "#ff2244" : TEMP_POWERUP_META[pickup.templateId]?.color ?? "#ffffff";
+    const emoji = isHealth ? "❤️" : TEMP_POWERUP_META[pickup.templateId]?.emoji ?? "✨";
+    drawPickupGlow(ctx2, pickup.x, pickup.y, color, emoji, pulseFactor);
   }
+}
+function drawPickupGlow(ctx2, x, y, color, emoji, pulseFactor) {
+  const r = 10 * pulseFactor;
+  const grd = ctx2.createRadialGradient(x, y, 0, x, y, r * 2.5);
+  grd.addColorStop(0, color + "cc");
+  grd.addColorStop(1, color + "00");
+  ctx2.fillStyle = grd;
+  ctx2.beginPath();
+  ctx2.arc(x, y, r * 2.5, 0, Math.PI * 2);
+  ctx2.fill();
+  ctx2.fillStyle = color;
+  ctx2.beginPath();
+  ctx2.arc(x, y, r, 0, Math.PI * 2);
+  ctx2.fill();
+  ctx2.font = `${Math.round(10 * pulseFactor)}px sans-serif`;
+  ctx2.textAlign = "center";
+  ctx2.textBaseline = "middle";
+  ctx2.fillText(emoji, x, y);
+  ctx2.textBaseline = "alphabetic";
 }
 
 // src/entities/local-player.ts
@@ -1404,6 +1433,46 @@ function drawHpBar(ctx2, x, y, w, hp, maxHp) {
 }
 function renderPlayers(ctx2, state) {
   const alpha = getInterpolationAlpha(state);
+  for (const player of state.players.values()) {
+    if (player.alive || !player.spectating)
+      continue;
+    const x = player.isLocal ? player.x : lerp(player.prevX, player.x, alpha);
+    const y = player.isLocal ? player.y : lerp(player.prevY, player.y, alpha);
+    const r = 10;
+    ctx2.save();
+    ctx2.globalAlpha = 0.35;
+    const color = PERSONA_COLORS[player.personaSlug] ?? "#888888";
+    const avatar = getAvatar(player.personaSlug);
+    if (avatar) {
+      const spriteSize = 28;
+      const half = spriteSize / 2;
+      ctx2.beginPath();
+      ctx2.arc(x, y, half, 0, Math.PI * 2);
+      ctx2.closePath();
+      ctx2.clip();
+      ctx2.drawImage(avatar, x - half, y - half, spriteSize, spriteSize);
+    } else {
+      ctx2.fillStyle = color;
+      ctx2.beginPath();
+      ctx2.arc(x, y, r, 0, Math.PI * 2);
+      ctx2.fill();
+    }
+    ctx2.restore();
+    ctx2.save();
+    ctx2.globalAlpha = 0.5;
+    ctx2.strokeStyle = "#aaaacc";
+    ctx2.lineWidth = 1.5;
+    ctx2.setLineDash([3, 3]);
+    ctx2.beginPath();
+    ctx2.arc(x, y, r + 4, 0, Math.PI * 2);
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+    ctx2.fillStyle = "#aaaacc";
+    ctx2.font = "8px monospace";
+    ctx2.textAlign = "center";
+    ctx2.fillText(`\uD83D\uDC7B ${player.name}`, x, y - r - 8);
+    ctx2.restore();
+  }
   for (const player of state.players.values()) {
     if (!player.alive)
       continue;
@@ -1657,13 +1726,15 @@ function renderHud(ctx2, state, canvasW, canvasH) {
     const persona = PERSONAS[player.personaSlug];
     const color = persona?.color ?? "#888888";
     const name = player.name || player.personaSlug;
-    ctx2.fillStyle = color;
+    const isSpectating = player.spectating && !player.alive;
+    ctx2.fillStyle = isSpectating ? "#444466" : color;
     ctx2.beginPath();
     ctx2.arc(rosterX + 6, rosterY + 4, 4, 0, Math.PI * 2);
     ctx2.fill();
-    ctx2.fillStyle = player.alive ? "#cccccc" : "#666666";
+    const displayName = isSpectating ? `\uD83D\uDC7B ${name}` : name;
+    ctx2.fillStyle = isSpectating ? "#555577" : player.alive ? "#cccccc" : "#666666";
     ctx2.font = "9px monospace";
-    ctx2.fillText(name, rosterX + 14, rosterY + 7);
+    ctx2.fillText(displayName, rosterX + 14, rosterY + 7);
     const miniW = 50;
     const miniH = 3;
     const miniX = rosterX + 14;
@@ -1672,10 +1743,13 @@ function renderHud(ctx2, state, canvasW, canvasH) {
     ctx2.fillRect(miniX, miniY, miniW, miniH);
     if (player.maxHp > 0) {
       const ratio = Math.max(0, player.hp / player.maxHp);
-      ctx2.fillStyle = player.alive ? "#44aa44" : "#444444";
+      ctx2.fillStyle = isSpectating ? "#333355" : player.alive ? "#44aa44" : "#444444";
       ctx2.fillRect(miniX, miniY, miniW * ratio, miniH);
     }
     rosterY += 20;
+  }
+  if (state.isSpectating) {
+    renderSpectatorOverlay(ctx2, state, canvasW, canvasH);
   }
   ctx2.fillStyle = "#cccccc";
   ctx2.font = "12px monospace";
@@ -1695,6 +1769,26 @@ function renderHud(ctx2, state, canvasW, canvasH) {
   ctx2.fillText(`Mobs: ${mobsRemaining}/${mobsTotal}`, 10, canvasH - 12);
   renderActiveTempPowerups(ctx2, state, canvasW, canvasH);
   renderPowerCooldown(ctx2, state, canvasW, canvasH);
+  renderMinimap(ctx2, state, canvasW, canvasH);
+}
+function renderSpectatorOverlay(ctx2, state, canvasW, canvasH) {
+  const grad = ctx2.createRadialGradient(canvasW / 2, canvasH / 2, canvasH * 0.3, canvasW / 2, canvasH / 2, canvasH * 0.7);
+  grad.addColorStop(0, "rgba(0,0,50,0)");
+  grad.addColorStop(1, "rgba(0,0,80,0.45)");
+  ctx2.fillStyle = grad;
+  ctx2.fillRect(0, 0, canvasW, canvasH);
+  ctx2.fillStyle = "rgba(150,150,255,0.9)";
+  ctx2.font = "bold 13px monospace";
+  ctx2.textAlign = "center";
+  const targetPlayer = state.spectatorTargetId ? state.players.get(state.spectatorTargetId) : null;
+  const targetName = targetPlayer ? targetPlayer.name || targetPlayer.personaSlug : "---";
+  ctx2.fillText(`SPECTATING: ${targetName}`, canvasW / 2, 38);
+  const aliveCount = Array.from(state.players.values()).filter((p) => !p.isLocal && p.alive && !p.spectating).length;
+  if (aliveCount > 1) {
+    ctx2.fillStyle = "rgba(120,120,200,0.7)";
+    ctx2.font = "10px monospace";
+    ctx2.fillText("[TAB] to switch", canvasW / 2, 54);
+  }
 }
 function renderActiveTempPowerups(ctx2, state, canvasW, canvasH) {
   const now = Date.now();
@@ -1757,6 +1851,111 @@ function renderPowerCooldown(ctx2, state, canvasW, canvasH) {
   ctx2.textAlign = "center";
   ctx2.fillText("SPC", cx, cy + 3);
 }
+function renderMinimap(ctx2, state, canvasW, canvasH) {
+  const grid = state.tileGrid;
+  if (!grid || state.gridWidth === 0 || state.gridHeight === 0)
+    return;
+  const MAP_SIZE = 130;
+  const MARGIN = 10;
+  const mapX = canvasW - MAP_SIZE - MARGIN;
+  const mapY = MARGIN + 24;
+  const gw = state.gridWidth;
+  const gh = state.gridHeight;
+  ctx2.fillStyle = "rgba(0,0,0,0.65)";
+  ctx2.fillRect(mapX, mapY, MAP_SIZE, MAP_SIZE);
+  ctx2.strokeStyle = "rgba(150,150,150,0.5)";
+  ctx2.lineWidth = 1;
+  ctx2.strokeRect(mapX, mapY, MAP_SIZE, MAP_SIZE);
+  const scaleX = MAP_SIZE / gw;
+  const scaleY = MAP_SIZE / gh;
+  const scale = Math.min(scaleX, scaleY);
+  const offsetX = mapX + (MAP_SIZE - gw * scale) / 2;
+  const offsetY = mapY + (MAP_SIZE - gh * scale) / 2;
+  for (let row = 0;row < gh; row++) {
+    for (let col = 0;col < gw; col++) {
+      const tile = grid[row * gw + col];
+      if (tile === TILE_WALL)
+        continue;
+      const explored = isTileExplored(state, col, row);
+      if (!explored)
+        continue;
+      const visible = isTileVisible(state, col, row);
+      const px = Math.floor(offsetX + col * scale);
+      const py = Math.floor(offsetY + row * scale);
+      const pw = Math.max(1, Math.ceil(scale));
+      const ph = Math.max(1, Math.ceil(scale));
+      if (visible) {
+        ctx2.fillStyle = "#8a7a58";
+      } else {
+        ctx2.fillStyle = "#4a4232";
+      }
+      ctx2.fillRect(px, py, pw, ph);
+    }
+  }
+  ctx2.save();
+  ctx2.beginPath();
+  ctx2.rect(mapX, mapY, MAP_SIZE, MAP_SIZE);
+  ctx2.clip();
+  const DOT_R = Math.max(1.5, scale * 0.7);
+  for (const enemy of state.enemies.values()) {
+    if (!enemy.alive)
+      continue;
+    const col = enemy.x / 16;
+    const row = enemy.y / 16;
+    if (!isTileVisible(state, Math.floor(col), Math.floor(row)))
+      continue;
+    const ex = offsetX + col * scale;
+    const ey = offsetY + row * scale;
+    ctx2.fillStyle = "#ff2222";
+    ctx2.beginPath();
+    ctx2.arc(ex, ey, DOT_R, 0, Math.PI * 2);
+    ctx2.fill();
+  }
+  if (state.boss && state.boss.alive) {
+    const bcol = state.boss.x / 16;
+    const brow = state.boss.y / 16;
+    if (isTileVisible(state, Math.floor(bcol), Math.floor(brow))) {
+      const bx = offsetX + bcol * scale;
+      const by = offsetY + brow * scale;
+      ctx2.fillStyle = "#ff8800";
+      ctx2.beginPath();
+      ctx2.arc(bx, by, DOT_R * 2, 0, Math.PI * 2);
+      ctx2.fill();
+      ctx2.strokeStyle = "#ffffff";
+      ctx2.lineWidth = 0.8;
+      ctx2.stroke();
+    }
+  }
+  for (const player of state.players.values()) {
+    if (player.isLocal || !player.alive)
+      continue;
+    const persona = PERSONAS[player.personaSlug];
+    const color = persona?.color ?? "#8888ff";
+    const pcol = player.x / 16;
+    const prow = player.y / 16;
+    const px = offsetX + pcol * scale;
+    const py = offsetY + prow * scale;
+    ctx2.fillStyle = color;
+    ctx2.beginPath();
+    ctx2.arc(px, py, DOT_R * 1.3, 0, Math.PI * 2);
+    ctx2.fill();
+  }
+  const localPlayer = state.players.get(state.playerId);
+  if (localPlayer) {
+    const lcol = localPlayer.x / 16;
+    const lrow = localPlayer.y / 16;
+    const lx = offsetX + lcol * scale;
+    const ly = offsetY + lrow * scale;
+    ctx2.fillStyle = "#ffffff";
+    ctx2.beginPath();
+    ctx2.arc(lx, ly, DOT_R * 1.6, 0, Math.PI * 2);
+    ctx2.fill();
+    ctx2.strokeStyle = "rgba(0,0,0,0.6)";
+    ctx2.lineWidth = 0.8;
+    ctx2.stroke();
+  }
+  ctx2.restore();
+}
 
 // src/renderer/particles.ts
 var particles = [];
@@ -1817,16 +2016,38 @@ function spawnPowerActivation(x, y) {
     });
   }
 }
+function spawnHealText(x, y, amount) {
+  if (texts.length >= MAX_TEXTS)
+    return;
+  const drift = (Math.random() - 0.5) * 60;
+  const rotation = (Math.random() - 0.5) * 0.45;
+  texts.push({
+    x,
+    y: y - 8,
+    vx: drift,
+    text: `+${amount} HP`,
+    color: "#00ff66",
+    life: 1600,
+    maxLife: 1600,
+    rotation,
+    scale: 1
+  });
+}
 function spawnDamageText(x, y, amount, crit) {
   if (texts.length >= MAX_TEXTS)
     return;
+  const drift = (Math.random() - 0.5) * 80;
+  const rotation = (Math.random() - 0.5) * 0.52;
   texts.push({
     x,
     y: y - 5,
+    vx: drift,
     text: crit ? `${amount}!` : `${amount}`,
-    color: crit ? "#ffcc00" : "#ff6644",
-    life: 600,
-    maxLife: 600
+    color: crit ? "#ffee00" : "#ff2222",
+    life: 1200,
+    maxLife: 1200,
+    rotation,
+    scale: crit ? 1.4 : 1
   });
 }
 function updateParticles(dt) {
@@ -1850,7 +2071,8 @@ function updateParticles(dt) {
       texts.splice(i, 1);
       continue;
     }
-    t.y -= 30 * dt;
+    t.y -= 50 * dt;
+    t.x += t.vx * dt;
   }
 }
 function renderParticles(ctx2) {
@@ -1864,12 +2086,24 @@ function renderParticles(ctx2) {
   }
   ctx2.globalAlpha = 1;
   for (const t of texts) {
-    const alpha = Math.max(0, t.life / t.maxLife);
+    const progress = t.life / t.maxLife;
+    const alpha = Math.max(0, progress);
+    const wobble = 1 + 0.12 * Math.sin((1 - progress) * Math.PI * 6);
+    const finalScale = t.scale * wobble;
+    ctx2.save();
     ctx2.globalAlpha = alpha;
-    ctx2.fillStyle = t.color;
-    ctx2.font = "bold 10px monospace";
+    ctx2.translate(t.x, t.y);
+    ctx2.rotate(t.rotation);
+    ctx2.scale(finalScale, finalScale);
+    ctx2.font = "bold 22px monospace";
     ctx2.textAlign = "center";
-    ctx2.fillText(t.text, t.x, t.y);
+    ctx2.lineWidth = 4;
+    ctx2.strokeStyle = "rgba(0,0,0,0.85)";
+    ctx2.lineJoin = "round";
+    ctx2.strokeText(t.text, 0, 0);
+    ctx2.fillStyle = t.color;
+    ctx2.fillText(t.text, 0, 0);
+    ctx2.restore();
   }
   ctx2.globalAlpha = 1;
 }
@@ -1890,6 +2124,41 @@ function triggerShake(intensity, duration) {
 }
 function triggerFlash() {
   flashAlpha = 0.3;
+}
+function updateFogOfWar(state, wx, wy) {
+  const explored = state.exploredTiles;
+  const gw = state.gridWidth;
+  const gh = state.gridHeight;
+  if (!explored || explored.length !== gw * gh || gw === 0)
+    return;
+  const FOG_RADIUS = 9;
+  const col = Math.floor(wx / TILE_SIZE);
+  const row = Math.floor(wy / TILE_SIZE);
+  const rSq = FOG_RADIUS * FOG_RADIUS;
+  const minR = Math.max(0, row - FOG_RADIUS - 2);
+  const maxR = Math.min(gh - 1, row + FOG_RADIUS + 2);
+  const minC = Math.max(0, col - FOG_RADIUS - 2);
+  const maxC = Math.min(gw - 1, col + FOG_RADIUS + 2);
+  for (let r = minR;r <= maxR; r++) {
+    for (let c = minC;c <= maxC; c++) {
+      const idx = r * gw + c;
+      if (explored[idx] === 2)
+        explored[idx] = 1;
+    }
+  }
+  const minRow = Math.max(0, row - FOG_RADIUS);
+  const maxRow = Math.min(gh - 1, row + FOG_RADIUS);
+  const minCol = Math.max(0, col - FOG_RADIUS);
+  const maxCol = Math.min(gw - 1, col + FOG_RADIUS);
+  for (let r = minRow;r <= maxRow; r++) {
+    const dr = r - row;
+    for (let c = minCol;c <= maxCol; c++) {
+      const dc = c - col;
+      if (dr * dr + dc * dc <= rSq) {
+        explored[r * gw + c] = 2;
+      }
+    }
+  }
 }
 function createDungeonScene(network) {
   let sceneState = null;
@@ -1979,6 +2248,18 @@ function createDungeonScene(network) {
         triggerFlash();
         break;
       }
+      case "pickup": {
+        const pickupPlayerId = ev.payload.playerId;
+        const templateId = ev.payload.templateId;
+        const healAmount = ev.payload.healAmount;
+        if (templateId === "health" && healAmount && healAmount > 0 && sceneState) {
+          const pickupPlayer = sceneState.players.get(pickupPlayerId);
+          if (pickupPlayer) {
+            spawnHealText(pickupPlayer.x, pickupPlayer.y, healAmount);
+          }
+        }
+        break;
+      }
     }
   }
   return {
@@ -1993,45 +2274,21 @@ function createDungeonScene(network) {
     },
     update(state, dt) {
       const input = pollInput();
-      if (input.dx !== 0 || input.dy !== 0) {
+      if (state.isSpectating && input.spectateNext) {
+        const aliveOthers = Array.from(state.players.values()).filter((p) => !p.isLocal && p.alive && !p.spectating);
+        if (aliveOthers.length > 1 && state.spectatorTargetId !== null) {
+          const currentIdx = aliveOthers.findIndex((p) => p.id === state.spectatorTargetId);
+          const nextIdx = (currentIdx + 1) % aliveOthers.length;
+          state.spectatorTargetId = aliveOthers[nextIdx].id;
+        }
+      }
+      if (!state.isSpectating && (input.dx !== 0 || input.dy !== 0)) {
         applyLocalInput(state, input.dx, input.dy, input.facingX, input.facingY, dt);
       }
       const local = getLocalPlayer(state);
-      if (local) {
+      if (local && !state.isSpectating) {
         network.sendMove(local.x, local.y, local.facingX, local.facingY, state.inputSeq);
-        const explored = state.exploredTiles;
-        const gw = state.gridWidth;
-        const gh = state.gridHeight;
-        if (explored && explored.length === gw * gh && gw > 0) {
-          const FOG_RADIUS = 9;
-          const playerCol = Math.floor(local.x / TILE_SIZE);
-          const playerRow = Math.floor(local.y / TILE_SIZE);
-          const rSq = FOG_RADIUS * FOG_RADIUS;
-          const minR = Math.max(0, playerRow - FOG_RADIUS - 2);
-          const maxR = Math.min(gh - 1, playerRow + FOG_RADIUS + 2);
-          const minC = Math.max(0, playerCol - FOG_RADIUS - 2);
-          const maxC = Math.min(gw - 1, playerCol + FOG_RADIUS + 2);
-          for (let r = minR;r <= maxR; r++) {
-            for (let c = minC;c <= maxC; c++) {
-              const idx = r * gw + c;
-              if (explored[idx] === 2)
-                explored[idx] = 1;
-            }
-          }
-          const minRow = Math.max(0, playerRow - FOG_RADIUS);
-          const maxRow = Math.min(gh - 1, playerRow + FOG_RADIUS);
-          const minCol = Math.max(0, playerCol - FOG_RADIUS);
-          const maxCol = Math.min(gw - 1, playerCol + FOG_RADIUS);
-          for (let r = minRow;r <= maxRow; r++) {
-            const dr = r - playerRow;
-            for (let c = minCol;c <= maxCol; c++) {
-              const dc = c - playerCol;
-              if (dr * dr + dc * dc <= rSq) {
-                explored[r * gw + c] = 2;
-              }
-            }
-          }
-        }
+        updateFogOfWar(state, local.x, local.y);
         const ptx = local.x / TILE_SIZE;
         const pty = local.y / TILE_SIZE;
         for (let i = 0;i < state.rooms.length; i++) {
@@ -2043,7 +2300,13 @@ function createDungeonScene(network) {
           }
         }
       }
-      if (input.power) {
+      if (state.isSpectating && state.spectatorTargetId !== null) {
+        const spectatedPlayer = state.players.get(state.spectatorTargetId);
+        if (spectatedPlayer) {
+          updateFogOfWar(state, spectatedPlayer.x, spectatedPlayer.y);
+        }
+      }
+      if (input.power && !state.isSpectating) {
         network.sendPower();
       }
       updateParticles(dt);
@@ -2065,9 +2328,16 @@ function createDungeonScene(network) {
     render(state, ctx2) {
       const canvasW = ctx2.canvas.width;
       const canvasH = ctx2.canvas.height;
-      const local = getLocalPlayer(state);
-      if (local) {
-        centerCamera(local.x + shakeX, local.y + shakeY);
+      if (state.isSpectating && state.spectatorTargetId !== null) {
+        const target = state.players.get(state.spectatorTargetId);
+        if (target) {
+          centerCamera(target.x + shakeX, target.y + shakeY);
+        }
+      } else {
+        const local = getLocalPlayer(state);
+        if (local) {
+          centerCamera(local.x + shakeX, local.y + shakeY);
+        }
       }
       pushCameraTransform();
       renderDungeon(ctx2, state);
@@ -2303,19 +2573,20 @@ function createResultsScene(onReturnToCommons) {
         sy += 24;
         ctx2.font = "10px monospace";
         ctx2.fillStyle = "#888888";
-        const colX = w / 2 - 200;
+        const colX = w / 2 - 220;
         ctx2.textAlign = "left";
         ctx2.fillText("Player", colX, sy);
-        ctx2.fillText("Kills", colX + 140, sy);
-        ctx2.fillText("Dmg Dealt", colX + 200, sy);
-        ctx2.fillText("Dmg Taken", colX + 290, sy);
-        ctx2.fillText("Deaths", colX + 380, sy);
+        ctx2.fillText("Kills", colX + 120, sy);
+        ctx2.fillText("Dmg Dealt", colX + 170, sy);
+        ctx2.fillText("Dmg Taken", colX + 260, sy);
+        ctx2.fillText("Healed", colX + 350, sy);
+        ctx2.fillText("Deaths", colX + 410, sy);
         sy += 4;
         ctx2.strokeStyle = "#333333";
         ctx2.lineWidth = 1;
         ctx2.beginPath();
         ctx2.moveTo(colX, sy);
-        ctx2.lineTo(colX + 420, sy);
+        ctx2.lineTo(colX + 460, sy);
         ctx2.stroke();
         sy += 14;
         for (const pr of results.players) {
@@ -2329,10 +2600,13 @@ function createResultsScene(onReturnToCommons) {
           ctx2.font = "10px monospace";
           ctx2.textAlign = "left";
           ctx2.fillText(pr.name || pr.personaSlug, colX + 14, sy);
-          ctx2.fillText(String(pr.kills), colX + 140, sy);
-          ctx2.fillText(String(pr.damageDealt), colX + 200, sy);
-          ctx2.fillText(String(pr.damageTaken), colX + 290, sy);
-          ctx2.fillText(pr.diedOnFloor !== null ? `F${pr.diedOnFloor}` : "-", colX + 380, sy);
+          ctx2.fillText(String(pr.kills), colX + 120, sy);
+          ctx2.fillText(String(pr.damageDealt), colX + 170, sy);
+          ctx2.fillText(String(pr.damageTaken), colX + 260, sy);
+          ctx2.fillStyle = pr.totalHealing > 0 ? "#44dd88" : "#666666";
+          ctx2.fillText(pr.totalHealing > 0 ? `+${pr.totalHealing}` : "-", colX + 350, sy);
+          ctx2.fillStyle = "#cccccc";
+          ctx2.fillText(pr.diedOnFloor !== null ? `F${pr.diedOnFloor}` : "-", colX + 410, sy);
           sy += 20;
         }
       }
