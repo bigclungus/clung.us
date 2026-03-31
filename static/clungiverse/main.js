@@ -35,9 +35,18 @@ var PERSONAS = {
     powerName: "Consume",
     powerDescription: "Execute <20% HP enemies in 36px, heal 15% maxHP, 6s CD",
     baseStats: { hp: 120, atk: 14, def: 7, spd: 7, lck: 8 }
+  },
+  crundle: {
+    slug: "crundle",
+    name: "Crundle",
+    role: "wildcard",
+    color: "#8b4513",
+    powerName: "Nervous Scramble",
+    powerDescription: "3x speed for 2s, 50% ATK contact damage to enemies touched, 10s CD",
+    baseStats: { hp: 85, atk: 10, def: 8, spd: 4, lck: 12 }
   }
 };
-var PERSONA_SLUGS = ["holden", "broseidon", "deckard_cain", "galactus"];
+var PERSONA_SLUGS = ["holden", "broseidon", "deckard_cain", "galactus", "crundle"];
 var TILE_FLOOR = 0;
 var TILE_WALL = 1;
 var TILE_DOOR_CLOSED = 2;
@@ -52,6 +61,13 @@ var TEMP_POWERUP_META = {
   haste: { name: "Haste", emoji: "⚡", color: "#ffee00" },
   lifesteal: { name: "Lifesteal", emoji: "\uD83D\uDC9A", color: "#44cc44" },
   glass_cannon: { name: "Glass Cannon", emoji: "\uD83D\uDCA5", color: "#ff88ff" }
+};
+var TEMP_POWERUP_MAX_DURATIONS = {
+  berserker: 20000,
+  shield: 15000,
+  haste: 1e4,
+  lifesteal: 25000,
+  glass_cannon: 12000
 };
 function createInitialState() {
   return {
@@ -379,6 +395,8 @@ class DungeonNetwork extends Emitter {
         templateId: a.templateId,
         expiresAt: a.expiresAt
       }));
+      const TICK_MS = 62.5;
+      const scramblingUntil = (sp.scramblingTicks ?? 0) > 0 ? Date.now() + (sp.scramblingTicks ?? 0) * TICK_MS : old ? old.scramblingUntil : 0;
       if (isLocal && old) {
         old.hp = sp.hp;
         old.maxHp = sp.maxHp;
@@ -388,6 +406,9 @@ class DungeonNetwork extends Emitter {
         old.name = sp.name;
         old.personaSlug = sp.personaSlug;
         old.activeTempPowerups = tempPowerups;
+        if ((sp.scramblingTicks ?? 0) > 0) {
+          old.scramblingUntil = scramblingUntil;
+        }
       } else {
         const cp = {
           id: sp.id,
@@ -406,7 +427,8 @@ class DungeonNetwork extends Emitter {
           iframeTicks: sp.iframeTicks,
           powerCooldown: sp.cooldownRemaining,
           powerCooldownMax: old ? old.powerCooldownMax : 128,
-          activeTempPowerups: tempPowerups
+          activeTempPowerups: tempPowerups,
+          scramblingUntil
         };
         s.players.set(sp.id, cp);
       }
@@ -1180,8 +1202,9 @@ function applyLocalInput(state, dx, dy, facingX, facingY, dt) {
     return;
   state.inputSeq++;
   if (dx !== 0 || dy !== 0) {
-    const moveX = dx * BASE_SPEED * dt;
-    const moveY = dy * BASE_SPEED * dt;
+    const scrambleMultiplier = (local.scramblingUntil ?? 0) > Date.now() ? 3 : 1;
+    const moveX = dx * BASE_SPEED * scrambleMultiplier * dt;
+    const moveY = dy * BASE_SPEED * scrambleMultiplier * dt;
     const newX = local.x + moveX;
     const newY = local.y + moveY;
     if (!collidesWithWall(state, newX, local.y)) {
@@ -1273,7 +1296,8 @@ var PERSONA_AVATAR_FILES = {
   holden: "bloodfeast.gif",
   broseidon: "fit-bro_a.gif",
   deckard_cain: "deckard-cain_a.gif",
-  galactus: "galactus_a.gif"
+  galactus: "galactus_a.gif",
+  crundle: "crundle.png"
 };
 var avatarCache = new Map;
 var avatarReady = new Set;
@@ -1300,7 +1324,8 @@ var PERSONA_COLORS = {
   holden: "#e63946",
   broseidon: "#457b9d",
   deckard_cain: "#e9c46a",
-  galactus: "#7b2d8e"
+  galactus: "#7b2d8e",
+  crundle: "#8b4513"
 };
 function lerp(a, b, t) {
   return a + (b - a) * t;
@@ -1391,6 +1416,14 @@ function renderPlayers(ctx2, state) {
     if (player.iframeTicks > 0 && Math.floor(performance.now() / 80) % 2 === 0) {
       drawHpBar(ctx2, x, y - r - 2, 20, player.hp, player.maxHp);
       continue;
+    }
+    if ((player.scramblingUntil ?? 0) > Date.now()) {
+      const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 80);
+      ctx2.strokeStyle = `rgba(125,143,105,${0.5 + pulse * 0.5})`;
+      ctx2.lineWidth = 3 + pulse * 2;
+      ctx2.beginPath();
+      ctx2.arc(x, y, r + 4, 0, Math.PI * 2);
+      ctx2.stroke();
     }
     const avatar = getAvatar(player.personaSlug);
     if (avatar) {
@@ -1674,20 +1707,13 @@ function renderActiveTempPowerups(ctx2, state, canvasW, canvasH) {
   const totalW = active.length * (slotW + gap) - gap;
   let x = (canvasW - totalW) / 2;
   const y = canvasH - 65;
-  const maxDurations = {
-    berserker: 20000,
-    shield: 15000,
-    haste: 1e4,
-    lifesteal: 25000,
-    glass_cannon: 12000
-  };
   for (const tp of active) {
     const meta = TEMP_POWERUP_META[tp.templateId] ?? { name: tp.templateId, emoji: "✨", color: "#ffffff" };
     const remainMs = tp.expiresAt - now;
     const remainSec = Math.ceil(remainMs / 1000);
     ctx2.fillStyle = "rgba(0,0,0,0.7)";
     ctx2.fillRect(x, y, slotW, slotH);
-    const maxMs = maxDurations[tp.templateId] ?? 20000;
+    const maxMs = TEMP_POWERUP_MAX_DURATIONS[tp.templateId] ?? 20000;
     const ratio = Math.min(1, remainMs / maxMs);
     ctx2.fillStyle = meta.color + "88";
     ctx2.fillRect(x, y + slotH - 3, slotW * ratio, 3);
@@ -1907,6 +1933,9 @@ function createDungeonScene(network) {
           const player = sceneState.players.get(playerId);
           if (player) {
             spawnPowerActivation(player.x, player.y);
+            if (ev.payload.power === "nervous_scramble") {
+              player.scramblingUntil = Date.now() + 2000;
+            }
           }
         }
         break;
