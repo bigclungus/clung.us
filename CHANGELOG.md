@@ -581,6 +581,8 @@
 
 - rebuild clungiverse bundle with deduplication refactors
 
+- pre-monorepo snapshot
+
 
 ### Congress
 - allow 'evolution' field in session PATCH, commit session files
